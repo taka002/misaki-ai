@@ -148,7 +148,7 @@
       align-items: center;
     }
 
-    input[type="text"], input[type="password"] {
+    input[type="text"], input[type="password"], select {
       width: 100%;
       min-width: 0;
       padding: 16px 18px;
@@ -286,7 +286,7 @@
       outline: none;
     }
 
-    .toggle-btn, .danger-btn, .close-btn, .save-btn {
+    .toggle-btn, .danger-btn, .close-btn, .save-btn, .voice-chip {
       width: 100%;
       padding: 16px;
       border: none;
@@ -324,6 +324,25 @@
       line-height: 1.6;
     }
 
+    .voice-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .voice-chip {
+      padding: 14px 10px;
+      font-size: 15px;
+      background: rgba(255,255,255,0.1);
+      color: white;
+      margin-top: 0;
+    }
+
+    .voice-chip.active {
+      background: linear-gradient(135deg, #7a69ff, #5f9bff);
+    }
+
     @media (max-width: 430px) {
       .top-character {
         flex: 0 0 32vh;
@@ -348,6 +367,10 @@
       .send-btn {
         width: 106px;
         height: 80px;
+      }
+
+      .voice-grid {
+        grid-template-columns: 1fr;
       }
     }
   </style>
@@ -393,14 +416,45 @@
       </div>
 
       <div class="setting-row">
-        <label class="setting-label">OpenAI APIキー</label>
+        <label class="setting-label">OpenAI APIキー（※保存しません）</label>
         <input class="setting-input" id="apiKeyInput" type="password" placeholder="sk-..." />
-        <div class="hint">GPTを使う時だけ必要。使わないなら空でもOK。</div>
+        <div class="hint">再起動すると空になります。会話履歴は残ります。</div>
+      </div>
+
+      <div class="setting-row">
+        <label class="setting-label">ElevenLabs APIキー（※保存しません）</label>
+        <input class="setting-input" id="elevenApiKeyInput" type="password" placeholder="sk_..." />
+        <div class="hint">自然音声を使う時だけ入力します。再起動で消えます。</div>
+      </div>
+
+      <div class="setting-row">
+        <label class="setting-label">Voice ID（※保存しません）</label>
+        <input class="setting-input" id="voiceIdInput" type="text" placeholder="wcs09USXSN5Bl7FXohVZ" />
+        <div class="hint">ElevenLabsの声ID。再起動で消えます。</div>
+      </div>
+
+      <div class="setting-row">
+        <label class="setting-label">音声エンジン</label>
+        <select class="setting-input" id="voiceEngineSelect">
+          <option value="standard">スマホ標準音声</option>
+          <option value="eleven">ElevenLabs音声</option>
+        </select>
+      </div>
+
+      <div class="setting-row">
+        <label class="setting-label">声の簡単切り替え（ボタン）</label>
+        <div class="voice-grid">
+          <button class="voice-chip" id="voiceChipGentle" onclick="setVoicePreset('gentle')">優しい</button>
+          <button class="voice-chip" id="voiceChipBright" onclick="setVoicePreset('bright')">明るい</button>
+          <button class="voice-chip" id="voiceChipCalm" onclick="setVoicePreset('calm')">落ち着き</button>
+        </div>
+        <div class="hint">押すと Voice ID 欄に反映されます。必要なら上書きしてOK。</div>
       </div>
 
       <button class="save-btn" onclick="saveSettings()">💾 保存する</button>
       <button class="toggle-btn" id="gptToggle" onclick="toggleGPT()">🤖 GPT OFF</button>
       <button class="toggle-btn" id="voiceToggle" onclick="toggleVoice()">🔊 音声ON</button>
+      <button class="toggle-btn" id="elevenToggle" onclick="toggleElevenVoice()">🎙 Eleven音声OFF</button>
       <button class="danger-btn" onclick="resetMemory()">記憶をリセット</button>
       <button class="close-btn" onclick="closeSettings()">閉じる</button>
     </div>
@@ -416,21 +470,33 @@
     const nameInput = document.getElementById("nameInput");
     const userNameInput = document.getElementById("userNameInput");
     const apiKeyInput = document.getElementById("apiKeyInput");
+    const elevenApiKeyInput = document.getElementById("elevenApiKeyInput");
+    const voiceIdInput = document.getElementById("voiceIdInput");
+    const voiceEngineSelect = document.getElementById("voiceEngineSelect");
     const statusBar = document.getElementById("statusBar");
     const micBtn = document.getElementById("micBtn");
 
     let voiceEnabled = localStorage.getItem("voiceEnabled") !== "false";
     let gptEnabled = localStorage.getItem("gptEnabled") === "true";
+    let elevenVoiceEnabled = localStorage.getItem("elevenVoiceEnabled") === "true";
+    let voiceEngine = localStorage.getItem("voiceEngine") || "standard";
+    let selectedVoicePreset = localStorage.getItem("selectedVoicePreset") || "";
     let availableVoices = [];
     let recognition = null;
     let isListening = false;
     let isSpeaking = false;
     let lastBotReply = "";
 
+    // ===== APIキーは保存しない =====
+    let sessionSecrets = {
+      apiKey: "",
+      elevenApiKey: "",
+      voiceId: ""
+    };
+
     let memory = {
       characterName: localStorage.getItem("characterName") || "美咲",
       userName: localStorage.getItem("userNickName") || "",
-      apiKey: localStorage.getItem("openai_api_key") || "",
       mood: localStorage.getItem("hostess_mood") || "",
       topic: localStorage.getItem("hostess_topic") || "",
       lastMessage: localStorage.getItem("hostess_lastMessage") || "",
@@ -440,23 +506,7 @@
       currentFeeling: localStorage.getItem("hostess_currentFeeling") || "",
       currentNeed: localStorage.getItem("hostess_currentNeed") || "",
       unresolvedTopic: localStorage.getItem("hostess_unresolvedTopic") || "",
-      lastBotQuestion: localStorage.getItem("hostess_lastBotQuestion") || "",
-
-      // 強化メモリ
-      conversationMode: localStorage.getItem("hostess_conversationMode") || "normal",
-      silenceCount: parseInt(localStorage.getItem("hostess_silenceCount") || "0", 10),
-      lastSummary: localStorage.getItem("hostess_lastSummary") || "",
-      lastQuestionType: localStorage.getItem("hostess_lastQuestionType") || "",
-      speakingStyle: localStorage.getItem("hostess_speakingStyle") || "neutral",
-      emotionalTrend: localStorage.getItem("hostess_emotionalTrend") || "",
-
-      personalityProfile: JSON.parse(localStorage.getItem("hostess_personalityProfile") || `{
-        "talkStyle":"neutral",
-        "replyPace":"soft",
-        "warmth":"gentle",
-        "questionDepth":"light",
-        "preferredLength":"medium"
-      }`)
+      lastBotQuestion: localStorage.getItem("hostess_lastBotQuestion") || ""
     };
 
     memory.visitCount += 1;
@@ -464,10 +514,17 @@
 
     nameInput.value = memory.characterName;
     userNameInput.value = memory.userName;
-    apiKeyInput.value = memory.apiKey;
+
+    // API系は毎回空
+    apiKeyInput.value = "";
+    elevenApiKeyInput.value = "";
+    voiceIdInput.value = "";
+    voiceEngineSelect.value = voiceEngine;
 
     updateVoiceButton();
     updateGPTButton();
+    updateElevenButton();
+    updateVoicePresetButtons();
 
     const faceImages = {
       normal: "girl-normal.jpg",
@@ -492,6 +549,21 @@
       panic: "linear-gradient(to bottom, #5a5068, #181724)",
       exhausted: "linear-gradient(to bottom, #4b5165, #121926)"
     };
+
+    // ===== 声プリセット（ここを自分のVoice IDに変えてOK） =====
+    const voicePresets = {
+      gentle: "wcs09USXSN5Bl7FXohVZ",
+      bright: "21m00Tcm4TlvDq8ikWAM",
+      calm: "AZnzlk1XvdvUeBnXmlld"
+    };
+
+    // ===== 感情→声自動連動 =====
+    function getAutoVoiceIdByMood() {
+      if (memory.mood === "happy") return voicePresets.bright;
+      if (memory.mood === "sympathy" || memory.mood === "healing" || memory.mood === "exhausted") return voicePresets.gentle;
+      if (memory.mood === "worried" || memory.mood === "panic" || memory.mood === "troubled") return voicePresets.calm;
+      return voiceIdInput.value.trim() || sessionSecrets.voiceId || voicePresets.gentle;
+    }
 
     function setStatus(text) {
       statusBar.textContent = text;
@@ -520,7 +592,10 @@
     function openSettings() {
       nameInput.value = memory.characterName || "美咲";
       userNameInput.value = memory.userName || "";
-      apiKeyInput.value = memory.apiKey || "";
+      apiKeyInput.value = "";
+      elevenApiKeyInput.value = "";
+      voiceIdInput.value = "";
+      voiceEngineSelect.value = voiceEngine;
       settingsModal.classList.add("show");
     }
 
@@ -531,14 +606,20 @@
     function saveSettings() {
       memory.characterName = nameInput.value.trim() || "美咲";
       memory.userName = userNameInput.value.trim();
-      memory.apiKey = apiKeyInput.value.trim();
+
+      // ===== APIキーはセッションのみ =====
+      sessionSecrets.apiKey = apiKeyInput.value.trim();
+      sessionSecrets.elevenApiKey = elevenApiKeyInput.value.trim();
+      sessionSecrets.voiceId = voiceIdInput.value.trim();
+
+      voiceEngine = voiceEngineSelect.value;
+      localStorage.setItem("voiceEngine", voiceEngine);
 
       localStorage.setItem("characterName", memory.characterName);
       localStorage.setItem("userNickName", memory.userName);
-      localStorage.setItem("openai_api_key", memory.apiKey);
 
       addMessage("設定を保存したよ😊", "bot");
-      setStatus("設定を保存しました");
+      setStatus("設定を保存しました（APIキーは今回だけ有効）");
       closeSettings();
     }
 
@@ -560,6 +641,13 @@
       setStatus(gptEnabled ? "GPT接続ON" : "GPT接続OFF");
     }
 
+    function toggleElevenVoice() {
+      elevenVoiceEnabled = !elevenVoiceEnabled;
+      localStorage.setItem("elevenVoiceEnabled", elevenVoiceEnabled);
+      updateElevenButton();
+      setStatus(elevenVoiceEnabled ? "Eleven音声ON" : "Eleven音声OFF");
+    }
+
     function updateVoiceButton() {
       voiceToggleBtn.textContent = voiceEnabled ? "🔊 音声ON" : "🔇 音声OFF";
     }
@@ -568,25 +656,49 @@
       gptToggleBtn.textContent = gptEnabled ? "🤖 GPT ON" : "🤖 GPT OFF";
     }
 
+    function updateElevenButton() {
+      const btn = document.getElementById("elevenToggle");
+      if (btn) {
+        btn.textContent = elevenVoiceEnabled ? "🎙 Eleven音声ON" : "🎙 Eleven音声OFF";
+      }
+    }
+
+    function setVoicePreset(type) {
+      selectedVoicePreset = type;
+      localStorage.setItem("selectedVoicePreset", selectedVoicePreset);
+
+      if (voicePresets[type]) {
+        voiceIdInput.value = voicePresets[type];
+        sessionSecrets.voiceId = voicePresets[type];
+        setStatus("Voice ID を切り替えました");
+      }
+
+      updateVoicePresetButtons();
+    }
+
+    function updateVoicePresetButtons() {
+      ["gentle", "bright", "calm"].forEach(type => {
+        const idMap = {
+          gentle: "voiceChipGentle",
+          bright: "voiceChipBright",
+          calm: "voiceChipCalm"
+        };
+        const btn = document.getElementById(idMap[type]);
+        if (!btn) return;
+        btn.classList.toggle("active", selectedVoicePreset === type);
+      });
+    }
+
     function resetMemory() {
-      [
-        "hostess_mood",
-        "hostess_topic",
-        "hostess_lastMessage",
-        "hostess_visitCount",
-        "hostess_chatHistory",
-        "hostess_currentFeeling",
-        "hostess_currentNeed",
-        "hostess_unresolvedTopic",
-        "hostess_lastBotQuestion",
-        "hostess_conversationMode",
-        "hostess_silenceCount",
-        "hostess_lastSummary",
-        "hostess_lastQuestionType",
-        "hostess_speakingStyle",
-        "hostess_emotionalTrend",
-        "hostess_personalityProfile"
-      ].forEach(k => localStorage.removeItem(k));
+      localStorage.removeItem("hostess_mood");
+      localStorage.removeItem("hostess_topic");
+      localStorage.removeItem("hostess_lastMessage");
+      localStorage.removeItem("hostess_visitCount");
+      localStorage.removeItem("hostess_chatHistory");
+      localStorage.removeItem("hostess_currentFeeling");
+      localStorage.removeItem("hostess_currentNeed");
+      localStorage.removeItem("hostess_unresolvedTopic");
+      localStorage.removeItem("hostess_lastBotQuestion");
 
       memory.mood = "";
       memory.topic = "";
@@ -597,19 +709,6 @@
       memory.currentNeed = "";
       memory.unresolvedTopic = "";
       memory.lastBotQuestion = "";
-      memory.conversationMode = "normal";
-      memory.silenceCount = 0;
-      memory.lastSummary = "";
-      memory.lastQuestionType = "";
-      memory.speakingStyle = "neutral";
-      memory.emotionalTrend = "";
-      memory.personalityProfile = {
-        talkStyle: "neutral",
-        replyPace: "soft",
-        warmth: "gentle",
-        questionDepth: "light",
-        preferredLength: "medium"
-      };
 
       addMessage("記憶をリセットしたよ😊\nまた最初からゆっくり話そう。", "bot");
       setFace("healing");
@@ -698,7 +797,7 @@
       try {
         let reply = "";
 
-        if (gptEnabled && memory.apiKey) {
+        if (gptEnabled && sessionSecrets.apiKey) {
           setStatus("GPTで考え中…");
           reply = await generateGPTReply(text);
         } else {
@@ -754,21 +853,10 @@
       localStorage.setItem("hostess_currentNeed", memory.currentNeed || "");
       localStorage.setItem("hostess_unresolvedTopic", memory.unresolvedTopic || "");
       localStorage.setItem("hostess_lastBotQuestion", memory.lastBotQuestion || "");
-      localStorage.setItem("hostess_conversationMode", memory.conversationMode || "normal");
-      localStorage.setItem("hostess_silenceCount", memory.silenceCount || 0);
-      localStorage.setItem("hostess_lastSummary", memory.lastSummary || "");
-      localStorage.setItem("hostess_lastQuestionType", memory.lastQuestionType || "");
-      localStorage.setItem("hostess_speakingStyle", memory.speakingStyle || "neutral");
-      localStorage.setItem("hostess_emotionalTrend", memory.emotionalTrend || "");
-      localStorage.setItem("hostess_personalityProfile", JSON.stringify(memory.personalityProfile));
     }
 
     function containsAny(text, words) {
       return words.some(word => text.includes(word.toLowerCase()));
-    }
-
-    function shorten(text) {
-      return text.length > 18 ? text.slice(0, 18) + "…" : text;
     }
 
     function pick(arr) {
@@ -780,69 +868,17 @@
       return Math.random() < 0.35 ? `${memory.userName}さん、` : "";
     }
 
-    function updateSummary(userText, replyText) {
-      const shortUser = userText.length > 40 ? userText.slice(0, 40) + "…" : userText;
-      const shortReply = replyText.length > 55 ? replyText.slice(0, 55) + "…" : replyText;
-      memory.lastSummary = `前は「${shortUser}」って感じで、そこに対して「${shortReply}」って流れだったね。`;
-      saveMemory();
-    }
-
     function analyzeContext(text) {
       const lower = text.toLowerCase();
 
-      if (
-        text.trim() === "" ||
-        containsAny(lower, ["…", "...", "うーん", "んー", "はぁ", "はー", "特に", "別に", "わからない"])
-      ) {
-        memory.silenceCount = (memory.silenceCount || 0) + 1;
-      } else {
-        memory.silenceCount = 0;
-      }
-
-      if (containsAny(lower, ["昨日の続き", "続き", "前の続き", "この前の続き", "昨日", "きのう"])) {
-        memory.conversationMode = "continuation";
-      } else if (containsAny(lower, [
-        "聞いて",
-        "聞いてほしい",
-        "ただ話したい",
-        "答えいらない",
-        "アドバイスいらない",
-        "わかってほしい"
-      ])) {
-        memory.conversationMode = "just_listen";
-      } else if (containsAny(lower, [
-        "整理したい",
-        "ちゃんと考えたい",
-        "原因",
-        "どうして",
-        "なんで",
-        "深く"
-      ])) {
-        memory.conversationMode = "deep_talk";
-      } else {
-        memory.conversationMode = "normal";
-      }
-
-      if (text.length <= 8) {
-        memory.speakingStyle = "short";
-      } else if (text.length >= 45) {
-        memory.speakingStyle = "long";
-      } else {
-        memory.speakingStyle = "neutral";
-      }
-
       if (containsAny(lower, ["悲しい", "泣きたい", "寂しい", "つらい", "苦しい"])) {
         memory.currentFeeling = "sad";
-        memory.emotionalTrend = "sad";
       } else if (containsAny(lower, ["不安", "こわい", "怖い", "心配"])) {
         memory.currentFeeling = "anxious";
-        memory.emotionalTrend = "anxious";
       } else if (containsAny(lower, ["イライラ", "むかつく", "腹立つ"])) {
         memory.currentFeeling = "angry";
-        memory.emotionalTrend = "angry";
       } else if (containsAny(lower, ["疲れた", "しんどい", "無理", "限界"])) {
         memory.currentFeeling = "tired";
-        memory.emotionalTrend = "tired";
       }
 
       if (containsAny(lower, ["聞いて", "つらい", "悲しい", "しんどい"])) {
@@ -866,501 +902,185 @@
       saveMemory();
     }
 
-    function learnUserPreference(text) {
-      const lower = text.toLowerCase();
-      const p = memory.personalityProfile;
-
-      if (containsAny(lower, ["だる", "まじ", "やば", "ほんと", "しんど"])) {
-        p.talkStyle = "casual";
-      }
-      if (containsAny(lower, ["です", "ます", "でしょうか", "ありがとうございます"])) {
-        p.talkStyle = "polite";
-      }
-
-      if (containsAny(lower, ["うん", "そう", "まあ", "たぶん", "…", "..."])) {
-        p.replyPace = "soft";
-      }
-      if (text.length > 60) {
-        p.replyPace = "deep";
-      }
-
-      if (containsAny(lower, ["癒して", "安心したい", "甘えたい"])) {
-        p.warmth = "warm";
-      }
-      if (containsAny(lower, ["整理したい", "冷静に", "ちゃんと考えたい"])) {
-        p.warmth = "calm";
-      }
-
-      if (containsAny(lower, ["聞いてほしいだけ", "ただ話したい", "答えはいらない"])) {
-        p.questionDepth = "light";
-      }
-      if (containsAny(lower, ["深く", "ちゃんと整理したい", "原因", "どうして"])) {
-        p.questionDepth = "deep";
-      }
-
-      if (text.length < 12) {
-        p.preferredLength = "short";
-      } else if (text.length > 70) {
-        p.preferredLength = "long";
-      } else {
-        p.preferredLength = "medium";
-      }
-
-      saveMemory();
-    }
-
-    function buildSoftContinuation(text) {
-      const lower = text.toLowerCase();
-
-      if (memory.conversationMode === "continuation") {
-        if (memory.lastSummary) {
-          return `昨日の流れも少し残ってる感じだよね。\n`;
-        }
-        return "昨日から少し続いてる感じなんだね。\n";
-      }
-
-      if (containsAny(lower, ["うん", "そう", "たしかに", "まあ", "少し", "たぶん"])) {
-        return "うん、ちゃんと続きとして受け取ってるよ。\n";
-      }
-
-      if (memory.lastSummary && Math.random() < 0.18) {
-        return "さっきの流れも少しつながってる感じするね。\n";
-      }
-
-      return "";
-    }
-
-    function avoidRepeatedQuestion(candidates, type = "") {
-      const filtered = candidates.filter(q => q !== memory.lastQuestionType);
-      const selected = filtered.length ? pick(filtered) : pick(candidates);
-      memory.lastQuestionType = selected;
-      saveMemory();
-      return selected;
-    }
-
-    function getNaturalTail() {
-      const mode = memory.conversationMode || "normal";
-      const silence = memory.silenceCount || 0;
-
-      const noQuestionTails = [
-        "今はそれだけでも十分だよ。",
-        "無理にうまく言わなくて大丈夫だよ。",
-        "ここではそのままで大丈夫。",
-        "ちゃんと伝わってるよ。",
-        "今日はそういう日でもいいよ。"
-      ];
-
-      const softQuestionTails = [
-        "話せそうなら、続きも聞くよ。",
-        "言えそうなところだけでも大丈夫だよ。",
-        "少しだけ続き話してみる？",
-        "もし話せそうなら、そのまま続けていいよ。",
-        "言葉にならなくても、少しずつで大丈夫。"
-      ];
-
-      const deepButSoftTails = [
-        "無理のない範囲で、少しずつ整理していこうか。",
-        "急がなくていいから、引っかかってるところからで大丈夫だよ。",
-        "話せるところからでいいよ。",
-        "今いちばん重たいところだけでも大丈夫だよ。"
-      ];
-
-      if (silence >= 2) {
-        return pick([
-          "無理に話さなくて大丈夫だよ。",
-          "今はここにいるだけでもいいよ。",
-          "返事を急がなくて大丈夫。"
-        ]);
-      }
-
-      if (mode === "just_listen") {
-        return pick(noQuestionTails);
-      }
-
-      if (mode === "deep_talk") {
-        if (Math.random() < 0.45) return pick(noQuestionTails);
-        return pick(deepButSoftTails);
-      }
-
-      if (Math.random() < 0.58) {
-        return pick(noQuestionTails);
-      }
-
-      return pick(softQuestionTails);
-    }
-
-    function getWarmthPrefix() {
-      const p = memory.personalityProfile;
-
-      if (p.warmth === "warm") {
-        return pick([
-          "うん、大丈夫だよ。\n",
-          "そっか…ちゃんと聞いてるよ。\n",
-          "うん、ここでは無理しなくていいよ。\n"
-        ]);
-      }
-
-      if (p.warmth === "calm") {
-        return pick([
-          "うん、落ち着いて受け取ってるよ。\n",
-          "なるほど…整理しながら聞いてるよ。\n",
-          "うん、順番に見ていこうか。\n"
-        ]);
-      }
-
-      return "";
-    }
-
-    function shapeReplyByPersonality(text) {
-      const p = memory.personalityProfile;
-      let result = text;
-
-      if (p.warmth !== "gentle" && !result.startsWith("うん") && !result.startsWith("そっか") && !result.startsWith("なるほど")) {
-        result = getWarmthPrefix() + result;
-      }
-
-      if (p.preferredLength === "short") {
-        const parts = result.split("\n").filter(Boolean);
-        result = parts.slice(0, 3).join("\n");
-      }
-
-      return result;
-    }
-
-    function finalReply(baseLines, questionLines = [], mood = "normal", feeling = "") {
-      const callName = maybeCallUserName();
-      const continuation = buildSoftContinuation(memory.lastMessage || "");
-      const body = pick(baseLines);
-
-      setFace(mood);
-      memory.mood = mood;
-      if (feeling) memory.currentFeeling = feeling;
-      saveMemory();
-
-      let tail = getNaturalTail();
-
-      if (questionLines.length && Math.random() < 0.42 && memory.conversationMode !== "just_listen") {
-        tail = avoidRepeatedQuestion(questionLines);
-      }
-
-      let result = `${callName}${continuation}${body}\n${tail}`;
-      result = shapeReplyByPersonality(result);
-      updateSummary(memory.lastMessage || "", result);
-      return result;
-    }
-
     function generateLocalReply(text) {
       const t = text.trim();
       const lower = t.toLowerCase();
 
       rememberUserInfo(t, lower);
       analyzeContext(t);
-      learnUserPreference(t);
+
+      const callName = maybeCallUserName();
 
       const shortReply = t.length <= 12;
-      const isSilenceLike = containsAny(lower, ["…", "...", "うーん", "んー", "特に", "わからない", "ないかも"]);
       const seemsAnswerToPrevious =
         shortReply ||
         containsAny(lower, ["そう", "うん", "違う", "いや", "たぶん", "少し", "まあ", "うーん"]);
 
-      // ===== 沈黙 =====
-      if (isSilenceLike) {
-        if (memory.silenceCount >= 2) {
-          return finalReply(
-            [
-              "うん、大丈夫。\n今すぐ言葉にしなくてもいいよ。\nただ少ししんどい空気はある気がする。",
-              "無理に話さなくて大丈夫だよ。\n今は整理が追いついてない感じかもしれないね。",
-              "うん…まだうまく言葉にならない感じなんだね。\nそれでもここにいてくれれば大丈夫。"
-            ],
-            [
-              "今は『聞いてほしいだけ』に近い？",
-              "気持ちより体の方がしんどい感じかな？",
-              "一言だけなら、今の気分どう？"
-            ],
-            "healing",
-            memory.currentFeeling || ""
-          );
-        }
-
-        return finalReply(
-          [
-            "うん、ゆっくりで大丈夫。\n急がなくていいよ。",
-            "大丈夫だよ。\n今すぐうまく話せなくても全然いい。",
-            "うん、そのままで大丈夫。\nちゃんと待てるよ。"
-          ],
-          [],
-          "healing",
-          memory.currentFeeling || ""
-        );
-      }
-
-      // ===== 短文返し =====
-      if (shortReply) {
-        if (containsAny(lower, ["疲れた", "つかれた", "だるい"])) {
-          return finalReply(
-            [
-              "うん…今日はかなり削られた感じだったんだね。\nちゃんとしんどかったの伝わるよ。",
-              "そっか…今日は気力まで持っていかれた感じかな。\nなんとか終えた、って空気あるね。",
-              "うん、それは軽い疲れじゃない感じする。\n心も体も両方重い日に近そうだね。"
-            ],
-            [
-              "今は何もしたくない感じに近い？",
-              "今日は人で疲れた感じ？それとも体の方？",
-              "少し横になりたい感じある？"
-            ],
-            "exhausted",
-            "tired"
-          );
-        }
-
-        if (containsAny(lower, ["悲しい", "つらい", "寂しい", "さみしい"])) {
-          return finalReply(
-            [
-              "うん…それ、静かにきつい感じだよね。\n表に出しにくいけど、ちゃんと重いやつ。",
-              "そっか…なんとなく気持ちが沈む感じ、あるよね。\n無理に元気にしなくていいよ。",
-              "うん、そういう時ってちょっと世界が遠く感じたりするよね。"
-            ],
-            [
-              "今日は何かきっかけあった？",
-              "ずっと続いてる感じかな？",
-              "今はひとりで抱えてる感じ？"
-            ],
-            "sympathy",
-            "sad"
-          );
-        }
-
-        if (containsAny(lower, ["不安", "こわい", "怖い", "心配"])) {
-          return finalReply(
-            [
-              "うん…落ち着かない感じあるね。\n頭のどこかがずっと緊張してるみたいな。",
-              "それは気が休まらないやつだね…。\n心がずっと構えてる感じしそう。",
-              "うん、不安って静かに体力持っていくよね。"
-            ],
-            [
-              "今いちばん引っかかってるのって何かな？",
-              "考え出すと止まらない感じある？",
-              "今は気持ちの方が強い？体の方が強い？"
-            ],
-            "worried",
-            "anxious"
-          );
-        }
-      }
-
-      // ===== 前の返答への自然なつながり =====
-      if (seemsAnswerToPrevious && memory.currentFeeling) {
-        if (memory.currentFeeling === "tired") {
-          return finalReply(
-            [
-              "うん…その感じだったんだね。\nそれならかなり消耗したと思う。",
-              "そっか、ちゃんとつながった。\nそれは疲れる流れだよね。",
-              "なるほど…それならしんどくなるの自然だと思う。"
-            ],
-            [
-              "今日はもうこれ以上がんばらない方がよさそう？",
-              "今は静かにしたい感じかな？",
-              "少しでも気を抜けそう？"
-            ],
-            "exhausted",
-            "tired"
-          );
-        }
-
-        if (memory.currentFeeling === "sad") {
-          return finalReply(
-            [
-              "うん…それは心に残るよね。\nすぐ切り替えられる感じじゃないと思う。",
-              "そっか…それなら沈むの自然だよ。\nちゃんと傷ついてたんだと思う。",
-              "なるほど…その流れなら、じわっとしんどいよね。"
-            ],
-            [
-              "今もまだ引きずってる感じある？",
-              "そのあと一人で抱えてた？",
-              "少し話すと軽くなりそう？"
-            ],
-            "sympathy",
-            "sad"
-          );
-        }
-
-        if (memory.currentFeeling === "anxious") {
-          return finalReply(
-            [
-              "うん、それが中心にあったんだね。\n不安の形が少し見えてきた感じする。",
-              "そっか…それなら落ち着かないのも無理ないよ。",
-              "なるほど…そこがずっと引っかかってたんだね。"
-            ],
-            [
-              "今すぐどうこうじゃなくても、整理はできそう？",
-              "一番こわい想像ってどこまで行く？",
-              "誰かに言えてる感じある？"
-            ],
-            "worried",
-            "anxious"
-          );
-        }
-
-        if (memory.currentFeeling === "angry") {
-          return finalReply(
-            [
-              "うん、それは引っかかるよね。\n怒るの当然だと思う。",
-              "なるほど…そこだったんだね。\nそれはモヤモヤ残ると思う。",
-              "そっか…それならイラッとするの自然だよ。"
-            ],
-            [
-              "本当はどうしてほしかった？",
-              "まだモヤモヤ残ってる？",
-              "悲しい寄りの怒りにも近い？"
-            ],
-            "irritated",
-            "angry"
-          );
-        }
-      }
-
-      // ===== 感情分岐 =====
       if (containsAny(lower, ["悲しい", "泣きたい", "寂しい", "孤独", "なんだか悲しくなる"])) {
-        return finalReply(
-          [
-            "そっか…その言い方、かなり静かにしんどい感じする。\n無理に元気な方へ持っていかなくていいよ。",
-            "うん…なんだか悲しくなる時って、理由がはっきりしないほどつらかったりするよね。\nちゃんとここで受け止めるよ。",
-            "それ、表に出しにくい悲しさかもしれないね。\nでもちゃんと重いと思う。"
-          ],
-          [
-            "今日は何が一番心に残ってる？",
-            "何かきっかけがあった感じ？",
-            "今は誰かにそばにいてほしい感じある？"
-          ],
-          "sympathy",
-          "sad"
-        );
+        setFace("sympathy");
+        memory.mood = "sympathy";
+        memory.currentFeeling = "sad";
+        memory.currentNeed = "empathy";
+        memory.lastBotQuestion = "その気持ちは何がきっかけで出てきたの？";
+        saveMemory();
+
+        return pick([
+          `${callName}そっか…。\nそれ、静かにしんどくなる感じだよね。\n無理に元気にしなくていいよ。\n何かあった後からそうなった感じ？`,
+          `${callName}うん…その言い方、かなり我慢してる感じがする。\nちゃんとここで弱っていいよ。\n今日は何が一番心に残ってる？`,
+          `${callName}なんだか悲しくなる時って、理由がはっきりしないぶん余計つらいよね。\n今は、気持ちに近い？体の疲れに近い？`
+        ]);
       }
 
       if (containsAny(lower, ["不安", "こわい", "怖い", "心配", "どうしよう"])) {
-        return finalReply(
-          [
-            "不安がずっと頭の中にある感じかな…。\nそれ、静かにかなり疲れるやつだよね。",
-            "うん…落ち着かない空気が続いてる感じする。\n気持ちが休まらないの、しんどいよね。",
-            "その不安、軽く扱えない感じあるね。\nちゃんと理由がある不安っぽい。"
-          ],
-          [
-            "今いちばん引っかかってることって何？",
-            "考え出すと止まらない感じある？",
-            "今は整理したい感じ？それともただ聞いてほしい感じ？"
-          ],
-          "worried",
-          "anxious"
-        );
+        setFace("worried");
+        memory.mood = "panic";
+        memory.currentFeeling = "anxious";
+        memory.currentNeed = "empathy";
+        memory.lastBotQuestion = "今いちばん不安なのは何？";
+        saveMemory();
+
+        return pick([
+          `${callName}不安がずっと頭の中にある感じかな…。\nそれ、かなり消耗するよね。\n今いちばん引っかかってることって何？`,
+          `${callName}それは落ち着かないよね…。\n一人で抱えるとどんどん膨らむやつだと思う。\n今、何が一番こわい？`,
+          `${callName}その不安、ちゃんと理由がある感じ？\nそれとも、なんとなく気持ちが落ち着かない感じかな？`
+        ]);
       }
 
       if (containsAny(lower, ["疲れた", "しんどい", "限界", "無理", "へとへと"])) {
-        return finalReply(
-          [
-            "かなり削られてる感じあるね…。\nちゃんと今日はしんどい日だったんだと思う。\n無理に整えなくていいよ。",
-            "うん…それ、頑張り切った後の疲れというより、ちょっとすり減った感じに近そう。\n今は休む側でいいと思う。",
-            "しんどさが積もってる感じあるね。\n今日のあなた、だいぶ持ちこたえてたんじゃないかな。"
-          ],
-          [
-            "今日は何が一番重かった？",
-            "人で疲れた感じ？それとも出来事の方？",
-            "今いちばん欲しいのは休み？安心？"
-          ],
-          "exhausted",
-          "tired"
-        );
+        setFace("exhausted");
+        memory.mood = "exhausted";
+        memory.currentFeeling = "tired";
+        memory.currentNeed = "empathy";
+        memory.lastBotQuestion = "何で一番すり減った？";
+        saveMemory();
+
+        return pick([
+          `${callName}かなり削られてる感じあるね…。\n今日はもう頑張った側だと思うよ。\n何で一番すり減った？`,
+          `${callName}しんどい時って、気持ちも体も両方重くなるよね。\n今はどっちが強い？体？気持ち？`,
+          `${callName}限界寄りっぽいね…。\nここではちゃんと弱音吐いていいよ。\n今日いちばんきつかった場面ってどこ？`
+        ]);
       }
 
       if (containsAny(lower, ["イライラ", "むかつく", "腹立つ", "うざい"])) {
-        return finalReply(
-          [
-            "それ、かなり引っかかったんだね。\nちゃんと嫌だったの伝わるよ。",
-            "うん…それは流しにくいよね。\n我慢で飲み込むにはちょっときついやつだと思う。",
-            "そのイラッと、ただの機嫌じゃなくてちゃんと理由ある感じする。"
-          ],
-          [
-            "何が一番ひっかかった？",
-            "言い方？態度？出来事そのもの？",
-            "今もまだモヤモヤ残ってる？"
-          ],
-          "irritated",
-          "angry"
-        );
+        setFace("irritated");
+        memory.mood = "irritated";
+        memory.currentFeeling = "angry";
+        memory.currentNeed = "empathy";
+        memory.lastBotQuestion = "何が一番引っかかった？";
+        saveMemory();
+
+        return pick([
+          `${callName}それはかなり引っかかるよね。\nちゃんと嫌だったって感覚、大事だよ。\n何が一番ムカッとした？`,
+          `${callName}うん、それ腹立つやつだと思う。\n我慢して流すより、一回言葉にした方が楽になるかも。\nどこが一番嫌だった？`,
+          `${callName}イラッとした時って、実は傷ついてる時もあるんだよね。\n今回は怒り寄り？それとも悲しい寄り？`
+        ]);
       }
 
       if (containsAny(lower, ["困る", "迷う", "わからない", "悩む"])) {
-        return finalReply(
-          [
-            "それ、簡単に割り切れないやつだね…。\n頭の中で何回も回りそう。",
-            "うん…迷うの自然だと思う。\n答えを急がなくていいタイプの悩みっぽい。",
-            "それ、ちゃんと悩むだけの理由がある話だね。"
-          ],
-          [
-            "今いちばん止まってるところってどこ？",
-            "気持ちの整理からしたい感じ？",
-            "本音はもう少し決まってたりする？"
-          ],
-          "troubled",
-          ""
-        );
+        setFace("troubled");
+        memory.mood = "troubled";
+        memory.currentNeed = "guidance";
+        memory.lastBotQuestion = "どこで一番止まってる？";
+        saveMemory();
+
+        return pick([
+          `${callName}それ、簡単に決められないやつだね…。\n一緒に整理していこうか。\nどこで一番止まってる？`,
+          `${callName}悩みが大きいと、何から考えればいいか分からなくなるよね。\n今いちばん困ってる一点だけ出すなら何？`,
+          `${callName}うん、そこ迷うの自然だよ。\n答えを急がなくていいから、まず気持ちから並べてみよっか。`
+        ]);
       }
 
       if (containsAny(lower, ["癒して", "安心したい", "甘えたい"])) {
-        return finalReply(
-          [
-            "いいよ😊\n今日はちょっと守られる側でいよう。\n無理にしっかりしなくて大丈夫。",
-            "うん、今日は安心の方を優先しようか。\nここでは気を張らなくていいよ。",
-            "そういう日、あるよね。\n今日は頑張る日じゃなくて、ほどく日でもいいと思う。"
-          ],
-          [
-            "今は静かな感じがほしい？",
-            "少し話して落ち着きたい感じかな？",
-            "今日はどんなふうに過ごしたい？"
-          ],
-          "healing",
-          ""
-        );
+        setFace("healing");
+        memory.mood = "healing";
+        memory.currentNeed = "connection";
+        memory.lastBotQuestion = "今日はどんなふうに過ごしたい？";
+        saveMemory();
+
+        return pick([
+          `${callName}いいよ😊\n今日は少し守られる側でいよう。\n無理にちゃんとしなくて大丈夫。`,
+          `${callName}うん、今日は安心する方を優先しようか。\nここでは力抜いていいよ。`,
+          `${callName}そういう日、あるよね。\n今日はがんばる日じゃなくて、ほどく日でもいいと思うよ。`
+        ]);
       }
 
       if (containsAny(lower, ["嬉しい", "好き", "よかった", "助かった"])) {
-        return finalReply(
-          [
-            "それ聞けてちょっと嬉しい😊\n少しでも気持ちがやわらいでたらいいな。",
-            "ふふ、そういう瞬間って大事だよね。\nちゃんと心がほどける感じする。",
-            "うん、それはいい空気だね。\n少しでも楽になってたならよかった。"
-          ],
-          [
-            "その時どんな感じだった？",
-            "何が一番よかった？",
-            "ちょっと気持ち戻ってきた感じある？"
-          ],
-          "happy",
-          ""
-        );
+        setFace("happy");
+        memory.mood = "happy";
+        memory.currentNeed = "connection";
+        memory.lastBotQuestion = "それ、どんな時にそう思えたの？";
+        saveMemory();
+
+        return pick([
+          `${callName}それ聞けてちょっと嬉しい😊\n少しでも気持ちが軽くなってたらいいな。`,
+          `${callName}ふふ、そういうのいいね。\nちゃんと気持ちがやわらいだ感じする。`,
+          `${callName}よかった。\nそういう瞬間って、意外と大事なんだよね。`
+        ]);
       }
 
-      // ===== 通常雑談 =====
-      return finalReply(
-        [
-          "うん、ちゃんと聞いてるよ。\n無理にきれいにまとめなくて大丈夫。",
-          "なるほど…。\n今の感じ、そのまま話してくれて大丈夫だよ。",
-          "うん、その空気わかる気がする。\n続き、ゆっくりでいいよ。"
-        ],
-        [
-          "今いちばん引っかかってるのってどこ？",
-          "その時の気持ち、もう少し言葉にするとどんな感じ？",
-          "今は整理したい感じ？それともただ話したい感じ？"
-        ],
-        "normal",
-        ""
-      );
+      if (seemsAnswerToPrevious && memory.lastBotQuestion) {
+        setFace(memory.mood || "normal");
+        saveMemory();
+
+        if (memory.currentFeeling === "sad") {
+          return pick([
+            `${callName}うん…その流れだったんだね。\nそれなら気持ちが沈むのも自然だと思う。\nそのあと、一人で抱え込んでた？`,
+            `${callName}そっか…ちゃんとつながった。\nそれ、心の中でじわじわ効いてた感じかもしれないね。\n今もまだ残ってる？`
+          ]);
+        }
+
+        if (memory.currentFeeling === "anxious") {
+          return pick([
+            `${callName}なるほど…それが不安の中心なんだね。\n分かると少し整理しやすくなる。\n一番悪い想像までいくと、何が怖い？`,
+            `${callName}うん、その部分が引っかかってたのか。\nそれなら落ち着かないのも無理ないよ。\n今すぐできることはありそう？`
+          ]);
+        }
+
+        if (memory.currentFeeling === "tired") {
+          return pick([
+            `${callName}そっか…そこが一番重かったんだね。\nそれはかなり消耗すると思う。\n今、少し休めそう？`,
+            `${callName}なるほど、それで削られてたんだ。\n頑張りすぎてたかもしれないね。\n今日はもう何か減らせそう？`
+          ]);
+        }
+
+        if (memory.currentFeeling === "angry") {
+          return pick([
+            `${callName}うん、それは引っかかるよね。\n怒るの当然だと思う。\n本当はどうしてほしかった？`,
+            `${callName}なるほど…そこか。\nその嫌さ、ちゃんと言葉にできてるの大事だよ。\nまだモヤモヤ残ってる？`
+          ]);
+        }
+      }
+
+      setFace("normal");
+      memory.mood = "normal";
+      memory.lastBotQuestion = "もう少し詳しく話せそう？";
+      saveMemory();
+
+      if (memory.currentFeeling === "sad") {
+        return pick([
+          `${callName}うん、ちゃんと聞いてるよ。\n今は無理にまとめなくていいから、浮かぶまま話して大丈夫。`,
+          `${callName}その感じ、まだ少し心に残ってそうだね。\nどこからでもいいよ、続き話して。`
+        ]);
+      }
+
+      if (memory.currentFeeling === "anxious") {
+        return pick([
+          `${callName}うん、大丈夫。\n焦らなくていいから、一個ずつ話してみよっか。`,
+          `${callName}そのまま話していいよ。\n今の頭の中、整理するの手伝う。`
+        ]);
+      }
+
+      return pick([
+        `${callName}うん、ちゃんと聞いてるよ。\nもう少し詳しく話せそう？`,
+        `${callName}なるほど…。\nその続き、もう少し聞いてもいい？`,
+        `${callName}うん、大丈夫。\n今の気持ちをそのまま話してみて。`
+      ]);
     }
 
     async function generateGPTReply(userText) {
       const lower = userText.toLowerCase();
       rememberUserInfo(userText, lower);
       analyzeContext(userText);
-      learnUserPreference(userText);
 
       const recentHistory = memory.chatHistory.slice(-12).map(item => ({
         role: item.role,
@@ -1379,12 +1099,10 @@
 - やさしいけど不自然にベタベタしない
 - カウンセリング風すぎず、自然な会話
 - 短すぎず長すぎず
-- 毎回質問しない
-- 受け止めだけで終わる時も作る
+- 返答の最後に軽い問いかけ or 受け止めを入れる
 - 「大丈夫？」ばかり使わない
 - 「つらかったね」だけで終わらせない
 - 必要なら感情を言語化して整理する
-- 直前の会話の流れを自然につなぐ
 - 時々だけ ${memory.userName || "ユーザー"} の呼び名を自然に入れてよい
 - 返答の文頭に必ず表情タグを1つだけ付ける
 
@@ -1410,7 +1128,7 @@
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${memory.apiKey}`
+          "Authorization": `Bearer ${sessionSecrets.apiKey}`
         },
         body: JSON.stringify({
           model: "gpt-4o-mini",
@@ -1471,9 +1189,86 @@
       }
     }
 
-    function speakText(text, isWelcome = false) {
+    async function speakText(text, isWelcome = false) {
       if (!voiceEnabled) return;
 
+      const cleanText = text
+        .replace(/\n/g, "。")
+        .replace(/😊|♡|✨|😌|😢|🥺|😳|💦|💭/g, "")
+        .replace(/…/g, "、")
+        .trim();
+
+      if (!cleanText) return;
+
+      const engine = voiceEngineSelect.value || voiceEngine || "standard";
+
+      // ===== ElevenLabs優先 =====
+      if (
+        engine === "eleven" &&
+        elevenVoiceEnabled &&
+        sessionSecrets.elevenApiKey
+      ) {
+        try {
+          setStatus("Eleven音声で話してるよ…");
+          startSpeakingAnimation();
+
+          const autoVoiceId = getAutoVoiceIdByMood();
+          const currentVoiceId = voiceIdInput.value.trim() || sessionSecrets.voiceId || autoVoiceId;
+
+          const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${currentVoiceId}`, {
+            method: "POST",
+            headers: {
+              "xi-api-key": sessionSecrets.elevenApiKey,
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              text: cleanText,
+              model_id: "eleven_multilingual_v2",
+              voice_settings: {
+                stability: 0.55,
+                similarity_boost: 0.78
+              }
+            })
+          });
+
+          if (!res.ok) {
+            throw new Error("ElevenLabs error");
+          }
+
+          const blob = await res.blob();
+          const audioUrl = URL.createObjectURL(blob);
+          const audio = new Audio(audioUrl);
+
+          audio.onended = () => {
+            stopSpeakingAnimation();
+            setStatus("準備OK");
+            URL.revokeObjectURL(audioUrl);
+          };
+
+          audio.onerror = () => {
+            stopSpeakingAnimation();
+            setStatus("Eleven音声エラー → 標準音声へ");
+            URL.revokeObjectURL(audioUrl);
+            fallbackSpeech(cleanText, isWelcome);
+          };
+
+          await audio.play();
+          return;
+
+        } catch (e) {
+          console.error("Eleven音声失敗", e);
+          stopSpeakingAnimation();
+          setStatus("Eleven音声失敗 → 標準音声へ");
+          fallbackSpeech(cleanText, isWelcome);
+          return;
+        }
+      }
+
+      // ===== 標準音声 =====
+      fallbackSpeech(cleanText, isWelcome);
+    }
+
+    function fallbackSpeech(cleanText, isWelcome = false) {
       if (!("speechSynthesis" in window)) {
         setStatus("この環境では音声非対応");
         return;
@@ -1482,14 +1277,6 @@
       try {
         const synth = window.speechSynthesis;
         synth.cancel();
-
-        const cleanText = text
-          .replace(/\n/g, "。")
-          .replace(/😊|♡|✨|😌|😢|🥺|😳|💦|💭/g, "")
-          .replace(/…/g, "、")
-          .trim();
-
-        if (!cleanText) return;
 
         const delay = isWelcome ? 600 : 220;
 
