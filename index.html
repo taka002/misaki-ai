@@ -343,6 +343,12 @@
       background: linear-gradient(135deg, #7a69ff, #5f9bff);
     }
 
+    .wake-wrap {
+      padding: 0 12px 12px;
+      background: rgba(0,0,0,0.24);
+      border-top: 1px solid rgba(255,255,255,0.04);
+    }
+
     @media (max-width: 430px) {
       .top-character {
         flex: 0 0 32vh;
@@ -395,8 +401,15 @@
     <!-- 下入力 -->
     <div class="input-area">
       <input type="text" id="userInput" placeholder="何か話してみて…" />
-      <button class="mic-btn" id="micBtn" onclick="toggleWakeWordMode()">🎤</button>
+      <button class="mic-btn" id="micBtn" onclick="startVoiceInput()">🎤</button>
       <button class="send-btn" onclick="sendMessage()">送信</button>
+    </div>
+
+    <!-- ウェイク開始 -->
+    <div class="wake-wrap">
+      <button class="toggle-btn" id="wakeStartBtn" onclick="startWakeWordListening()" style="margin-top:0;">
+        👂 ウェイク開始
+      </button>
     </div>
   </div>
 
@@ -416,27 +429,27 @@
       </div>
 
       <div class="setting-row">
-        <label class="setting-label">ウェイクワード</label>
-        <input class="setting-input" id="wakeWordInput" placeholder="美咲">
-        <div class="hint">この名前を呼ぶと、自動でマイク入力を開始します。</div>
-      </div>
-
-      <div class="setting-row">
-        <label class="setting-label">OpenAI APIキー（※保存しません）</label>
+        <label class="setting-label">OpenAI APIキー</label>
         <input class="setting-input" id="apiKeyInput" type="password" placeholder="sk-..." />
-        <div class="hint">再起動すると空になります。会話履歴は残ります。</div>
+        <div class="hint">保存できます。使い終わったら「APIキーを消す」で削除できます。</div>
       </div>
 
       <div class="setting-row">
-        <label class="setting-label">ElevenLabs APIキー（※保存しません）</label>
+        <label class="setting-label">ElevenLabs APIキー</label>
         <input class="setting-input" id="elevenApiKeyInput" type="password" placeholder="sk_..." />
-        <div class="hint">自然音声を使う時だけ入力します。再起動で消えます。</div>
+        <div class="hint">自然音声を使う時だけ入力します。</div>
       </div>
 
       <div class="setting-row">
-        <label class="setting-label">Voice ID（※保存しません）</label>
+        <label class="setting-label">Voice ID</label>
         <input class="setting-input" id="voiceIdInput" type="text" placeholder="wcs09USXSN5Bl7FXohVZ" />
-        <div class="hint">ElevenLabsの声ID。再起動で消えます。</div>
+        <div class="hint">ElevenLabsの声IDです。</div>
+      </div>
+
+      <div class="setting-row">
+        <label class="setting-label">ウェイクワード（呼びかけ名）</label>
+        <input class="setting-input" id="wakeWordInput" type="text" placeholder="美咲, みさき" />
+        <div class="hint">カンマ区切りで複数OK（例: 美咲, みさき, ねえ美咲）</div>
       </div>
 
       <div class="setting-row">
@@ -461,6 +474,8 @@
       <button class="toggle-btn" id="gptToggle" onclick="toggleGPT()">🤖 GPT OFF</button>
       <button class="toggle-btn" id="voiceToggle" onclick="toggleVoice()">🔊 音声ON</button>
       <button class="toggle-btn" id="elevenToggle" onclick="toggleElevenVoice()">🎙 Eleven音声OFF</button>
+      <button class="toggle-btn" id="wakeToggle" onclick="toggleWakeWord()">👂 ウェイクOFF</button>
+      <button class="danger-btn" onclick="resetApiKeys()">APIキーを消す</button>
       <button class="danger-btn" onclick="resetMemory()">記憶をリセット</button>
       <button class="close-btn" onclick="closeSettings()">閉じる</button>
     </div>
@@ -475,37 +490,41 @@
     const gptToggleBtn = document.getElementById("gptToggle");
     const nameInput = document.getElementById("nameInput");
     const userNameInput = document.getElementById("userNameInput");
-    const wakeWordInput = document.getElementById("wakeWordInput");
     const apiKeyInput = document.getElementById("apiKeyInput");
     const elevenApiKeyInput = document.getElementById("elevenApiKeyInput");
     const voiceIdInput = document.getElementById("voiceIdInput");
     const voiceEngineSelect = document.getElementById("voiceEngineSelect");
     const statusBar = document.getElementById("statusBar");
     const micBtn = document.getElementById("micBtn");
+    const wakeWordInput = document.getElementById("wakeWordInput");
+    const wakeToggleBtn = document.getElementById("wakeToggle");
+    const wakeStartBtn = document.getElementById("wakeStartBtn");
 
     let voiceEnabled = localStorage.getItem("voiceEnabled") !== "false";
     let gptEnabled = localStorage.getItem("gptEnabled") === "true";
     let elevenVoiceEnabled = localStorage.getItem("elevenVoiceEnabled") === "true";
     let voiceEngine = localStorage.getItem("voiceEngine") || "standard";
     let selectedVoicePreset = localStorage.getItem("selectedVoicePreset") || "";
-    let wakeWord = localStorage.getItem("wakeWord") || "美咲";
-
     let availableVoices = [];
     let recognition = null;
-    let wakeRecognition = null;
-
     let isListening = false;
-    let isWakeListening = false;
-    let wakeModeEnabled = false;
     let isSpeaking = false;
     let lastBotReply = "";
 
-    // ===== APIキーは保存しない =====
+    // ===== APIキー保存 =====
     let sessionSecrets = {
-      apiKey: "",
-      elevenApiKey: "",
-      voiceId: ""
+      apiKey: localStorage.getItem("saved_apiKey") || "",
+      elevenApiKey: localStorage.getItem("saved_elevenApiKey") || "",
+      voiceId: localStorage.getItem("saved_voiceId") || ""
     };
+
+    // ===== ウェイクワード =====
+    let wakeRecognition = null;
+    let wakeWordEnabled = localStorage.getItem("wakeWordEnabled") === "true";
+    let wakeWords = JSON.parse(localStorage.getItem("wakeWords") || '["美咲","みさき"]');
+    let wakeLoopActive = false;
+    let isWakeListening = false;
+    let justWokeUp = false;
 
     let memory = {
       characterName: localStorage.getItem("characterName") || "美咲",
@@ -527,18 +546,17 @@
 
     nameInput.value = memory.characterName;
     userNameInput.value = memory.userName;
-    wakeWordInput.value = wakeWord;
-
-    // API系は毎回空
-    apiKeyInput.value = "";
-    elevenApiKeyInput.value = "";
-    voiceIdInput.value = "";
+    apiKeyInput.value = sessionSecrets.apiKey;
+    elevenApiKeyInput.value = sessionSecrets.elevenApiKey;
+    voiceIdInput.value = sessionSecrets.voiceId;
     voiceEngineSelect.value = voiceEngine;
+    wakeWordInput.value = wakeWords.join(", ");
 
     updateVoiceButton();
     updateGPTButton();
     updateElevenButton();
     updateVoicePresetButtons();
+    updateWakeButton();
 
     const faceImages = {
       normal: "girl-normal.jpg",
@@ -564,14 +582,13 @@
       exhausted: "linear-gradient(to bottom, #4b5165, #121926)"
     };
 
-    // ===== 声プリセット（ここを自分のVoice IDに変えてOK） =====
+    // ===== 声プリセット =====
     const voicePresets = {
       gentle: "wcs09USXSN5Bl7FXohVZ",
       bright: "21m00Tcm4TlvDq8ikWAM",
       calm: "AZnzlk1XvdvUeBnXmlld"
     };
 
-    // ===== 感情→声自動連動 =====
     function getAutoVoiceIdByMood() {
       if (memory.mood === "happy") return voicePresets.bright;
       if (memory.mood === "sympathy" || memory.mood === "healing" || memory.mood === "exhausted") return voicePresets.gentle;
@@ -593,6 +610,14 @@
       mainGirl.classList.add("face-change");
     }
 
+    function flashWakeFace() {
+      const previousMood = memory.mood || "normal";
+      setFace("happy");
+      setTimeout(() => {
+        setFace(previousMood);
+      }, 1600);
+    }
+
     function startSpeakingAnimation() {
       mainGirl.classList.add("speaking");
       isSpeaking = true;
@@ -606,11 +631,13 @@
     function openSettings() {
       nameInput.value = memory.characterName || "美咲";
       userNameInput.value = memory.userName || "";
-      wakeWordInput.value = wakeWord || "美咲";
-      apiKeyInput.value = "";
-      elevenApiKeyInput.value = "";
-      voiceIdInput.value = "";
+
+      apiKeyInput.value = sessionSecrets.apiKey || "";
+      elevenApiKeyInput.value = sessionSecrets.elevenApiKey || "";
+      voiceIdInput.value = sessionSecrets.voiceId || "";
       voiceEngineSelect.value = voiceEngine;
+      wakeWordInput.value = wakeWords.join(", ");
+
       settingsModal.classList.add("show");
     }
 
@@ -621,28 +648,47 @@
     function saveSettings() {
       memory.characterName = nameInput.value.trim() || "美咲";
       memory.userName = userNameInput.value.trim();
-      wakeWord = wakeWordInput.value.trim() || "美咲";
 
-      // ===== APIキーはセッションのみ =====
       sessionSecrets.apiKey = apiKeyInput.value.trim();
       sessionSecrets.elevenApiKey = elevenApiKeyInput.value.trim();
       sessionSecrets.voiceId = voiceIdInput.value.trim();
+
+      localStorage.setItem("saved_apiKey", sessionSecrets.apiKey);
+      localStorage.setItem("saved_elevenApiKey", sessionSecrets.elevenApiKey);
+      localStorage.setItem("saved_voiceId", sessionSecrets.voiceId);
 
       voiceEngine = voiceEngineSelect.value;
       localStorage.setItem("voiceEngine", voiceEngine);
 
       localStorage.setItem("characterName", memory.characterName);
       localStorage.setItem("userNickName", memory.userName);
-      localStorage.setItem("wakeWord", wakeWord);
+
+      const rawWake = wakeWordInput.value.trim();
+      wakeWords = rawWake
+        ? rawWake.split(",").map(v => v.trim()).filter(Boolean)
+        : ["美咲", "みさき"];
+      localStorage.setItem("wakeWords", JSON.stringify(wakeWords));
 
       addMessage("設定を保存したよ😊", "bot");
-      setStatus("設定を保存しました（APIキーは今回だけ有効）");
+      setStatus("設定を保存しました");
       closeSettings();
+    }
 
-      // ウェイク待機中なら再起動
-      if (wakeModeEnabled) {
-        restartWakeListening();
-      }
+    function resetApiKeys() {
+      localStorage.removeItem("saved_apiKey");
+      localStorage.removeItem("saved_elevenApiKey");
+      localStorage.removeItem("saved_voiceId");
+
+      sessionSecrets.apiKey = "";
+      sessionSecrets.elevenApiKey = "";
+      sessionSecrets.voiceId = "";
+
+      apiKeyInput.value = "";
+      elevenApiKeyInput.value = "";
+      voiceIdInput.value = "";
+
+      setStatus("APIキーを削除しました");
+      addMessage("APIキーを消したよ🔐", "bot");
     }
 
     function toggleVoice() {
@@ -692,6 +738,7 @@
       if (voicePresets[type]) {
         voiceIdInput.value = voicePresets[type];
         sessionSecrets.voiceId = voicePresets[type];
+        localStorage.setItem("saved_voiceId", sessionSecrets.voiceId);
         setStatus("Voice ID を切り替えました");
       }
 
@@ -709,6 +756,28 @@
         if (!btn) return;
         btn.classList.toggle("active", selectedVoicePreset === type);
       });
+    }
+
+    function updateWakeButton() {
+      if (wakeToggleBtn) {
+        wakeToggleBtn.textContent = wakeWordEnabled ? "👂 ウェイクON" : "👂 ウェイクOFF";
+      }
+      if (wakeStartBtn) {
+        wakeStartBtn.textContent = wakeLoopActive ? "👂 待機中…" : "👂 ウェイク開始";
+      }
+    }
+
+    function toggleWakeWord() {
+      wakeWordEnabled = !wakeWordEnabled;
+      localStorage.setItem("wakeWordEnabled", wakeWordEnabled);
+      updateWakeButton();
+
+      if (!wakeWordEnabled) {
+        stopWakeWordListening();
+        setStatus("ウェイクワードOFF");
+      } else {
+        setStatus("ウェイクワードON");
+      }
     }
 
     function resetMemory() {
@@ -804,8 +873,6 @@
     async function sendMessage() {
       const text = userInput.value.trim();
       if (!text) return;
-
-      stopWakeListening();
 
       if (window.speechSynthesis) {
         window.speechSynthesis.cancel();
@@ -1214,10 +1281,7 @@
     }
 
     async function speakText(text, isWelcome = false) {
-      if (!voiceEnabled) {
-        resumeWakeIfNeeded();
-        return;
-      }
+      if (!voiceEnabled) return;
 
       const cleanText = text
         .replace(/\n/g, "。")
@@ -1225,14 +1289,10 @@
         .replace(/…/g, "、")
         .trim();
 
-      if (!cleanText) {
-        resumeWakeIfNeeded();
-        return;
-      }
+      if (!cleanText) return;
 
       const engine = voiceEngineSelect.value || voiceEngine || "standard";
 
-      // ===== ElevenLabs優先 =====
       if (
         engine === "eleven" &&
         elevenVoiceEnabled &&
@@ -1273,7 +1333,12 @@
             stopSpeakingAnimation();
             setStatus("準備OK");
             URL.revokeObjectURL(audioUrl);
-            resumeWakeIfNeeded();
+
+            if (wakeWordEnabled) {
+              setTimeout(() => {
+                startWakeWordListening();
+              }, 1200);
+            }
           };
 
           audio.onerror = () => {
@@ -1295,14 +1360,12 @@
         }
       }
 
-      // ===== 標準音声 =====
       fallbackSpeech(cleanText, isWelcome);
     }
 
     function fallbackSpeech(cleanText, isWelcome = false) {
       if (!("speechSynthesis" in window)) {
         setStatus("この環境では音声非対応");
-        resumeWakeIfNeeded();
         return;
       }
 
@@ -1339,44 +1402,29 @@
             utterance.onend = () => {
               stopSpeakingAnimation();
               setStatus("準備OK");
-              resumeWakeIfNeeded();
+
+              if (wakeWordEnabled) {
+                setTimeout(() => {
+                  startWakeWordListening();
+                }, 1200);
+              }
             };
 
             utterance.onerror = () => {
               stopSpeakingAnimation();
               setStatus("音声再生できませんでした");
-              resumeWakeIfNeeded();
             };
 
             synth.speak(utterance);
           } catch (err) {
             stopSpeakingAnimation();
             setStatus("音声エラー");
-            resumeWakeIfNeeded();
           }
         }, delay);
 
       } catch (e) {
         stopSpeakingAnimation();
         setStatus("音声エラー");
-        resumeWakeIfNeeded();
-      }
-    }
-
-    // =========================
-    // ウェイクワード関連
-    // =========================
-    function normalizeJapanese(text) {
-      return (text || "")
-        .replace(/[　\s]/g, "")
-        .toLowerCase();
-    }
-
-    function updateMicButtonUI() {
-      if (wakeModeEnabled || isListening || isWakeListening) {
-        micBtn.classList.add("listening");
-      } else {
-        micBtn.classList.remove("listening");
       }
     }
 
@@ -1385,138 +1433,11 @@
         if (recognition) recognition.stop();
       } catch (e) {}
       isListening = false;
-      updateMicButtonUI();
-      if (!wakeModeEnabled) {
-        setStatus("マイク停止");
-      }
+      micBtn.classList.remove("listening");
+      setStatus("マイク停止");
     }
 
-    function stopWakeListening() {
-      try {
-        if (wakeRecognition) wakeRecognition.stop();
-      } catch (e) {}
-      isWakeListening = false;
-      updateMicButtonUI();
-    }
-
-    function restartWakeListening() {
-      stopWakeListening();
-      if (!wakeModeEnabled) return;
-
-      setTimeout(() => {
-        startWakeListening();
-      }, 800);
-    }
-
-    function resumeWakeIfNeeded() {
-      if (!wakeModeEnabled) return;
-      if (isListening || isSpeaking) return;
-
-      setTimeout(() => {
-        startWakeListening();
-      }, 900);
-    }
-
-    function toggleWakeWordMode() {
-      if (wakeModeEnabled) {
-        wakeModeEnabled = false;
-        stopWakeListening();
-        stopVoiceInput();
-        updateMicButtonUI();
-        setStatus("ウェイクワード待機OFF");
-      } else {
-        wakeModeEnabled = true;
-        startWakeListening();
-      }
-    }
-
-    function startWakeListening() {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-
-      if (!SpeechRecognition) {
-        alert("この環境ではウェイクワードが使えません。\n\nおすすめ:\n・Chromeで開く\n・GitHub Pagesで開く\n・HTTPSで開く");
-        return;
-      }
-
-      if (isListening || isSpeaking) return;
-
-      stopWakeListening();
-
-      try {
-        wakeRecognition = new SpeechRecognition();
-        wakeRecognition.lang = "ja-JP";
-        wakeRecognition.interimResults = false;
-        wakeRecognition.continuous = false;
-        wakeRecognition.maxAlternatives = 1;
-
-        isWakeListening = true;
-        updateMicButtonUI();
-        setStatus(`「${wakeWord}」を待機中…`);
-
-        wakeRecognition.onresult = (event) => {
-          const transcript = event.results?.[0]?.[0]?.transcript || "";
-          const heard = normalizeJapanese(transcript);
-          const target = normalizeJapanese(wakeWord);
-
-          console.log("Wake heard:", transcript);
-
-          if (heard.includes(target)) {
-            stopWakeListening();
-            setStatus(`「${wakeWord}」に反応したよ`);
-            addMessage(`${memory.characterName || "美咲"}「呼んだ？」`, "bot");
-
-            setTimeout(() => {
-              startVoiceInput(true);
-            }, 600);
-          } else {
-            if (wakeModeEnabled) {
-              setTimeout(() => {
-                startWakeListening();
-              }, 700);
-            }
-          }
-        };
-
-        wakeRecognition.onerror = (event) => {
-          console.log("Wake error:", event.error);
-
-          isWakeListening = false;
-          updateMicButtonUI();
-
-          if (event.error === "not-allowed") {
-            setStatus("マイク許可が必要です");
-          } else if (event.error === "no-speech") {
-            if (wakeModeEnabled) {
-              setTimeout(() => startWakeListening(), 700);
-            }
-          } else {
-            if (wakeModeEnabled) {
-              setTimeout(() => startWakeListening(), 1200);
-            }
-          }
-        };
-
-        wakeRecognition.onend = () => {
-          isWakeListening = false;
-          updateMicButtonUI();
-
-          if (wakeModeEnabled && !isListening && !isSpeaking) {
-            setTimeout(() => {
-              startWakeListening();
-            }, 900);
-          }
-        };
-
-        wakeRecognition.start();
-      } catch (e) {
-        console.error("Wake start error:", e);
-        isWakeListening = false;
-        updateMicButtonUI();
-        setStatus("ウェイク待機開始失敗");
-      }
-    }
-
-    function startVoiceInput(fromWake = false) {
+    function startVoiceInput() {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
       if (!SpeechRecognition) {
@@ -1529,8 +1450,6 @@
         return;
       }
 
-      stopWakeListening();
-
       try {
         recognition = new SpeechRecognition();
         recognition.lang = "ja-JP";
@@ -1539,8 +1458,8 @@
         recognition.maxAlternatives = 1;
 
         isListening = true;
-        updateMicButtonUI();
-        setStatus(fromWake ? "🎤 聞いてるよ…話してね" : "🎤 聞き取り中…話してください");
+        micBtn.classList.add("listening");
+        setStatus("🎤 聞き取り中…話してください");
 
         recognition.onresult = (event) => {
           const transcript = event.results[0][0].transcript || "";
@@ -1566,28 +1485,165 @@
           }
 
           isListening = false;
-          updateMicButtonUI();
-          resumeWakeIfNeeded();
+          micBtn.classList.remove("listening");
         };
 
         recognition.onend = () => {
           isListening = false;
-          updateMicButtonUI();
+          micBtn.classList.remove("listening");
 
-          if (statusBar.textContent.includes("聞き取り中") || statusBar.textContent.includes("聞いてるよ")) {
+          if (statusBar.textContent.includes("聞き取り中")) {
             setStatus("準備OK");
           }
 
-          resumeWakeIfNeeded();
+          if (wakeWordEnabled) {
+            setTimeout(() => {
+              startWakeWordListening();
+            }, 1000);
+          }
         };
 
         recognition.start();
       } catch (e) {
-        console.error("Voice input start error:", e);
         isListening = false;
-        updateMicButtonUI();
+        micBtn.classList.remove("listening");
         setStatus("マイク起動失敗");
-        resumeWakeIfNeeded();
+      }
+    }
+
+    // ===== ウェイクワード関連 =====
+    function normalizeJaText(text) {
+      return (text || "")
+        .toLowerCase()
+        .replace(/[。、！!？?\s　]/g, "")
+        .trim();
+    }
+
+    function containsWakeWord(text) {
+      const normalized = normalizeJaText(text);
+      return wakeWords.some(word => normalized.includes(normalizeJaText(word)));
+    }
+
+    function stopWakeWordListening() {
+      wakeLoopActive = false;
+      isWakeListening = false;
+
+      try {
+        if (wakeRecognition) wakeRecognition.stop();
+      } catch (e) {}
+
+      updateWakeButton();
+    }
+
+    function startWakeWordListening() {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+      if (!SpeechRecognition) {
+        alert("この環境ではウェイクワード待機が使えません。\n\nおすすめ:\n・Chromeで開く\n・HTTPS(GitHub Pages)で開く");
+        return;
+      }
+
+      if (!wakeWordEnabled) {
+        wakeWordEnabled = true;
+        localStorage.setItem("wakeWordEnabled", wakeWordEnabled);
+      }
+
+      if (wakeLoopActive || isWakeListening || isListening || isSpeaking) {
+        updateWakeButton();
+        return;
+      }
+
+      wakeLoopActive = true;
+      updateWakeButton();
+      setStatus("ウェイクワード待機中…");
+
+      runWakeLoop();
+    }
+
+    function runWakeLoop() {
+      if (!wakeLoopActive || isListening || isSpeaking) {
+        setTimeout(() => {
+          if (wakeLoopActive) runWakeLoop();
+        }, 1200);
+        return;
+      }
+
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) return;
+
+      try {
+        wakeRecognition = new SpeechRecognition();
+        wakeRecognition.lang = "ja-JP";
+        wakeRecognition.interimResults = true;
+        wakeRecognition.continuous = false;
+        wakeRecognition.maxAlternatives = 1;
+
+        isWakeListening = true;
+        updateWakeButton();
+
+        wakeRecognition.onresult = (event) => {
+          let heard = "";
+
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            heard += event.results[i][0].transcript || "";
+          }
+
+          if (containsWakeWord(heard)) {
+            stopWakeWordListening();
+            justWokeUp = true;
+
+            // ① 先に返す
+            addMessage("はーい😊", "bot");
+
+            // ② 呼ばれた直後だけ笑顔
+            flashWakeFace();
+
+            // 音声でも返す（ONのときだけ）
+            if (voiceEnabled) {
+              speakText("はーい");
+            }
+
+            setStatus("呼びかけを検知 → マイク開始");
+
+            setTimeout(() => {
+              startVoiceInput();
+            }, 1100);
+          }
+        };
+
+        wakeRecognition.onerror = () => {
+          isWakeListening = false;
+          updateWakeButton();
+
+          if (!wakeLoopActive) return;
+
+          setTimeout(() => {
+            if (wakeLoopActive) runWakeLoop();
+          }, 1500);
+        };
+
+        wakeRecognition.onend = () => {
+          isWakeListening = false;
+          updateWakeButton();
+
+          if (!wakeLoopActive) return;
+
+          setTimeout(() => {
+            if (wakeLoopActive && !isListening && !isSpeaking) {
+              runWakeLoop();
+            }
+          }, 1200);
+        };
+
+        wakeRecognition.start();
+
+      } catch (e) {
+        isWakeListening = false;
+        updateWakeButton();
+
+        setTimeout(() => {
+          if (wakeLoopActive) runWakeLoop();
+        }, 1800);
       }
     }
 
