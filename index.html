@@ -2,11 +2,14 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>美咲AI 完全版</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>美咲AI</title>
 
   <style>
-    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
 
     html, body {
       margin: 0;
@@ -14,12 +17,11 @@
       height: 100%;
       font-family: "Hiragino Sans", "Yu Gothic", sans-serif;
       overflow: hidden;
-      transition: background 0.45s ease;
+      background: linear-gradient(to bottom, #232b49, #050b18);
+      color: white;
     }
 
     body {
-      background: linear-gradient(to bottom, #2b314d, #111827);
-      color: white;
       display: flex;
       flex-direction: column;
     }
@@ -30,13 +32,14 @@
       height: 100dvh;
       width: 100%;
       overflow: hidden;
+      position: relative;
     }
 
-    /* 上画像 */
+    /* ===== 上：画像 ===== */
     .top-character {
-      flex: 0 0 28%;
-      min-height: 170px;
-      max-height: 260px;
+      flex: 0 0 34%;
+      min-height: 220px;
+      max-height: 360px;
       display: flex;
       justify-content: center;
       align-items: center;
@@ -45,146 +48,150 @@
     }
 
     .top-character img {
-      width: min(74vw, 300px);
-      height: auto;
+      width: min(92vw, 420px);
+      height: 100%;
       max-height: 100%;
-      object-fit: contain;
-      border-radius: 28px;
-      border: 2px solid rgba(255,255,255,0.14);
-      box-shadow: 0 14px 30px rgba(0,0,0,0.30);
-      transition: all 0.35s ease;
-      background: rgba(255,255,255,0.03);
+      object-fit: cover;
+      border-radius: 34px;
+      border: 3px solid rgba(255,255,255,0.14);
+      box-shadow: 0 14px 30px rgba(0,0,0,0.35);
+      background: rgba(255,255,255,0.04);
+      transition: all 0.28s ease;
     }
 
     .settings-open {
       position: absolute;
-      top: 12px;
-      right: 14px;
+      top: 16px;
+      right: 18px;
+      width: 74px;
+      height: 74px;
       border: none;
-      background: rgba(255,255,255,0.16);
-      color: white;
-      font-size: 22px;
-      width: 52px;
-      height: 52px;
       border-radius: 50%;
-      cursor: pointer;
+      background: rgba(255,255,255,0.20);
+      color: white;
+      font-size: 30px;
       backdrop-filter: blur(8px);
-      box-shadow: 0 10px 24px rgba(0,0,0,0.2);
+      box-shadow: 0 10px 24px rgba(0,0,0,0.22);
+      cursor: pointer;
       z-index: 5;
     }
 
-    /* チャット */
+    /* ===== 中：チャット ===== */
     .chat-section {
       flex: 1;
+      min-height: 0;
       display: flex;
       flex-direction: column;
-      min-height: 0;
-      padding: 0 10px 0;
       overflow: hidden;
+      padding: 0 12px;
     }
 
     #chatBox {
       flex: 1;
       min-height: 0;
       overflow-y: auto;
+      padding: 8px 4px 14px;
       display: flex;
       flex-direction: column;
       gap: 10px;
-      padding: 6px 4px 14px;
       scroll-behavior: smooth;
     }
 
     .message {
-      max-width: 86%;
-      padding: 14px 16px;
-      border-radius: 22px;
-      font-size: 16px;
-      line-height: 1.8;
+      max-width: 84%;
+      padding: 16px 18px;
+      border-radius: 24px;
+      font-size: clamp(17px, 2.4vw, 20px);
+      line-height: 1.9;
       white-space: pre-wrap;
       word-break: break-word;
-      animation: fadeIn 0.22s ease;
+      animation: fadeIn 0.25s ease;
+      box-shadow: 0 10px 24px rgba(0,0,0,0.12);
     }
 
     .bot {
       align-self: flex-start;
       background: rgba(255,255,255,0.12);
-      border-bottom-left-radius: 8px;
+      border-bottom-left-radius: 10px;
       color: #fff;
     }
 
     .user {
       align-self: flex-end;
       background: linear-gradient(135deg, #ff7eb3, #ff4f8b);
-      border-bottom-right-radius: 8px;
+      border-bottom-right-radius: 10px;
       color: white;
-      box-shadow: 0 6px 16px rgba(255,93,151,0.25);
     }
 
     .typing {
-      opacity: 0.75;
+      opacity: 0.72;
       font-style: italic;
     }
 
-    /* ステータス */
     .status-bar {
-      font-size: 12px;
-      opacity: 0.82;
-      padding: 0 14px 8px;
-      min-height: 18px;
-    }
-
-    /* 下入力 */
-    .input-area {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 10px;
-      padding-bottom: calc(10px + env(safe-area-inset-bottom));
-      background: rgba(0,0,0,0.25);
-      border-top: 1px solid rgba(255,255,255,0.08);
+      font-size: 15px;
+      opacity: 0.88;
+      padding: 0 18px 8px;
+      min-height: 26px;
       flex-shrink: 0;
     }
 
-    input[type="text"], input[type="password"], select {
+    /* ===== 下：入力 ===== */
+    .input-area {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px;
+      padding-bottom: calc(12px + env(safe-area-inset-bottom));
+      background: rgba(0,0,0,0.22);
+      border-top: 1px solid rgba(255,255,255,0.08);
+      flex-shrink: 0;
+      backdrop-filter: blur(6px);
+    }
+
+    input[type="text"],
+    input[type="password"] {
       flex: 1;
       min-width: 0;
-      padding: 15px 16px;
+      padding: 16px 18px;
       border-radius: 18px;
       border: none;
-      font-size: 16px;
       outline: none;
+      font-size: 18px;
       background: rgba(255,255,255,0.96);
       color: #222;
     }
 
-    .mic-btn, .send-btn {
-      flex-shrink: 0;
-      border: none;
-      cursor: pointer;
-      color: white;
-      font-weight: bold;
-    }
-
     .mic-btn {
-      width: 62px;
-      height: 62px;
-      border-radius: 20px;
+      width: 82px;
+      height: 82px;
+      border: none;
+      border-radius: 24px;
       background: rgba(255,255,255,0.12);
-      font-size: 28px;
+      color: white;
+      font-size: 34px;
+      cursor: pointer;
+      flex-shrink: 0;
+      box-shadow: 0 10px 22px rgba(0,0,0,0.16);
     }
 
     .mic-btn.listening {
       background: linear-gradient(135deg, #7a69ff, #5f9bff);
-      box-shadow: 0 0 0 6px rgba(122,105,255,0.18);
+      box-shadow: 0 0 0 6px rgba(122,105,255,0.16);
     }
 
     .send-btn {
-      width: 92px;
-      height: 62px;
-      border-radius: 20px;
+      width: 120px;
+      height: 82px;
+      border: none;
+      border-radius: 24px;
       background: linear-gradient(135deg, #ff7eb3, #ff4f8b);
-      font-size: 20px;
-      box-shadow: 0 10px 24px rgba(255,79,139,0.3);
+      color: white;
+      font-size: 24px;
+      font-weight: bold;
+      cursor: pointer;
+      flex-shrink: 0;
+      box-shadow: 0 10px 24px rgba(255,79,139,0.28);
     }
 
     .send-btn:active,
@@ -193,13 +200,160 @@
       transform: scale(0.97);
     }
 
-    #chatBox::-webkit-scrollbar { width: 6px; }
+    #chatBox::-webkit-scrollbar {
+      width: 6px;
+    }
+
     #chatBox::-webkit-scrollbar-thumb {
-      background: rgba(255,255,255,0.2);
+      background: rgba(255,255,255,0.18);
       border-radius: 999px;
     }
 
-    /* アニメ */
+    /* ===== 初回起動オーバーレイ ===== */
+    .start-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(4,8,18,0.84);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+      padding: 24px;
+    }
+
+    .start-box {
+      width: 100%;
+      max-width: 420px;
+      background: rgba(35,29,48,0.96);
+      border-radius: 30px;
+      padding: 28px 24px;
+      box-shadow: 0 24px 60px rgba(0,0,0,0.45);
+      text-align: center;
+    }
+
+    .start-title {
+      font-size: 30px;
+      font-weight: bold;
+      margin-bottom: 12px;
+      color: #ffd1e6;
+    }
+
+    .start-text {
+      font-size: 18px;
+      line-height: 1.9;
+      opacity: 0.95;
+      margin-bottom: 22px;
+    }
+
+    .start-btn {
+      width: 100%;
+      border: none;
+      border-radius: 22px;
+      padding: 18px;
+      font-size: 22px;
+      font-weight: bold;
+      cursor: pointer;
+      background: linear-gradient(135deg, #7a69ff, #5f9bff);
+      color: white;
+      box-shadow: 0 14px 28px rgba(95,155,255,0.24);
+    }
+
+    /* ===== 設定 ===== */
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      padding: 20px;
+    }
+
+    .modal.show {
+      display: flex;
+    }
+
+    .modal-box {
+      width: 100%;
+      max-width: 400px;
+      max-height: 88vh;
+      overflow-y: auto;
+      background: #2a2236;
+      border-radius: 28px;
+      padding: 22px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.45);
+    }
+
+    .modal-title {
+      font-size: 28px;
+      font-weight: bold;
+      color: #ffd1e6;
+      margin-bottom: 18px;
+    }
+
+    .setting-row {
+      margin-bottom: 16px;
+    }
+
+    .setting-label {
+      display: block;
+      font-size: 17px;
+      margin-bottom: 8px;
+      opacity: 0.95;
+    }
+
+    .setting-input {
+      width: 100%;
+      padding: 16px;
+      border-radius: 18px;
+      border: none;
+      font-size: 18px;
+      outline: none;
+    }
+
+    .save-btn,
+    .toggle-btn,
+    .danger-btn,
+    .close-btn {
+      width: 100%;
+      border: none;
+      border-radius: 18px;
+      padding: 16px;
+      font-size: 18px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+
+    .save-btn {
+      background: linear-gradient(135deg, #7a69ff, #5f9bff);
+      color: white;
+    }
+
+    .toggle-btn {
+      background: #5f5470;
+      color: white;
+    }
+
+    .danger-btn {
+      background: #8a3d57;
+      color: white;
+    }
+
+    .close-btn {
+      background: linear-gradient(135deg, #ff7eb3, #ff4f8b);
+      color: white;
+    }
+
+    .hint {
+      font-size: 13px;
+      opacity: 0.72;
+      margin-top: 6px;
+      line-height: 1.7;
+    }
+
+    /* ===== 表情アニメ ===== */
     .speaking {
       animation: pulseTalk 0.75s infinite ease-in-out;
     }
@@ -226,108 +380,53 @@
       to   { opacity: 1; transform: translateY(0); }
     }
 
-    /* 設定モーダル */
-    .modal {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.55);
-      display: none;
-      justify-content: center;
-      align-items: center;
-      z-index: 999;
-      padding: 18px;
-    }
+    /* ===== 小さいスマホ対策 ===== */
+    @media (max-height: 740px) {
+      .top-character {
+        flex: 0 0 31%;
+        min-height: 190px;
+      }
 
-    .modal.show {
-      display: flex;
-    }
+      .top-character img {
+        width: min(90vw, 380px);
+        border-radius: 28px;
+      }
 
-    .modal-box {
-      width: 100%;
-      max-width: 390px;
-      max-height: 88dvh;
-      overflow-y: auto;
-      background: #2a2236;
-      border-radius: 26px;
-      padding: 22px;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.45);
-    }
+      .message {
+        font-size: 17px;
+        line-height: 1.8;
+      }
 
-    .modal-title {
-      font-size: 24px;
-      font-weight: bold;
-      color: #ffd1e6;
-      margin-bottom: 18px;
-    }
+      .mic-btn, .send-btn {
+        height: 74px;
+      }
 
-    .setting-row {
-      margin-bottom: 16px;
-    }
+      .mic-btn {
+        width: 74px;
+        font-size: 30px;
+      }
 
-    .setting-label {
-      font-size: 15px;
-      opacity: 0.95;
-      margin-bottom: 8px;
-      display: block;
-    }
-
-    .setting-input {
-      width: 100%;
-      padding: 14px;
-      border-radius: 16px;
-      border: none;
-      font-size: 16px;
-      outline: none;
-    }
-
-    .toggle-btn, .danger-btn, .close-btn, .save-btn {
-      width: 100%;
-      padding: 15px;
-      border: none;
-      border-radius: 18px;
-      font-size: 17px;
-      font-weight: bold;
-      cursor: pointer;
-      margin-top: 10px;
-    }
-
-    .toggle-btn {
-      background: #5f5470;
-      color: white;
-    }
-
-    .danger-btn {
-      background: #8a3d57;
-      color: white;
-    }
-
-    .save-btn {
-      background: linear-gradient(135deg, #7a69ff, #5f9bff);
-      color: white;
-    }
-
-    .close-btn {
-      background: linear-gradient(135deg, #ff7eb3, #ff4f8b);
-      color: white;
-    }
-
-    .hint {
-      font-size: 12px;
-      opacity: 0.74;
-      margin-top: 6px;
-      line-height: 1.6;
-    }
-
-    @media (max-width: 390px) {
-      .top-character { flex-basis: 25%; min-height: 150px; }
-      .message { font-size: 15px; padding: 13px 15px; }
-      .mic-btn { width: 58px; height: 58px; }
-      .send-btn { width: 84px; height: 58px; font-size: 18px; }
+      .send-btn {
+        width: 108px;
+        font-size: 22px;
+      }
     }
   </style>
 </head>
 <body>
   <div class="app">
+
+    <!-- 初回起動 -->
+    <div class="start-overlay" id="startOverlay">
+      <div class="start-box">
+        <div class="start-title">美咲AI</div>
+        <div class="start-text">
+          最初に一度だけタップすると、<br>
+          音声返答が使えるようになります。
+        </div>
+        <button class="start-btn" onclick="startApp()">タップして開始</button>
+      </div>
+    </div>
 
     <!-- 上 -->
     <div class="top-character">
@@ -341,7 +440,7 @@
     </div>
 
     <!-- ステータス -->
-    <div class="status-bar" id="statusBar">準備OK</div>
+    <div class="status-bar" id="statusBar">起動待ち</div>
 
     <!-- 下 -->
     <div class="input-area">
@@ -369,17 +468,7 @@
       <div class="setting-row">
         <label class="setting-label">OpenAI APIキー</label>
         <input class="setting-input" id="apiKeyInput" type="password" placeholder="sk-..." />
-        <div class="hint">GPT返答・OpenAI高品質音声に必要です。</div>
-      </div>
-
-      <div class="setting-row">
-        <label class="setting-label">音声モード</label>
-        <select class="setting-input" id="voiceModeSelect">
-          <option value="native">通常音声（スマホ）</option>
-          <option value="openai">OpenAI高品質音声</option>
-          <option value="off">OFF</option>
-        </select>
-        <div class="hint">返答後の読み上げ方法を選べます。</div>
+        <div class="hint">GPTを使う時だけ必要。使わないなら空でもOK。</div>
       </div>
 
       <button class="save-btn" onclick="saveSettings()">💾 保存する</button>
@@ -400,17 +489,16 @@
     const nameInput = document.getElementById("nameInput");
     const userNameInput = document.getElementById("userNameInput");
     const apiKeyInput = document.getElementById("apiKeyInput");
-    const voiceModeSelect = document.getElementById("voiceModeSelect");
     const statusBar = document.getElementById("statusBar");
     const micBtn = document.getElementById("micBtn");
+    const startOverlay = document.getElementById("startOverlay");
 
+    let appStarted = false;
     let voiceEnabled = localStorage.getItem("voiceEnabled") !== "false";
     let gptEnabled = localStorage.getItem("gptEnabled") === "true";
-    let voiceMode = localStorage.getItem("voiceMode") || "native";
     let availableVoices = [];
     let recognition = null;
     let isListening = false;
-    let currentAudio = null;
 
     let memory = {
       characterName: localStorage.getItem("characterName") || "美咲",
@@ -429,7 +517,6 @@
     nameInput.value = memory.characterName;
     userNameInput.value = memory.userName;
     apiKeyInput.value = memory.apiKey;
-    voiceModeSelect.value = voiceMode;
 
     updateVoiceButton();
     updateGPTButton();
@@ -447,7 +534,7 @@
     };
 
     const moodBackgrounds = {
-      normal: "linear-gradient(to bottom, #2b314d, #111827)",
+      normal: "linear-gradient(to bottom, #232b49, #050b18)",
       worried: "linear-gradient(to bottom, #3f4c6b, #1d2230)",
       sympathy: "linear-gradient(to bottom, #4a3b60, #1c1a2a)",
       troubled: "linear-gradient(to bottom, #4c4b67, #1d2031)",
@@ -484,7 +571,6 @@
       nameInput.value = memory.characterName || "美咲";
       userNameInput.value = memory.userName || "";
       apiKeyInput.value = memory.apiKey || "";
-      voiceModeSelect.value = voiceMode || "native";
       settingsModal.classList.add("show");
     }
 
@@ -496,12 +582,10 @@
       memory.characterName = nameInput.value.trim() || "美咲";
       memory.userName = userNameInput.value.trim();
       memory.apiKey = apiKeyInput.value.trim();
-      voiceMode = voiceModeSelect.value;
 
       localStorage.setItem("characterName", memory.characterName);
       localStorage.setItem("userNickName", memory.userName);
       localStorage.setItem("openai_api_key", memory.apiKey);
-      localStorage.setItem("voiceMode", voiceMode);
 
       addMessage("設定を保存したよ😊", "bot");
       setStatus("設定を保存しました");
@@ -513,8 +597,10 @@
       localStorage.setItem("voiceEnabled", voiceEnabled);
       updateVoiceButton();
 
-      stopAllSpeech();
-      setStatus(voiceEnabled ? "音声ON" : "音声OFF");
+      if (!voiceEnabled && ("speechSynthesis" in window)) {
+        window.speechSynthesis.cancel();
+        stopSpeakingAnimation();
+      }
     }
 
     function toggleGPT() {
@@ -561,23 +647,31 @@
       window.speechSynthesis.onvoiceschanged = loadVoices;
     }
 
-    document.body.addEventListener("click", unlockSpeech, { once: false });
-    document.body.addEventListener("touchstart", unlockSpeech, { once: false });
+    function startApp() {
+      appStarted = true;
+      startOverlay.style.display = "none";
+
+      unlockSpeech();
+
+      setTimeout(() => {
+        setFace("normal");
+        botReply(getWelcomeMessage());
+        setStatus("準備OK");
+      }, 350);
+    }
 
     function unlockSpeech() {
       try {
         if (!("speechSynthesis" in window)) return;
         const synth = window.speechSynthesis;
-        const u = new SpeechSynthesisUtterance(" ");
+        const u = new SpeechSynthesisUtterance("起動");
         u.volume = 0;
+        u.rate = 1;
+        u.pitch = 1;
+        synth.cancel();
         synth.speak(u);
       } catch (e) {}
     }
-
-    setTimeout(() => {
-      setFace("normal");
-      botReply(getWelcomeMessage());
-    }, 500);
 
     function getWelcomeMessage() {
       const name = memory.characterName || "美咲";
@@ -613,11 +707,9 @@
       speakText(text);
     }
 
-    async function sendMessage(forcedText = null) {
-      const text = (forcedText ?? userInput.value).trim();
+    async function sendMessage() {
+      const text = userInput.value.trim();
       if (!text) return;
-
-      stopVoiceInput();
 
       addMessage(text, "user");
       saveChat("user", text);
@@ -709,7 +801,7 @@
         memory.mood = "irritated";
         saveMemory();
         return pick([
-          `${callName}それ、かなりイラッとしたよね。\n無理に大人っぽく飲み込まなくていいよ。\n何が一番ひっかかった？`,
+          `${callName}それ、かなりイラッとしたよね。\n無理に飲み込まなくていいよ。\n何が一番ひっかかった？`,
           `${callName}それは腹立つやつだね…。\nちゃんと嫌だったって感じていいよ。\n言い方？態度？出来事そのもの？`
         ]);
       }
@@ -821,7 +913,7 @@
 - 恋愛営業っぽくしすぎない
 - 「表情タグ」を必ず文頭に1つだけ付ける
 
-表情タグはこのどれか:
+表情タグ:
 [happy]
 [healing]
 [worried]
@@ -858,7 +950,6 @@
 
       const data = await res.json();
       const raw = data.choices?.[0]?.message?.content?.trim() || "うまく言葉が出なかったけど、ちゃんとここにいるよ。";
-
       return applyEmotionFromReply(raw);
     }
 
@@ -880,7 +971,6 @@
       memory.mood = mood;
       saveMemory();
       setFace(mood);
-
       return cleaned;
     }
 
@@ -907,139 +997,72 @@
       }
     }
 
-    function stopAllSpeech() {
-      try {
-        if ("speechSynthesis" in window) {
-          window.speechSynthesis.cancel();
-        }
-      } catch (e) {}
+    function speakText(text) {
+      if (!voiceEnabled || !appStarted) return;
 
-      try {
-        if (currentAudio) {
-          currentAudio.pause();
-          currentAudio.currentTime = 0;
-          currentAudio = null;
-        }
-      } catch (e) {}
-
-      stopSpeakingAnimation();
-    }
-
-    async function speakText(text) {
-      if (!voiceEnabled || voiceMode === "off") return;
-
-      stopAllSpeech();
-
-      const cleanText = text
-        .replace(/\n/g, "。")
-        .replace(/😊|♡|✨|😌|😢|🥺|😳|💦|💭/g, "")
-        .replace(/…/g, "、")
-        .trim();
-
-      if (!cleanText) return;
-
-      if (voiceMode === "native") {
-        if (!("speechSynthesis" in window)) {
-          setStatus("この環境では音声非対応");
-          return;
-        }
-
-        try {
-          const synth = window.speechSynthesis;
-          const utterance = new SpeechSynthesisUtterance(cleanText);
-          utterance.lang = "ja-JP";
-
-          const voiceStyle = getVoiceStyleByMood(memory.mood);
-          utterance.rate = voiceStyle.rate;
-          utterance.pitch = voiceStyle.pitch;
-          utterance.volume = 1.0;
-
-          const voices = synth.getVoices();
-          const preferredVoice =
-            voices.find(v => v.lang && v.lang.includes("ja") && v.name.includes("Google")) ||
-            voices.find(v => v.lang && v.lang.includes("ja"));
-
-          if (preferredVoice) utterance.voice = preferredVoice;
-
-          utterance.onstart = () => {
-            startSpeakingAnimation();
-            setStatus("話してるよ…");
-          };
-
-          utterance.onend = () => {
-            stopSpeakingAnimation();
-            setStatus("準備OK");
-          };
-
-          utterance.onerror = () => {
-            stopSpeakingAnimation();
-            setStatus("音声再生できませんでした");
-          };
-
-          setTimeout(() => synth.speak(utterance), 220);
-
-        } catch (e) {
-          console.error("native音声エラー", e);
-          stopSpeakingAnimation();
-          setStatus("音声エラー");
-        }
+      if (!("speechSynthesis" in window)) {
+        setStatus("この環境では音声非対応");
+        return;
       }
 
-      else if (voiceMode === "openai") {
-        if (!memory.apiKey) {
-          setStatus("APIキーが必要です");
-          return;
-        }
+      try {
+        const synth = window.speechSynthesis;
+        synth.cancel();
 
-        try {
-          startSpeakingAnimation();
-          setStatus("AI音声生成中…");
+        const cleanText = text
+          .replace(/\n/g, "。")
+          .replace(/😊|♡|✨|😌|😢|🥺|😳|💦|💭/g, "")
+          .replace(/…/g, "、")
+          .trim();
 
-          const res = await fetch("https://api.openai.com/v1/audio/speech", {
-            method: "POST",
-            headers: {
-              "Authorization": `Bearer ${memory.apiKey}`,
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-              model: "gpt-4o-mini-tts",
-              voice: "alloy",
-              input: cleanText
-            })
-          });
+        if (!cleanText) return;
 
-          if (!res.ok) {
-            throw new Error("OpenAI音声生成失敗");
+        setTimeout(() => {
+          try {
+            const utterance = new SpeechSynthesisUtterance(cleanText);
+            utterance.lang = "ja-JP";
+
+            const voiceStyle = getVoiceStyleByMood(memory.mood);
+            utterance.rate = voiceStyle.rate;
+            utterance.pitch = voiceStyle.pitch;
+            utterance.volume = 1.0;
+
+            const voices = synth.getVoices();
+            let preferredVoice =
+              voices.find(v => v.lang && v.lang.includes("ja") && v.name.includes("Google")) ||
+              voices.find(v => v.lang && v.lang.includes("ja"));
+
+            if (preferredVoice) {
+              utterance.voice = preferredVoice;
+            }
+
+            utterance.onstart = () => {
+              startSpeakingAnimation();
+              setStatus("話してるよ…");
+            };
+
+            utterance.onend = () => {
+              stopSpeakingAnimation();
+              setStatus("準備OK");
+            };
+
+            utterance.onerror = () => {
+              stopSpeakingAnimation();
+              setStatus("音声再生できませんでした");
+            };
+
+            synth.speak(utterance);
+          } catch (err) {
+            console.error(err);
+            stopSpeakingAnimation();
+            setStatus("音声エラー");
           }
+        }, 220);
 
-          const blob = await res.blob();
-          const audioUrl = URL.createObjectURL(blob);
-          currentAudio = new Audio(audioUrl);
-
-          currentAudio.onplay = () => {
-            startSpeakingAnimation();
-            setStatus("話してるよ…");
-          };
-
-          currentAudio.onended = () => {
-            stopSpeakingAnimation();
-            setStatus("準備OK");
-            URL.revokeObjectURL(audioUrl);
-          };
-
-          currentAudio.onerror = () => {
-            stopSpeakingAnimation();
-            setStatus("OpenAI音声再生失敗");
-            URL.revokeObjectURL(audioUrl);
-          };
-
-          await currentAudio.play();
-
-        } catch (e) {
-          console.error("openai音声エラー", e);
-          stopSpeakingAnimation();
-          setStatus("OpenAI音声失敗");
-        }
+      } catch (e) {
+        console.error(e);
+        stopSpeakingAnimation();
+        setStatus("音声エラー");
       }
     }
 
@@ -1049,6 +1072,7 @@
       } catch (e) {}
       isListening = false;
       micBtn.classList.remove("listening");
+      setStatus("マイク停止");
     }
 
     function startVoiceInput() {
@@ -1061,7 +1085,6 @@
 
       if (isListening) {
         stopVoiceInput();
-        setStatus("マイク停止");
         return;
       }
 
@@ -1076,20 +1099,11 @@
         micBtn.classList.add("listening");
         setStatus("🎤 聞き取り中…話してください");
 
-        recognition.onstart = () => {
-          isListening = true;
-          micBtn.classList.add("listening");
-          setStatus("🎤 聞き取り中…");
-        };
-
         recognition.onresult = (event) => {
           const transcript = event.results[0][0].transcript || "";
-          const finalText = transcript.trim();
-          userInput.value = finalText;
-          setStatus("音声入力OK → 自動送信");
-          if (finalText) {
-            setTimeout(() => sendMessage(finalText), 250);
-          }
+          userInput.value = transcript.trim();
+          setStatus("音声入力OK → 送信中");
+          sendMessage();
         };
 
         recognition.onerror = (event) => {
@@ -1122,16 +1136,12 @@
 
         recognition.start();
       } catch (e) {
-        console.error("マイク起動失敗:", e);
+        console.error(e);
         isListening = false;
         micBtn.classList.remove("listening");
         setStatus("マイク起動失敗");
       }
     }
-
-    settingsModal.addEventListener("click", (e) => {
-      if (e.target === settingsModal) closeSettings();
-    });
   </script>
 </body>
 </html>
