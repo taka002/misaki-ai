@@ -2,11 +2,14 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>美咲AI 完全版</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>美咲AI 完全安定版</title>
 
   <style>
-    * { box-sizing: border-box; }
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
 
     html, body {
       margin: 0;
@@ -18,7 +21,7 @@
     }
 
     body {
-      background: linear-gradient(to bottom, #2b314d, #111827);
+      background: linear-gradient(to bottom, #2b314d, #0f172a);
       color: white;
       display: flex;
       flex-direction: column;
@@ -27,28 +30,30 @@
     .app {
       display: flex;
       flex-direction: column;
-      height: 100vh;
+      height: 100dvh;
       width: 100%;
       overflow: hidden;
+      padding-bottom: env(safe-area-inset-bottom);
     }
 
-    /* 上画像（全スマホ安定版） */
+    /* ===== 上：キャラ画像 ===== */
     .top-character {
       flex: 0 0 auto;
       display: flex;
       justify-content: center;
       align-items: center;
-      padding: 14px 12px 8px;
+      padding: 10px 12px 4px;
       position: relative;
     }
 
     .top-character img {
-      width: min(92vw, 430px);
+      width: min(88vw, 360px);
+      max-height: 36vh;
       aspect-ratio: 3 / 4;
       height: auto;
       object-fit: cover;
       object-position: center top;
-      border-radius: 32px;
+      border-radius: 28px;
       border: 3px solid rgba(255,255,255,0.14);
       box-shadow: 0 14px 30px rgba(0,0,0,0.35);
       transition: all 0.35s ease;
@@ -58,14 +63,14 @@
 
     .settings-open {
       position: absolute;
-      top: 18px;
+      top: 14px;
       right: 18px;
       border: none;
       background: rgba(255,255,255,0.16);
       color: white;
       font-size: 24px;
-      width: 60px;
-      height: 60px;
+      width: 58px;
+      height: 58px;
       border-radius: 50%;
       cursor: pointer;
       backdrop-filter: blur(8px);
@@ -73,13 +78,13 @@
       z-index: 5;
     }
 
-    /* チャット */
+    /* ===== 中：チャット ===== */
     .chat-section {
       flex: 1;
       display: flex;
       flex-direction: column;
       min-height: 0;
-      padding: 0 12px 0;
+      padding: 0 10px;
       overflow: hidden;
     }
 
@@ -89,17 +94,17 @@
       overflow-y: auto;
       display: flex;
       flex-direction: column;
-      gap: 12px;
-      padding: 8px 4px 18px;
+      gap: 10px;
+      padding: 8px 4px 14px;
       scroll-behavior: smooth;
     }
 
     .message {
       max-width: 84%;
-      padding: 16px 18px;
+      padding: 15px 17px;
       border-radius: 24px;
       font-size: 18px;
-      line-height: 1.9;
+      line-height: 1.85;
       white-space: pre-wrap;
       word-break: break-word;
       animation: fadeIn 0.25s ease;
@@ -125,19 +130,34 @@
       font-style: italic;
     }
 
-    /* 下入力 */
+    /* ===== ステータス ===== */
+    .status-wrap {
+      flex-shrink: 0;
+      padding: 0 14px 8px;
+    }
+
+    .status-bar {
+      font-size: 13px;
+      opacity: 0.82;
+      min-height: 20px;
+      padding-left: 2px;
+    }
+
+    /* ===== 下：入力 ===== */
     .input-area {
-      display: flex;
-      align-items: center;
+      display: grid;
+      grid-template-columns: 1fr 72px 72px 96px;
       gap: 10px;
-      padding: 12px;
-      background: rgba(0,0,0,0.25);
+      align-items: center;
+      padding: 10px 12px 12px;
+      background: rgba(0,0,0,0.24);
       border-top: 1px solid rgba(255,255,255,0.08);
       flex-shrink: 0;
+      backdrop-filter: blur(8px);
     }
 
     input[type="text"], input[type="password"] {
-      flex: 1;
+      width: 100%;
       min-width: 0;
       padding: 16px 18px;
       border-radius: 18px;
@@ -148,16 +168,20 @@
       color: #222;
     }
 
+    .mic-btn,
+    .send-btn {
+      border: none;
+      border-radius: 22px;
+      color: white;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
     .mic-btn {
       width: 72px;
       height: 72px;
-      border: none;
-      border-radius: 22px;
       background: rgba(255,255,255,0.12);
-      color: white;
       font-size: 30px;
-      cursor: pointer;
-      flex-shrink: 0;
     }
 
     .mic-btn.listening {
@@ -166,16 +190,11 @@
     }
 
     .send-btn {
-      flex-shrink: 0;
-      width: 110px;
+      width: 96px;
       height: 72px;
-      border: none;
-      border-radius: 22px;
       background: linear-gradient(135deg, #ff7eb3, #ff4f8b);
-      color: white;
       font-weight: bold;
-      font-size: 24px;
-      cursor: pointer;
+      font-size: 22px;
       box-shadow: 0 10px 24px rgba(255,79,139,0.3);
     }
 
@@ -194,7 +213,7 @@
       border-radius: 999px;
     }
 
-    /* アニメ */
+    /* ===== アニメ ===== */
     .speaking {
       animation: pulseTalk 0.75s infinite ease-in-out;
     }
@@ -221,7 +240,7 @@
       to   { opacity: 1; transform: translateY(0); }
     }
 
-    /* 設定モーダル */
+    /* ===== 設定モーダル ===== */
     .modal {
       position: fixed;
       inset: 0;
@@ -230,7 +249,7 @@
       justify-content: center;
       align-items: center;
       z-index: 999;
-      padding: 20px;
+      padding: 18px;
     }
 
     .modal.show {
@@ -264,6 +283,7 @@
       opacity: 0.95;
       margin-bottom: 8px;
       display: block;
+      line-height: 1.6;
     }
 
     .setting-input {
@@ -313,14 +333,7 @@
       line-height: 1.6;
     }
 
-    .status-bar {
-      font-size: 13px;
-      opacity: 0.78;
-      padding: 0 16px 8px;
-      min-height: 20px;
-    }
-
-    /* ボイスゲートシート */
+    /* ===== VoiceGate ===== */
     .voicegate-sheet {
       position: fixed;
       inset: 0;
@@ -411,34 +424,69 @@
       }
     }
 
-    /* スマホごとの微調整 */
+    /* ===== スマホ最適化 ===== */
     @media (max-width: 480px) {
+      .top-character {
+        padding: 8px 10px 2px;
+      }
+
       .top-character img {
-        width: 92vw;
-        aspect-ratio: 3 / 4;
-        border-radius: 28px;
+        width: 86vw;
+        max-height: 34vh;
+        border-radius: 24px;
       }
 
       .settings-open {
-        width: 58px;
-        height: 58px;
+        width: 54px;
+        height: 54px;
         font-size: 22px;
-        top: 16px;
-        right: 16px;
+        top: 12px;
+        right: 14px;
       }
-    }
 
-    @media (min-width: 481px) and (max-width: 768px) {
-      .top-character img {
-        width: min(84vw, 430px);
-        aspect-ratio: 3 / 4;
+      .message {
+        font-size: 17px;
+        line-height: 1.8;
+        padding: 14px 16px;
       }
-    }
 
-    @media (min-width: 769px) {
-      .top-character img {
-        width: min(420px, 38vw);
-        aspect-ratio: 3 / 4;
+      .input-area {
+        grid-template-columns: 1fr 64px 64px 88px;
+        gap: 8px;
+        padding: 10px 10px 12px;
+      }
+
+      .mic-btn {
+        width: 64px;
+        height: 64px;
+        border-radius: 20px;
+        font-size: 27px;
+      }
+
+      .send-btn {
+        width: 88px;
+        height: 64px;
+        border-radius: 20px;
+        font-size: 20px;
+      }
+
+      input[type="text"], input[type="password"] {
+        padding: 14px 16px;
+        font-size: 17px;
+      }
+
+      .modal-box {
+        max-height: 90vh;
+        border-radius: 24px;
+        padding: 18px;
+      }
+
+      .modal-title {
+        font-size: 24px;
+      }
+
+      .setting-input {
+        font-size: 17px;
       }
     }
   </style>
@@ -458,7 +506,9 @@
     </div>
 
     <!-- ステータス -->
-    <div class="status-bar" id="statusBar">準備OK</div>
+    <div class="status-wrap">
+      <div class="status-bar" id="statusBar">準備OK</div>
+    </div>
 
     <!-- 下 -->
     <div class="input-area">
@@ -581,7 +631,7 @@
     };
 
     const moodBackgrounds = {
-      normal: "linear-gradient(to bottom, #2b314d, #111827)",
+      normal: "linear-gradient(to bottom, #2b314d, #0f172a)",
       worried: "linear-gradient(to bottom, #3f4c6b, #1d2230)",
       sympathy: "linear-gradient(to bottom, #4a3b60, #1c1a2a)",
       troubled: "linear-gradient(to bottom, #4c4b67, #1d2031)",
@@ -747,8 +797,8 @@
       speakText(text);
     }
 
-    async function sendMessage() {
-      const text = userInput.value.trim();
+    async function sendMessage(autoText = null) {
+      const text = autoText !== null ? autoText.trim() : userInput.value.trim();
       if (!text) return;
 
       addMessage(text, "user");
@@ -1149,19 +1199,13 @@
           setStatus("🎤 聞き取り中…");
         };
 
-        /* ★ここが自動送信版 */
         recognition.onresult = (event) => {
           const transcript = event.results[0][0].transcript || "";
-          const finalText = transcript.trim();
-
-          userInput.value = finalText;
-          setStatus("🎤 音声入力OK → 自動送信");
-
-          if (finalText.length >= 2) {
-            setTimeout(() => {
-              sendMessage();
-            }, 500);
-          }
+          userInput.value = transcript.trim();
+          setStatus("音声入力OK → 自動送信");
+          setTimeout(() => {
+            sendMessage(transcript.trim());
+          }, 350);
         };
 
         recognition.onerror = (event) => {
@@ -1206,7 +1250,7 @@
       voicegatePreview.textContent = textToUse;
       copyTextToClipboard(textToUse);
       voicegateSheet.classList.add("show");
-      setStatus("ボイスゲート用に返答をコピーしました");
+      setStatus("VoiceGate用に返答をコピーしました");
     }
 
     function closeVoiceGateSheet() {
@@ -1224,7 +1268,7 @@
       const textToUse = lastBotReply || "こんにちは。今日はどんな気分ですか？";
       copyTextToClipboard(textToUse);
       window.open("https://vidweb.co.jp/voicegate/", "_blank");
-      setStatus("ボイスゲートを開きました");
+      setStatus("VoiceGateを開きました");
     }
 
     function copyTextToClipboard(text) {
