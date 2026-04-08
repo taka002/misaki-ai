@@ -2,11 +2,14 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>美咲AI 完全版</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>美咲AI 完全安定版</title>
 
   <style>
-    * { box-sizing: border-box; }
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
 
     html, body {
       margin: 0;
@@ -18,7 +21,7 @@
     }
 
     body {
-      background: linear-gradient(to bottom, #2b314d, #111827);
+      background: linear-gradient(to bottom, #2b314d, #0f172a);
       color: white;
       display: flex;
       flex-direction: column;
@@ -27,42 +30,47 @@
     .app {
       display: flex;
       flex-direction: column;
-      height: 100vh;
+      height: 100dvh;
       width: 100%;
       overflow: hidden;
+      padding-bottom: env(safe-area-inset-bottom);
     }
 
+    /* ===== 上：キャラ画像 ===== */
     .top-character {
-      flex: 0 0 34%;
+      flex: 0 0 auto;
       display: flex;
       justify-content: center;
       align-items: center;
-      padding: 16px 12px 8px;
+      padding: 10px 12px 4px;
       position: relative;
     }
 
     .top-character img {
-      width: 88%;
-      max-width: 430px;
-      max-height: 100%;
+      width: min(88vw, 360px);
+      max-height: 36vh;
+      aspect-ratio: 3 / 4;
+      height: auto;
       object-fit: cover;
-      border-radius: 30px;
+      object-position: center top;
+      border-radius: 28px;
       border: 3px solid rgba(255,255,255,0.14);
       box-shadow: 0 14px 30px rgba(0,0,0,0.35);
       transition: all 0.35s ease;
       background: rgba(255,255,255,0.03);
+      display: block;
     }
 
     .settings-open {
       position: absolute;
-      top: 18px;
+      top: 14px;
       right: 18px;
       border: none;
       background: rgba(255,255,255,0.16);
       color: white;
       font-size: 24px;
-      width: 60px;
-      height: 60px;
+      width: 58px;
+      height: 58px;
       border-radius: 50%;
       cursor: pointer;
       backdrop-filter: blur(8px);
@@ -70,12 +78,13 @@
       z-index: 5;
     }
 
+    /* ===== 中：チャット ===== */
     .chat-section {
       flex: 1;
       display: flex;
       flex-direction: column;
       min-height: 0;
-      padding: 0 12px 0;
+      padding: 0 10px;
       overflow: hidden;
     }
 
@@ -85,17 +94,17 @@
       overflow-y: auto;
       display: flex;
       flex-direction: column;
-      gap: 12px;
-      padding: 8px 4px 18px;
+      gap: 10px;
+      padding: 8px 4px 14px;
       scroll-behavior: smooth;
     }
 
     .message {
       max-width: 84%;
-      padding: 16px 18px;
+      padding: 15px 17px;
       border-radius: 24px;
       font-size: 18px;
-      line-height: 1.9;
+      line-height: 1.85;
       white-space: pre-wrap;
       word-break: break-word;
       animation: fadeIn 0.25s ease;
@@ -121,18 +130,34 @@
       font-style: italic;
     }
 
+    /* ===== ステータス ===== */
+    .status-wrap {
+      flex-shrink: 0;
+      padding: 0 14px 8px;
+    }
+
+    .status-bar {
+      font-size: 13px;
+      opacity: 0.82;
+      min-height: 20px;
+      padding-left: 2px;
+    }
+
+    /* ===== 下：入力 ===== */
     .input-area {
-      display: flex;
-      align-items: center;
+      display: grid;
+      grid-template-columns: 1fr 72px 72px 96px;
       gap: 10px;
-      padding: 12px;
-      background: rgba(0,0,0,0.25);
+      align-items: center;
+      padding: 10px 12px 12px;
+      background: rgba(0,0,0,0.24);
       border-top: 1px solid rgba(255,255,255,0.08);
       flex-shrink: 0;
+      backdrop-filter: blur(8px);
     }
 
     input[type="text"], input[type="password"] {
-      flex: 1;
+      width: 100%;
       min-width: 0;
       padding: 16px 18px;
       border-radius: 18px;
@@ -143,16 +168,20 @@
       color: #222;
     }
 
+    .mic-btn,
+    .send-btn {
+      border: none;
+      border-radius: 22px;
+      color: white;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
     .mic-btn {
       width: 72px;
       height: 72px;
-      border: none;
-      border-radius: 22px;
       background: rgba(255,255,255,0.12);
-      color: white;
-      font-size: 34px;
-      cursor: pointer;
-      flex-shrink: 0;
+      font-size: 30px;
     }
 
     .mic-btn.listening {
@@ -161,16 +190,11 @@
     }
 
     .send-btn {
-      flex-shrink: 0;
-      width: 120px;
+      width: 96px;
       height: 72px;
-      border: none;
-      border-radius: 22px;
       background: linear-gradient(135deg, #ff7eb3, #ff4f8b);
-      color: white;
       font-weight: bold;
-      font-size: 28px;
-      cursor: pointer;
+      font-size: 22px;
       box-shadow: 0 10px 24px rgba(255,79,139,0.3);
     }
 
@@ -189,6 +213,7 @@
       border-radius: 999px;
     }
 
+    /* ===== アニメ ===== */
     .speaking {
       animation: pulseTalk 0.75s infinite ease-in-out;
     }
@@ -215,6 +240,7 @@
       to   { opacity: 1; transform: translateY(0); }
     }
 
+    /* ===== 設定モーダル ===== */
     .modal {
       position: fixed;
       inset: 0;
@@ -223,7 +249,7 @@
       justify-content: center;
       align-items: center;
       z-index: 999;
-      padding: 20px;
+      padding: 18px;
     }
 
     .modal.show {
@@ -232,7 +258,7 @@
 
     .modal-box {
       width: 100%;
-      max-width: 380px;
+      max-width: 390px;
       max-height: 88vh;
       overflow-y: auto;
       background: #2a2236;
@@ -257,6 +283,7 @@
       opacity: 0.95;
       margin-bottom: 8px;
       display: block;
+      line-height: 1.6;
     }
 
     .setting-input {
@@ -306,35 +333,193 @@
       line-height: 1.6;
     }
 
-    .status-bar {
+    /* ===== VoiceGate ===== */
+    .voicegate-sheet {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      display: none;
+      align-items: flex-end;
+      justify-content: center;
+      z-index: 1200;
+    }
+
+    .voicegate-sheet.show {
+      display: flex;
+    }
+
+    .voicegate-box {
+      width: 100%;
+      max-width: 480px;
+      background: #231d30;
+      border-top-left-radius: 26px;
+      border-top-right-radius: 26px;
+      padding: 22px 18px 28px;
+      box-shadow: 0 -10px 30px rgba(0,0,0,0.35);
+      animation: slideUpSheet 0.28s ease;
+    }
+
+    .voicegate-title {
+      font-size: 24px;
+      font-weight: bold;
+      color: #ffd1e6;
+      margin-bottom: 14px;
+    }
+
+    .voicegate-text {
+      background: rgba(255,255,255,0.08);
+      border-radius: 18px;
+      padding: 16px;
+      font-size: 16px;
+      line-height: 1.8;
+      white-space: pre-wrap;
+      margin-bottom: 16px;
+      max-height: 180px;
+      overflow-y: auto;
+    }
+
+    .voicegate-main-btn,
+    .voicegate-sub-btn,
+    .voicegate-close-btn {
+      width: 100%;
+      border: none;
+      border-radius: 18px;
+      padding: 16px;
+      font-size: 17px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+
+    .voicegate-main-btn {
+      background: linear-gradient(135deg, #7a69ff, #5f9bff);
+      color: white;
+    }
+
+    .voicegate-sub-btn {
+      background: rgba(255,255,255,0.12);
+      color: white;
+    }
+
+    .voicegate-close-btn {
+      background: linear-gradient(135deg, #ff7eb3, #ff4f8b);
+      color: white;
+    }
+
+    .voicegate-hint {
+      margin-top: 14px;
       font-size: 13px;
-      opacity: 0.78;
-      padding: 0 16px 8px;
-      min-height: 20px;
+      opacity: 0.75;
+      line-height: 1.7;
+    }
+
+    @keyframes slideUpSheet {
+      from {
+        transform: translateY(100%);
+        opacity: 0.7;
+      }
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+
+    /* ===== スマホ最適化 ===== */
+    @media (max-width: 480px) {
+      .top-character {
+        padding: 8px 10px 2px;
+      }
+
+      .top-character img {
+        width: 86vw;
+        max-height: 34vh;
+        border-radius: 24px;
+      }
+
+      .settings-open {
+        width: 54px;
+        height: 54px;
+        font-size: 22px;
+        top: 12px;
+        right: 14px;
+      }
+
+      .message {
+        font-size: 17px;
+        line-height: 1.8;
+        padding: 14px 16px;
+      }
+
+      .input-area {
+        grid-template-columns: 1fr 64px 64px 88px;
+        gap: 8px;
+        padding: 10px 10px 12px;
+      }
+
+      .mic-btn {
+        width: 64px;
+        height: 64px;
+        border-radius: 20px;
+        font-size: 27px;
+      }
+
+      .send-btn {
+        width: 88px;
+        height: 64px;
+        border-radius: 20px;
+        font-size: 20px;
+      }
+
+      input[type="text"], input[type="password"] {
+        padding: 14px 16px;
+        font-size: 17px;
+      }
+
+      .modal-box {
+        max-height: 90vh;
+        border-radius: 24px;
+        padding: 18px;
+      }
+
+      .modal-title {
+        font-size: 24px;
+      }
+
+      .setting-input {
+        font-size: 17px;
+      }
     }
   </style>
 </head>
 <body>
   <div class="app">
 
+    <!-- 上 -->
     <div class="top-character">
       <img id="mainGirl" src="girl-normal.jpg" alt="美咲">
       <button class="settings-open" onclick="openSettings()">⚙</button>
     </div>
 
+    <!-- 中 -->
     <div class="chat-section">
       <div id="chatBox"></div>
     </div>
 
-    <div class="status-bar" id="statusBar">準備OK</div>
+    <!-- ステータス -->
+    <div class="status-wrap">
+      <div class="status-bar" id="statusBar">準備OK</div>
+    </div>
 
+    <!-- 下 -->
     <div class="input-area">
       <input type="text" id="userInput" placeholder="何か話してみて…" />
       <button class="mic-btn" id="micBtn" onclick="startVoiceInput()">🎤</button>
+      <button class="mic-btn" onclick="openVoiceGateSheet()">🎧</button>
       <button class="send-btn" onclick="sendMessage()">送信</button>
     </div>
   </div>
 
+  <!-- 設定 -->
   <div class="modal" id="settingsModal">
     <div class="modal-box">
       <div class="modal-title">設定</div>
@@ -363,6 +548,33 @@
     </div>
   </div>
 
+  <!-- ボイスゲートシート -->
+  <div class="voicegate-sheet" id="voicegateSheet">
+    <div class="voicegate-box">
+      <div class="voicegate-title">🎧 自然音声で再生</div>
+      <div class="voicegate-text" id="voicegatePreview">
+        ここに美咲の最新メッセージが入ります
+      </div>
+
+      <button class="voicegate-main-btn" onclick="launchVoiceGate()">
+        ボイスゲートを開く
+      </button>
+
+      <button class="voicegate-sub-btn" onclick="copyLastReplyOnly()">
+        返答をもう一度コピー
+      </button>
+
+      <button class="voicegate-close-btn" onclick="closeVoiceGateSheet()">
+        閉じる
+      </button>
+
+      <div class="voicegate-hint">
+        美咲の最新返答を自動コピーします。<br>
+        ボイスゲートを開いたら貼り付けるだけです。
+      </div>
+    </div>
+  </div>
+
   <script>
     const chatBox = document.getElementById("chatBox");
     const userInput = document.getElementById("userInput");
@@ -375,12 +587,15 @@
     const apiKeyInput = document.getElementById("apiKeyInput");
     const statusBar = document.getElementById("statusBar");
     const micBtn = document.getElementById("micBtn");
+    const voicegateSheet = document.getElementById("voicegateSheet");
+    const voicegatePreview = document.getElementById("voicegatePreview");
 
     let voiceEnabled = localStorage.getItem("voiceEnabled") !== "false";
     let gptEnabled = localStorage.getItem("gptEnabled") === "true";
     let availableVoices = [];
     let recognition = null;
     let isListening = false;
+    let lastBotReply = "";
 
     let memory = {
       characterName: localStorage.getItem("characterName") || "美咲",
@@ -416,7 +631,7 @@
     };
 
     const moodBackgrounds = {
-      normal: "linear-gradient(to bottom, #2b314d, #111827)",
+      normal: "linear-gradient(to bottom, #2b314d, #0f172a)",
       worried: "linear-gradient(to bottom, #3f4c6b, #1d2230)",
       sympathy: "linear-gradient(to bottom, #4a3b60, #1c1a2a)",
       troubled: "linear-gradient(to bottom, #4c4b67, #1d2031)",
@@ -529,7 +744,6 @@
       window.speechSynthesis.onvoiceschanged = loadVoices;
     }
 
-    // Android系 音声解除
     document.body.addEventListener("click", unlockSpeech, { once: false });
     document.body.addEventListener("touchstart", unlockSpeech, { once: false });
 
@@ -577,13 +791,14 @@
     }
 
     function botReply(text) {
+      lastBotReply = text;
       addMessage(text, "bot");
       saveChat("assistant", text);
       speakText(text);
     }
 
-    async function sendMessage() {
-      const text = userInput.value.trim();
+    async function sendMessage(autoText = null) {
+      const text = autoText !== null ? autoText.trim() : userInput.value.trim();
       if (!text) return;
 
       addMessage(text, "user");
@@ -958,7 +1173,7 @@
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
       if (!SpeechRecognition) {
-        alert("この環境ではマイク入力が使えません。\n\nおすすめ:\n・Chromeで開く\n・GitHub Pages / Netlify で公開して開く\n・HTTPSで開く");
+        alert("この環境ではマイク入力が使えません。\n\nおすすめ:\n・Chromeで開く\n・GitHub Pagesで開く\n・HTTPSで開く");
         return;
       }
 
@@ -987,7 +1202,10 @@
         recognition.onresult = (event) => {
           const transcript = event.results[0][0].transcript || "";
           userInput.value = transcript.trim();
-          setStatus("音声入力OK");
+          setStatus("音声入力OK → 自動送信");
+          setTimeout(() => {
+            sendMessage(transcript.trim());
+          }, 350);
         };
 
         recognition.onerror = (event) => {
@@ -1026,6 +1244,57 @@
         setStatus("マイク起動失敗");
       }
     }
+
+    function openVoiceGateSheet() {
+      const textToUse = lastBotReply || "こんにちは。今日はどんな気分ですか？";
+      voicegatePreview.textContent = textToUse;
+      copyTextToClipboard(textToUse);
+      voicegateSheet.classList.add("show");
+      setStatus("VoiceGate用に返答をコピーしました");
+    }
+
+    function closeVoiceGateSheet() {
+      voicegateSheet.classList.remove("show");
+      setStatus("準備OK");
+    }
+
+    function copyLastReplyOnly() {
+      const textToUse = lastBotReply || "こんにちは。今日はどんな気分ですか？";
+      copyTextToClipboard(textToUse);
+      setStatus("返答をコピーしました");
+    }
+
+    function launchVoiceGate() {
+      const textToUse = lastBotReply || "こんにちは。今日はどんな気分ですか？";
+      copyTextToClipboard(textToUse);
+      window.open("https://vidweb.co.jp/voicegate/", "_blank");
+      setStatus("VoiceGateを開きました");
+    }
+
+    function copyTextToClipboard(text) {
+      try {
+        navigator.clipboard.writeText(text).catch(() => {
+          fallbackCopyText(text);
+        });
+      } catch (e) {
+        fallbackCopyText(text);
+      }
+    }
+
+    function fallbackCopyText(text) {
+      const temp = document.createElement("textarea");
+      temp.value = text;
+      document.body.appendChild(temp);
+      temp.select();
+      document.execCommand("copy");
+      document.body.removeChild(temp);
+    }
+
+    voicegateSheet.addEventListener("click", (e) => {
+      if (e.target === voicegateSheet) {
+        closeVoiceGateSheet();
+      }
+    });
   </script>
 </body>
 </html>
