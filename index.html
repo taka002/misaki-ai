@@ -32,26 +32,28 @@
       overflow: hidden;
     }
 
-    /* 上画像 */
+    /* 上画像（全スマホ安定版） */
     .top-character {
-      flex: 0 0 34%;
+      flex: 0 0 auto;
       display: flex;
       justify-content: center;
       align-items: center;
-      padding: 16px 12px 8px;
+      padding: 14px 12px 8px;
       position: relative;
     }
 
     .top-character img {
-      width: 88%;
-      max-width: 430px;
-      max-height: 100%;
+      width: min(92vw, 430px);
+      aspect-ratio: 3 / 4;
+      height: auto;
       object-fit: cover;
-      border-radius: 30px;
+      object-position: center top;
+      border-radius: 32px;
       border: 3px solid rgba(255,255,255,0.14);
       box-shadow: 0 14px 30px rgba(0,0,0,0.35);
       transition: all 0.35s ease;
       background: rgba(255,255,255,0.03);
+      display: block;
     }
 
     .settings-open {
@@ -406,6 +408,37 @@
       to {
         transform: translateY(0);
         opacity: 1;
+      }
+    }
+
+    /* スマホごとの微調整 */
+    @media (max-width: 480px) {
+      .top-character img {
+        width: 92vw;
+        aspect-ratio: 3 / 4;
+        border-radius: 28px;
+      }
+
+      .settings-open {
+        width: 58px;
+        height: 58px;
+        font-size: 22px;
+        top: 16px;
+        right: 16px;
+      }
+    }
+
+    @media (min-width: 481px) and (max-width: 768px) {
+      .top-character img {
+        width: min(84vw, 430px);
+        aspect-ratio: 3 / 4;
+      }
+    }
+
+    @media (min-width: 769px) {
+      .top-character img {
+        width: min(420px, 38vw);
+        aspect-ratio: 3 / 4;
       }
     }
   </style>
@@ -1116,10 +1149,19 @@
           setStatus("🎤 聞き取り中…");
         };
 
+        /* ★ここが自動送信版 */
         recognition.onresult = (event) => {
           const transcript = event.results[0][0].transcript || "";
-          userInput.value = transcript.trim();
-          setStatus("音声入力OK");
+          const finalText = transcript.trim();
+
+          userInput.value = finalText;
+          setStatus("🎤 音声入力OK → 自動送信");
+
+          if (finalText.length >= 2) {
+            setTimeout(() => {
+              sendMessage();
+            }, 500);
+          }
         };
 
         recognition.onerror = (event) => {
