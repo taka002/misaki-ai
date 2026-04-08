@@ -2,118 +2,116 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>美咲AI</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>美咲AI 完全版</title>
 
   <style>
-    * {
-      box-sizing: border-box;
-      -webkit-tap-highlight-color: transparent;
-    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
     html, body {
       margin: 0;
       padding: 0;
       height: 100%;
-      font-family: "Hiragino Sans", "Yu Gothic", sans-serif;
+      width: 100%;
       overflow: hidden;
-      background: linear-gradient(to bottom, #232b49, #050b18);
-      color: white;
+      font-family: "Hiragino Sans", "Yu Gothic", sans-serif;
+      transition: background 0.45s ease;
     }
 
     body {
+      background: linear-gradient(to bottom, #2b314d, #09111f);
+      color: white;
       display: flex;
       flex-direction: column;
     }
 
     .app {
+      width: 100%;
+      height: 100dvh;
       display: flex;
       flex-direction: column;
-      height: 100dvh;
-      width: 100%;
       overflow: hidden;
-      position: relative;
     }
 
-    /* ===== 上：画像 ===== */
+    /* ===== 上画像 ===== */
     .top-character {
-      flex: 0 0 34%;
-      min-height: 220px;
+      flex: 0 0 34vh;
+      min-height: 240px;
       max-height: 360px;
       display: flex;
       justify-content: center;
       align-items: center;
-      padding: 10px 12px 6px;
+      padding: 14px 14px 8px;
       position: relative;
     }
 
     .top-character img {
-      width: min(92vw, 420px);
+      width: min(92vw, 520px);
       height: 100%;
-      max-height: 100%;
       object-fit: cover;
-      border-radius: 34px;
+      border-radius: 28px;
       border: 3px solid rgba(255,255,255,0.14);
-      box-shadow: 0 14px 30px rgba(0,0,0,0.35);
-      background: rgba(255,255,255,0.04);
+      box-shadow: 0 16px 34px rgba(0,0,0,0.38);
+      background: rgba(255,255,255,0.03);
       transition: all 0.28s ease;
+      display: block;
     }
 
     .settings-open {
       position: absolute;
-      top: 16px;
+      top: 18px;
       right: 18px;
-      width: 74px;
-      height: 74px;
-      border: none;
+      width: 76px;
+      height: 76px;
       border-radius: 50%;
-      background: rgba(255,255,255,0.20);
+      border: none;
+      font-size: 32px;
+      background: rgba(255,255,255,0.16);
       color: white;
-      font-size: 30px;
       backdrop-filter: blur(8px);
-      box-shadow: 0 10px 24px rgba(0,0,0,0.22);
+      box-shadow: 0 10px 26px rgba(0,0,0,0.22);
       cursor: pointer;
       z-index: 5;
     }
 
-    /* ===== 中：チャット ===== */
+    /* ===== 会話エリア ===== */
     .chat-section {
       flex: 1;
       min-height: 0;
       display: flex;
       flex-direction: column;
-      overflow: hidden;
       padding: 0 12px;
+      overflow: hidden;
     }
 
     #chatBox {
       flex: 1;
       min-height: 0;
       overflow-y: auto;
-      padding: 8px 4px 14px;
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 12px;
+      padding: 6px 2px 12px;
       scroll-behavior: smooth;
     }
 
     .message {
-      max-width: 84%;
+      max-width: 86%;
       padding: 16px 18px;
       border-radius: 24px;
-      font-size: clamp(17px, 2.4vw, 20px);
-      line-height: 1.9;
+      font-size: clamp(16px, 2.4vw, 18px);
+      line-height: 1.95;
       white-space: pre-wrap;
       word-break: break-word;
-      animation: fadeIn 0.25s ease;
-      box-shadow: 0 10px 24px rgba(0,0,0,0.12);
+      animation: fadeIn 0.22s ease;
     }
 
     .bot {
       align-self: flex-start;
-      background: rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.11);
       border-bottom-left-radius: 10px;
       color: #fff;
+      box-shadow: 0 8px 18px rgba(0,0,0,0.12);
     }
 
     .user {
@@ -121,6 +119,7 @@
       background: linear-gradient(135deg, #ff7eb3, #ff4f8b);
       border-bottom-right-radius: 10px;
       color: white;
+      box-shadow: 0 8px 18px rgba(255,93,151,0.25);
     }
 
     .typing {
@@ -128,33 +127,32 @@
       font-style: italic;
     }
 
+    /* ===== ステータス ===== */
     .status-bar {
-      font-size: 15px;
-      opacity: 0.88;
-      padding: 0 18px 8px;
-      min-height: 26px;
       flex-shrink: 0;
+      font-size: 13px;
+      opacity: 0.82;
+      padding: 0 16px 8px;
+      min-height: 22px;
     }
 
-    /* ===== 下：入力 ===== */
+    /* ===== 入力エリア ===== */
     .input-area {
-      display: flex;
-      align-items: center;
+      flex-shrink: 0;
+      display: grid;
+      grid-template-columns: 1fr 88px 112px;
       gap: 10px;
       padding: 12px;
-      padding-bottom: calc(12px + env(safe-area-inset-bottom));
-      background: rgba(0,0,0,0.22);
+      background: rgba(0,0,0,0.24);
       border-top: 1px solid rgba(255,255,255,0.08);
-      flex-shrink: 0;
-      backdrop-filter: blur(6px);
+      align-items: center;
     }
 
-    input[type="text"],
-    input[type="password"] {
-      flex: 1;
+    input[type="text"], input[type="password"] {
+      width: 100%;
       min-width: 0;
       padding: 16px 18px;
-      border-radius: 18px;
+      border-radius: 20px;
       border: none;
       outline: none;
       font-size: 18px;
@@ -162,36 +160,33 @@
       color: #222;
     }
 
-    .mic-btn {
-      width: 82px;
-      height: 82px;
+    .mic-btn, .send-btn {
       border: none;
       border-radius: 24px;
-      background: rgba(255,255,255,0.12);
       color: white;
-      font-size: 34px;
       cursor: pointer;
-      flex-shrink: 0;
-      box-shadow: 0 10px 22px rgba(0,0,0,0.16);
+      font-weight: bold;
+      box-shadow: 0 12px 24px rgba(0,0,0,0.16);
+    }
+
+    .mic-btn {
+      width: 88px;
+      height: 84px;
+      font-size: 34px;
+      background: rgba(255,255,255,0.12);
     }
 
     .mic-btn.listening {
       background: linear-gradient(135deg, #7a69ff, #5f9bff);
-      box-shadow: 0 0 0 6px rgba(122,105,255,0.16);
+      box-shadow: 0 0 0 8px rgba(122,105,255,0.18);
     }
 
     .send-btn {
-      width: 120px;
-      height: 82px;
-      border: none;
-      border-radius: 24px;
+      width: 112px;
+      height: 84px;
+      font-size: 22px;
       background: linear-gradient(135deg, #ff7eb3, #ff4f8b);
-      color: white;
-      font-size: 24px;
-      font-weight: bold;
-      cursor: pointer;
-      flex-shrink: 0;
-      box-shadow: 0 10px 24px rgba(255,79,139,0.28);
+      box-shadow: 0 14px 28px rgba(255,79,139,0.28);
     }
 
     .send-btn:active,
@@ -209,56 +204,34 @@
       border-radius: 999px;
     }
 
-    /* ===== 初回起動オーバーレイ ===== */
-    .start-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(4,8,18,0.84);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      z-index: 9999;
-      padding: 24px;
+    /* ===== アニメ ===== */
+    .speaking {
+      animation: pulseTalk 0.75s infinite ease-in-out;
     }
 
-    .start-box {
-      width: 100%;
-      max-width: 420px;
-      background: rgba(35,29,48,0.96);
-      border-radius: 30px;
-      padding: 28px 24px;
-      box-shadow: 0 24px 60px rgba(0,0,0,0.45);
-      text-align: center;
+    .face-change {
+      animation: facePop 0.25s ease;
     }
 
-    .start-title {
-      font-size: 30px;
-      font-weight: bold;
-      margin-bottom: 12px;
-      color: #ffd1e6;
+    @keyframes pulseTalk {
+      0%   { transform: scale(1) translateY(0px); }
+      25%  { transform: scale(1.01) translateY(-1px); }
+      50%  { transform: scale(1.02) translateY(0px); }
+      75%  { transform: scale(1.01) translateY(-1px); }
+      100% { transform: scale(1) translateY(0); }
     }
 
-    .start-text {
-      font-size: 18px;
-      line-height: 1.9;
-      opacity: 0.95;
-      margin-bottom: 22px;
+    @keyframes facePop {
+      0%   { transform: scale(0.97); opacity: 0.75; }
+      100% { transform: scale(1); opacity: 1; }
     }
 
-    .start-btn {
-      width: 100%;
-      border: none;
-      border-radius: 22px;
-      padding: 18px;
-      font-size: 22px;
-      font-weight: bold;
-      cursor: pointer;
-      background: linear-gradient(135deg, #7a69ff, #5f9bff);
-      color: white;
-      box-shadow: 0 14px 28px rgba(95,155,255,0.24);
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
     }
 
-    /* ===== 設定 ===== */
+    /* ===== 設定モーダル ===== */
     .modal {
       position: fixed;
       inset: 0;
@@ -266,8 +239,8 @@
       display: none;
       justify-content: center;
       align-items: center;
-      z-index: 1000;
-      padding: 20px;
+      z-index: 999;
+      padding: 18px;
     }
 
     .modal.show {
@@ -276,7 +249,7 @@
 
     .modal-box {
       width: 100%;
-      max-width: 400px;
+      max-width: 420px;
       max-height: 88vh;
       overflow-y: auto;
       background: #2a2236;
@@ -286,7 +259,7 @@
     }
 
     .modal-title {
-      font-size: 28px;
+      font-size: 26px;
       font-weight: bold;
       color: #ffd1e6;
       margin-bottom: 18px;
@@ -297,10 +270,11 @@
     }
 
     .setting-label {
-      display: block;
-      font-size: 17px;
-      margin-bottom: 8px;
+      font-size: 16px;
       opacity: 0.95;
+      margin-bottom: 8px;
+      display: block;
+      line-height: 1.6;
     }
 
     .setting-input {
@@ -312,23 +286,15 @@
       outline: none;
     }
 
-    .save-btn,
-    .toggle-btn,
-    .danger-btn,
-    .close-btn {
+    .toggle-btn, .danger-btn, .close-btn, .save-btn {
       width: 100%;
+      padding: 16px;
       border: none;
       border-radius: 18px;
-      padding: 16px;
       font-size: 18px;
       font-weight: bold;
       cursor: pointer;
       margin-top: 10px;
-    }
-
-    .save-btn {
-      background: linear-gradient(135deg, #7a69ff, #5f9bff);
-      color: white;
     }
 
     .toggle-btn {
@@ -341,6 +307,11 @@
       color: white;
     }
 
+    .save-btn {
+      background: linear-gradient(135deg, #7a69ff, #5f9bff);
+      color: white;
+    }
+
     .close-btn {
       background: linear-gradient(135deg, #ff7eb3, #ff4f8b);
       color: white;
@@ -350,65 +321,33 @@
       font-size: 13px;
       opacity: 0.72;
       margin-top: 6px;
-      line-height: 1.7;
+      line-height: 1.6;
     }
 
-    /* ===== 表情アニメ ===== */
-    .speaking {
-      animation: pulseTalk 0.75s infinite ease-in-out;
-    }
-
-    .face-change {
-      animation: facePop 0.28s ease;
-    }
-
-    @keyframes pulseTalk {
-      0%   { transform: scale(1) translateY(0px); }
-      25%  { transform: scale(1.01) translateY(-1px); }
-      50%  { transform: scale(1.02) translateY(0px); }
-      75%  { transform: scale(1.01) translateY(-1px); }
-      100% { transform: scale(1) translateY(0); }
-    }
-
-    @keyframes facePop {
-      0%   { transform: scale(0.96); opacity: 0.7; }
-      100% { transform: scale(1); opacity: 1; }
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(8px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-
-    /* ===== 小さいスマホ対策 ===== */
-    @media (max-height: 740px) {
+    @media (max-width: 430px) {
       .top-character {
-        flex: 0 0 31%;
-        min-height: 190px;
+        flex: 0 0 32vh;
+        min-height: 220px;
       }
 
-      .top-character img {
-        width: min(90vw, 380px);
-        border-radius: 28px;
+      .settings-open {
+        width: 68px;
+        height: 68px;
+        font-size: 28px;
       }
 
-      .message {
-        font-size: 17px;
-        line-height: 1.8;
-      }
-
-      .mic-btn, .send-btn {
-        height: 74px;
+      .input-area {
+        grid-template-columns: 1fr 84px 106px;
       }
 
       .mic-btn {
-        width: 74px;
-        font-size: 30px;
+        width: 84px;
+        height: 80px;
       }
 
       .send-btn {
-        width: 108px;
-        font-size: 22px;
+        width: 106px;
+        height: 80px;
       }
     }
   </style>
@@ -416,33 +355,21 @@
 <body>
   <div class="app">
 
-    <!-- 初回起動 -->
-    <div class="start-overlay" id="startOverlay">
-      <div class="start-box">
-        <div class="start-title">美咲AI</div>
-        <div class="start-text">
-          最初に一度だけタップすると、<br>
-          音声返答が使えるようになります。
-        </div>
-        <button class="start-btn" onclick="startApp()">タップして開始</button>
-      </div>
-    </div>
-
     <!-- 上 -->
     <div class="top-character">
       <img id="mainGirl" src="girl-normal.jpg" alt="美咲">
       <button class="settings-open" onclick="openSettings()">⚙</button>
     </div>
 
-    <!-- 中 -->
+    <!-- 会話 -->
     <div class="chat-section">
       <div id="chatBox"></div>
     </div>
 
-    <!-- ステータス -->
-    <div class="status-bar" id="statusBar">起動待ち</div>
+    <!-- 状態 -->
+    <div class="status-bar" id="statusBar">準備OK</div>
 
-    <!-- 下 -->
+    <!-- 下入力 -->
     <div class="input-area">
       <input type="text" id="userInput" placeholder="何か話してみて…" />
       <button class="mic-btn" id="micBtn" onclick="startVoiceInput()">🎤</button>
@@ -491,14 +418,14 @@
     const apiKeyInput = document.getElementById("apiKeyInput");
     const statusBar = document.getElementById("statusBar");
     const micBtn = document.getElementById("micBtn");
-    const startOverlay = document.getElementById("startOverlay");
 
-    let appStarted = false;
     let voiceEnabled = localStorage.getItem("voiceEnabled") !== "false";
     let gptEnabled = localStorage.getItem("gptEnabled") === "true";
     let availableVoices = [];
     let recognition = null;
     let isListening = false;
+    let isSpeaking = false;
+    let lastBotReply = "";
 
     let memory = {
       characterName: localStorage.getItem("characterName") || "美咲",
@@ -508,7 +435,12 @@
       topic: localStorage.getItem("hostess_topic") || "",
       lastMessage: localStorage.getItem("hostess_lastMessage") || "",
       visitCount: parseInt(localStorage.getItem("hostess_visitCount") || "0", 10),
-      chatHistory: JSON.parse(localStorage.getItem("hostess_chatHistory") || "[]")
+      chatHistory: JSON.parse(localStorage.getItem("hostess_chatHistory") || "[]"),
+
+      currentFeeling: localStorage.getItem("hostess_currentFeeling") || "",
+      currentNeed: localStorage.getItem("hostess_currentNeed") || "",
+      unresolvedTopic: localStorage.getItem("hostess_unresolvedTopic") || "",
+      lastBotQuestion: localStorage.getItem("hostess_lastBotQuestion") || ""
     };
 
     memory.visitCount += 1;
@@ -534,15 +466,15 @@
     };
 
     const moodBackgrounds = {
-      normal: "linear-gradient(to bottom, #232b49, #050b18)",
-      worried: "linear-gradient(to bottom, #3f4c6b, #1d2230)",
-      sympathy: "linear-gradient(to bottom, #4a3b60, #1c1a2a)",
-      troubled: "linear-gradient(to bottom, #4c4b67, #1d2031)",
-      healing: "linear-gradient(to bottom, #5b4767, #1d1d30)",
-      happy: "linear-gradient(to bottom, #485f8b, #1b233a)",
-      irritated: "linear-gradient(to bottom, #5f3a4f, #241926)",
-      panic: "linear-gradient(to bottom, #5a5068, #201d2c)",
-      exhausted: "linear-gradient(to bottom, #4b5165, #1a1f2c)"
+      normal: "linear-gradient(to bottom, #2b314d, #09111f)",
+      worried: "linear-gradient(to bottom, #3f4c6b, #151d2b)",
+      sympathy: "linear-gradient(to bottom, #4a3b60, #161626)",
+      troubled: "linear-gradient(to bottom, #4c4b67, #151b28)",
+      healing: "linear-gradient(to bottom, #5b4767, #171629)",
+      happy: "linear-gradient(to bottom, #485f8b, #12203b)",
+      irritated: "linear-gradient(to bottom, #5f3a4f, #1a111b)",
+      panic: "linear-gradient(to bottom, #5a5068, #181724)",
+      exhausted: "linear-gradient(to bottom, #4b5165, #121926)"
     };
 
     function setStatus(text) {
@@ -561,10 +493,12 @@
 
     function startSpeakingAnimation() {
       mainGirl.classList.add("speaking");
+      isSpeaking = true;
     }
 
     function stopSpeakingAnimation() {
       mainGirl.classList.remove("speaking");
+      isSpeaking = false;
     }
 
     function openSettings() {
@@ -624,12 +558,20 @@
       localStorage.removeItem("hostess_lastMessage");
       localStorage.removeItem("hostess_visitCount");
       localStorage.removeItem("hostess_chatHistory");
+      localStorage.removeItem("hostess_currentFeeling");
+      localStorage.removeItem("hostess_currentNeed");
+      localStorage.removeItem("hostess_unresolvedTopic");
+      localStorage.removeItem("hostess_lastBotQuestion");
 
       memory.mood = "";
       memory.topic = "";
       memory.lastMessage = "";
       memory.visitCount = 1;
       memory.chatHistory = [];
+      memory.currentFeeling = "";
+      memory.currentNeed = "";
+      memory.unresolvedTopic = "";
+      memory.lastBotQuestion = "";
 
       addMessage("記憶をリセットしたよ😊\nまた最初からゆっくり話そう。", "bot");
       setFace("healing");
@@ -647,46 +589,38 @@
       window.speechSynthesis.onvoiceschanged = loadVoices;
     }
 
-    function startApp() {
-      appStarted = true;
-      startOverlay.style.display = "none";
-
-      unlockSpeech();
-
-      setTimeout(() => {
-        setFace("normal");
-        botReply(getWelcomeMessage());
-        setStatus("準備OK");
-      }, 350);
-    }
+    document.body.addEventListener("click", unlockSpeech, { once: false });
+    document.body.addEventListener("touchstart", unlockSpeech, { once: false });
 
     function unlockSpeech() {
       try {
         if (!("speechSynthesis" in window)) return;
         const synth = window.speechSynthesis;
-        const u = new SpeechSynthesisUtterance("起動");
+        const u = new SpeechSynthesisUtterance(" ");
         u.volume = 0;
-        u.rate = 1;
-        u.pitch = 1;
-        synth.cancel();
         synth.speak(u);
       } catch (e) {}
     }
+
+    setTimeout(() => {
+      setFace("normal");
+      botReply(getWelcomeMessage(), true);
+    }, 700);
 
     function getWelcomeMessage() {
       const name = memory.characterName || "美咲";
       const user = memory.userName ? `${memory.userName}さん、` : "";
 
-      if (memory.visitCount >= 2 && memory.mood === "tired") {
+      if (memory.visitCount >= 2 && memory.currentFeeling === "tired") {
         return `${user}${name}だよ😊\n前もちょっとしんどそうだったよね。\n今日は昨日よりきつい感じある？`;
       }
 
-      if (memory.visitCount >= 2 && memory.mood === "panic") {
-        return `${user}${name}だよ😊\n前もちょっと焦ってた感じがあったよね。\n今日は少し落ち着けそう？`;
+      if (memory.visitCount >= 2 && memory.currentFeeling === "anxious") {
+        return `${user}${name}だよ😊\n前もちょっと不安そうだったよね。\n今日は少し落ち着いてる？`;
       }
 
-      if (memory.visitCount >= 2 && memory.mood === "lonely") {
-        return `${user}${name}だよ😊\n前もちょっと寂しそうだったよね。\n今日はどう？少し話せそう？`;
+      if (memory.visitCount >= 2 && memory.currentFeeling === "sad") {
+        return `${user}${name}だよ😊\n前もちょっと心が沈んでる感じあったよね。\n今日はどんな感じ？`;
       }
 
       return `${user}${name}だよ😊\n今日はどんな感じだった？`;
@@ -701,15 +635,21 @@
       return msg;
     }
 
-    function botReply(text) {
+    function botReply(text, isWelcome = false) {
+      lastBotReply = text;
       addMessage(text, "bot");
       saveChat("assistant", text);
-      speakText(text);
+      speakText(text, isWelcome);
     }
 
     async function sendMessage() {
       const text = userInput.value.trim();
       if (!text) return;
+
+      if (window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+      stopSpeakingAnimation();
 
       addMessage(text, "user");
       saveChat("user", text);
@@ -724,7 +664,7 @@
           setStatus("GPTで考え中…");
           reply = await generateGPTReply(text);
         } else {
-          setStatus("ローカル応答中…");
+          setStatus("寄り添い返答中…");
           reply = generateLocalReply(text);
         }
 
@@ -736,7 +676,7 @@
         typingMsg.remove();
         const fallback = generateLocalReply(text);
         botReply(fallback);
-        setStatus("GPT失敗 → ローカルで返答");
+        setStatus("GPT失敗 → ローカル返答");
       }
     }
 
@@ -746,8 +686,8 @@
 
     function saveChat(role, content) {
       memory.chatHistory.push({ role, content });
-      if (memory.chatHistory.length > 20) {
-        memory.chatHistory = memory.chatHistory.slice(-20);
+      if (memory.chatHistory.length > 24) {
+        memory.chatHistory = memory.chatHistory.slice(-24);
       }
       localStorage.setItem("hostess_chatHistory", JSON.stringify(memory.chatHistory));
     }
@@ -761,6 +701,8 @@
         memory.topic = "family";
       } else if (containsAny(lower, ["不安", "眠れない", "寝れない"])) {
         memory.topic = "anxiety";
+      } else if (containsAny(lower, ["体調", "病院", "不調"])) {
+        memory.topic = "health";
       }
 
       saveMemory();
@@ -770,6 +712,10 @@
       localStorage.setItem("hostess_mood", memory.mood || "");
       localStorage.setItem("hostess_topic", memory.topic || "");
       localStorage.setItem("hostess_lastMessage", memory.lastMessage || "");
+      localStorage.setItem("hostess_currentFeeling", memory.currentFeeling || "");
+      localStorage.setItem("hostess_currentNeed", memory.currentNeed || "");
+      localStorage.setItem("hostess_unresolvedTopic", memory.unresolvedTopic || "");
+      localStorage.setItem("hostess_lastBotQuestion", memory.lastBotQuestion || "");
     }
 
     function containsAny(text, words) {
@@ -789,129 +735,243 @@
       return Math.random() < 0.35 ? `${memory.userName}さん、` : "";
     }
 
+    function analyzeContext(text) {
+      const lower = text.toLowerCase();
+
+      if (containsAny(lower, ["悲しい", "泣きたい", "寂しい", "つらい", "苦しい"])) {
+        memory.currentFeeling = "sad";
+      } else if (containsAny(lower, ["不安", "こわい", "怖い", "心配"])) {
+        memory.currentFeeling = "anxious";
+      } else if (containsAny(lower, ["イライラ", "むかつく", "腹立つ"])) {
+        memory.currentFeeling = "angry";
+      } else if (containsAny(lower, ["疲れた", "しんどい", "無理", "限界"])) {
+        memory.currentFeeling = "tired";
+      }
+
+      if (containsAny(lower, ["聞いて", "つらい", "悲しい", "しんどい"])) {
+        memory.currentNeed = "empathy";
+      } else if (containsAny(lower, ["どうしたら", "どうすれば", "わからない", "困る"])) {
+        memory.currentNeed = "guidance";
+      } else if (containsAny(lower, ["寂しい", "ひとり", "会いたい"])) {
+        memory.currentNeed = "connection";
+      }
+
+      if (containsAny(lower, ["仕事", "会社", "上司", "職場"])) {
+        memory.unresolvedTopic = "work";
+      } else if (containsAny(lower, ["家族", "娘", "息子", "子ども"])) {
+        memory.unresolvedTopic = "family";
+      } else if (containsAny(lower, ["体調", "病院", "不調"])) {
+        memory.unresolvedTopic = "health";
+      } else if (containsAny(lower, ["人間関係", "友達", "恋愛"])) {
+        memory.unresolvedTopic = "relationship";
+      }
+
+      saveMemory();
+    }
+
     function generateLocalReply(text) {
       const t = text.trim();
       const lower = t.toLowerCase();
+
       rememberUserInfo(t, lower);
+      analyzeContext(t);
 
       const callName = maybeCallUserName();
 
-      if (containsAny(lower, ["イライラ", "むかつく", "ムカつく", "腹立つ", "うざい"])) {
+      const shortReply = t.length <= 12;
+      const seemsAnswerToPrevious =
+        shortReply ||
+        containsAny(lower, ["そう", "うん", "違う", "いや", "たぶん", "少し", "まあ", "うーん"]);
+
+      if (containsAny(lower, ["悲しい", "泣きたい", "寂しい", "孤独", "なんだか悲しくなる"])) {
+        setFace("sympathy");
+        memory.mood = "sympathy";
+        memory.currentFeeling = "sad";
+        memory.currentNeed = "empathy";
+        memory.lastBotQuestion = "その気持ちは何がきっかけで出てきたの？";
+        saveMemory();
+
+        return pick([
+          `${callName}そっか…。\nそれ、静かにしんどくなる感じだよね。\n無理に元気にしなくていいよ。\n何かあった後からそうなった感じ？`,
+          `${callName}うん…その言い方、かなり我慢してる感じがする。\nちゃんとここで弱っていいよ。\n今日は何が一番心に残ってる？`,
+          `${callName}なんだか悲しくなる時って、理由がはっきりしないぶん余計つらいよね。\n今は、気持ちに近い？体の疲れに近い？`
+        ]);
+      }
+
+      if (containsAny(lower, ["不安", "こわい", "怖い", "心配", "どうしよう"])) {
+        setFace("worried");
+        memory.mood = "panic";
+        memory.currentFeeling = "anxious";
+        memory.currentNeed = "empathy";
+        memory.lastBotQuestion = "今いちばん不安なのは何？";
+        saveMemory();
+
+        return pick([
+          `${callName}不安がずっと頭の中にある感じかな…。\nそれ、かなり消耗するよね。\n今いちばん引っかかってることって何？`,
+          `${callName}それは落ち着かないよね…。\n一人で抱えるとどんどん膨らむやつだと思う。\n今、何が一番こわい？`,
+          `${callName}その不安、ちゃんと理由がある感じ？\nそれとも、なんとなく気持ちが落ち着かない感じかな？`
+        ]);
+      }
+
+      if (containsAny(lower, ["疲れた", "しんどい", "限界", "無理", "へとへと"])) {
+        setFace("exhausted");
+        memory.mood = "exhausted";
+        memory.currentFeeling = "tired";
+        memory.currentNeed = "empathy";
+        memory.lastBotQuestion = "何で一番すり減った？";
+        saveMemory();
+
+        return pick([
+          `${callName}かなり削られてる感じあるね…。\n今日はもう頑張った側だと思うよ。\n何で一番すり減った？`,
+          `${callName}しんどい時って、気持ちも体も両方重くなるよね。\n今はどっちが強い？体？気持ち？`,
+          `${callName}限界寄りっぽいね…。\nここではちゃんと弱音吐いていいよ。\n今日いちばんきつかった場面ってどこ？`
+        ]);
+      }
+
+      if (containsAny(lower, ["イライラ", "むかつく", "腹立つ", "うざい"])) {
         setFace("irritated");
         memory.mood = "irritated";
+        memory.currentFeeling = "angry";
+        memory.currentNeed = "empathy";
+        memory.lastBotQuestion = "何が一番引っかかった？";
         saveMemory();
+
         return pick([
-          `${callName}それ、かなりイラッとしたよね。\n無理に飲み込まなくていいよ。\n何が一番ひっかかった？`,
-          `${callName}それは腹立つやつだね…。\nちゃんと嫌だったって感じていいよ。\n言い方？態度？出来事そのもの？`
+          `${callName}それはかなり引っかかるよね。\nちゃんと嫌だったって感覚、大事だよ。\n何が一番ムカッとした？`,
+          `${callName}うん、それ腹立つやつだと思う。\n我慢して流すより、一回言葉にした方が楽になるかも。\nどこが一番嫌だった？`,
+          `${callName}イラッとした時って、実は傷ついてる時もあるんだよね。\n今回は怒り寄り？それとも悲しい寄り？`
         ]);
       }
 
-      if (containsAny(lower, ["焦る", "あせる", "やばい", "間に合わない", "どうしよう", "パニック"])) {
-        setFace("panic");
-        memory.mood = "panic";
-        saveMemory();
-        return pick([
-          `${callName}かなり焦ってる感じあるね。\n大丈夫、今は全部を片づけなくていい。\nまず一番急いでることだけ教えて？`,
-          `${callName}それは焦るよね…。\n頭の中が散らかると余計しんどいから、一個ずつでいこう。\n今すぐ対応が必要なのは何？`
-        ]);
-      }
-
-      if (containsAny(lower, ["きつい", "限界", "無理", "へとへと", "しんどい", "もうだめ"])) {
-        setFace("exhausted");
-        memory.mood = "tired";
-        saveMemory();
-        return pick([
-          `${callName}かなりきつかったね…。\n今は頑張るより、少し守る方が大事かも。\n体がきつい？気持ちがきつい？`,
-          `${callName}もう無理って感じるくらいしんどいんだね。\nここではちゃんと弱音吐いていいよ。\n今日は何が一番重かった？`
-        ]);
-      }
-
-      if (containsAny(lower, ["疲れた", "つかれた", "つらい"])) {
-        setFace("worried");
-        memory.mood = "tired";
-        saveMemory();
-        return pick([
-          `${callName}大丈夫？かなり頑張ってきた感じするよ。\n今日は何が一番しんどかった？`,
-          `${callName}それはつらかったね…。\nここでは少し気を抜いていいよ。\n体の疲れが強い感じ？気持ちの方？`
-        ]);
-      }
-
-      if (containsAny(lower, ["寂しい", "さみしい", "泣きたい", "孤独", "悲しい"])) {
-        setFace("sympathy");
-        memory.mood = "lonely";
-        saveMemory();
-        return pick([
-          `${callName}そっか…つらかったね。\nちゃんとここで受け止めるよ。\n何かあった後の気持ち？それともずっと続いてる感じ？`,
-          `${callName}その寂しさ、ちゃんと伝わってるよ。\nひとりで抱えなくて大丈夫。\n少しだけでも話していこ？`
-        ]);
-      }
-
-      if (containsAny(lower, ["困った", "わからない", "迷う", "悩む"])) {
+      if (containsAny(lower, ["困る", "迷う", "わからない", "悩む"])) {
         setFace("troubled");
         memory.mood = "troubled";
+        memory.currentNeed = "guidance";
+        memory.lastBotQuestion = "どこで一番止まってる？";
         saveMemory();
+
         return pick([
-          `${callName}それ、かなり悩むやつだね…。\n一緒に整理してみよっか。\n何が一番引っかかってる？`,
-          `${callName}迷う時って、頭の中ごちゃっとするよね。\n順番にほどいていこう。\n何から話すのが一番楽そう？`
+          `${callName}それ、簡単に決められないやつだね…。\n一緒に整理していこうか。\nどこで一番止まってる？`,
+          `${callName}悩みが大きいと、何から考えればいいか分からなくなるよね。\n今いちばん困ってる一点だけ出すなら何？`,
+          `${callName}うん、そこ迷うの自然だよ。\n答えを急がなくていいから、まず気持ちから並べてみよっか。`
         ]);
       }
 
-      if (containsAny(lower, ["癒して", "甘えたい", "安心したい"])) {
+      if (containsAny(lower, ["癒して", "安心したい", "甘えたい"])) {
         setFace("healing");
         memory.mood = "healing";
+        memory.currentNeed = "connection";
+        memory.lastBotQuestion = "今日はどんなふうに過ごしたい？";
         saveMemory();
+
         return pick([
-          `${callName}いいよ😊\nここでは安心していいからね。\n今日はちょっと力抜こっか。`,
-          `${callName}うん、今日は少し甘えていい日。\n無理してしゃんとしなくていいよ。`
+          `${callName}いいよ😊\n今日は少し守られる側でいよう。\n無理にちゃんとしなくて大丈夫。`,
+          `${callName}うん、今日は安心する方を優先しようか。\nここでは力抜いていいよ。`,
+          `${callName}そういう日、あるよね。\n今日はがんばる日じゃなくて、ほどく日でもいいと思うよ。`
         ]);
       }
 
-      if (containsAny(lower, ["好き", "嬉しい", "うれしい", "会いたい"])) {
+      if (containsAny(lower, ["嬉しい", "好き", "よかった", "助かった"])) {
         setFace("happy");
         memory.mood = "happy";
+        memory.currentNeed = "connection";
+        memory.lastBotQuestion = "それ、どんな時にそう思えたの？";
         saveMemory();
+
         return pick([
-          `${callName}ふふ😊\nそういうの嬉しいな。\n今日はちょっと心がやわらぐ日かもね。`,
-          `${callName}そんなふうに言われると、ちょっと照れるね。\nでも嬉しい。`
+          `${callName}それ聞けてちょっと嬉しい😊\n少しでも気持ちが軽くなってたらいいな。`,
+          `${callName}ふふ、そういうのいいね。\nちゃんと気持ちがやわらいだ感じする。`,
+          `${callName}よかった。\nそういう瞬間って、意外と大事なんだよね。`
         ]);
+      }
+
+      if (seemsAnswerToPrevious && memory.lastBotQuestion) {
+        setFace(memory.mood || "normal");
+        saveMemory();
+
+        if (memory.currentFeeling === "sad") {
+          return pick([
+            `${callName}うん…その流れだったんだね。\nそれなら気持ちが沈むのも自然だと思う。\nそのあと、一人で抱え込んでた？`,
+            `${callName}そっか…ちゃんとつながった。\nそれ、心の中でじわじわ効いてた感じかもしれないね。\n今もまだ残ってる？`
+          ]);
+        }
+
+        if (memory.currentFeeling === "anxious") {
+          return pick([
+            `${callName}なるほど…それが不安の中心なんだね。\n分かると少し整理しやすくなる。\n一番悪い想像までいくと、何が怖い？`,
+            `${callName}うん、その部分が引っかかってたのか。\nそれなら落ち着かないのも無理ないよ。\n今すぐできることはありそう？`
+          ]);
+        }
+
+        if (memory.currentFeeling === "tired") {
+          return pick([
+            `${callName}そっか…そこが一番重かったんだね。\nそれはかなり消耗すると思う。\n今、少し休めそう？`,
+            `${callName}なるほど、それで削られてたんだ。\n頑張りすぎてたかもしれないね。\n今日はもう何か減らせそう？`
+          ]);
+        }
+
+        if (memory.currentFeeling === "angry") {
+          return pick([
+            `${callName}うん、それは引っかかるよね。\n怒るの当然だと思う。\n本当はどうしてほしかった？`,
+            `${callName}なるほど…そこか。\nその嫌さ、ちゃんと言葉にできてるの大事だよ。\nまだモヤモヤ残ってる？`
+          ]);
+        }
       }
 
       setFace("normal");
       memory.mood = "normal";
+      memory.lastBotQuestion = "もう少し詳しく話せそう？";
       saveMemory();
 
+      if (memory.currentFeeling === "sad") {
+        return pick([
+          `${callName}うん、ちゃんと聞いてるよ。\n今は無理にまとめなくていいから、浮かぶまま話して大丈夫。`,
+          `${callName}その感じ、まだ少し心に残ってそうだね。\nどこからでもいいよ、続き話して。`
+        ]);
+      }
+
+      if (memory.currentFeeling === "anxious") {
+        return pick([
+          `${callName}うん、大丈夫。\n焦らなくていいから、一個ずつ話してみよっか。`,
+          `${callName}そのまま話していいよ。\n今の頭の中、整理するの手伝う。`
+        ]);
+      }
+
       return pick([
-        `${callName}うん、ちゃんと聞いてるよ。\n「${shorten(t)}」って感じなんだね。\nもう少し詳しく話せそう？`,
-        `${callName}なるほど…そういう感じだったんだね。\nその時、気持ちはどんな感じだった？`,
-        `${callName}うん、続けて話して大丈夫だよ。\n今いちばん引っかかってるところ、どこ？`
+        `${callName}うん、ちゃんと聞いてるよ。\nもう少し詳しく話せそう？`,
+        `${callName}なるほど…。\nその続き、もう少し聞いてもいい？`,
+        `${callName}うん、大丈夫。\n今の気持ちをそのまま話してみて。`
       ]);
     }
 
     async function generateGPTReply(userText) {
       const lower = userText.toLowerCase();
       rememberUserInfo(userText, lower);
+      analyzeContext(userText);
 
-      const recentHistory = memory.chatHistory.slice(-10).map(item => ({
+      const recentHistory = memory.chatHistory.slice(-12).map(item => ({
         role: item.role,
         content: item.content
       }));
 
       const systemPrompt = `
 あなたは「${memory.characterName || "美咲"}」という、落ち着いた大人の女性です。
-ユーザーに寄り添い、安心感のある自然な会話をしてください。
+ユーザーに寄り添い、自然で人間らしい会話をしてください。
 
-ルール:
-- 返答は日本語
-- 長すぎず、短すぎず、自然に
-- AIっぽい説明口調を避ける
-- カウンセリング風に、気持ちを受け止めて返す
-- 決めつけすぎない
-- ユーザーを責めない
+会話方針:
+- 日本語で返答
+- AIっぽい説明をしない
+- オウム返しを避ける
+- 相手の気持ちを先に受け止める
+- やさしいけど不自然にベタベタしない
+- カウンセリング風すぎず、自然な会話
+- 短すぎず長すぎず
+- 返答の最後に軽い問いかけ or 受け止めを入れる
+- 「大丈夫？」ばかり使わない
+- 「つらかったね」だけで終わらせない
+- 必要なら感情を言語化して整理する
 - 時々だけ ${memory.userName || "ユーザー"} の呼び名を自然に入れてよい
-- 必ず最後に、軽い問いかけや受け止めを入れる
-- 必要ならやさしく整理する
-- 恋愛営業っぽくしすぎない
-- 「表情タグ」を必ず文頭に1つだけ付ける
+- 返答の文頭に必ず表情タグを1つだけ付ける
 
 表情タグ:
 [happy]
@@ -971,6 +1031,7 @@
       memory.mood = mood;
       saveMemory();
       setFace(mood);
+
       return cleaned;
     }
 
@@ -980,10 +1041,8 @@
           return { rate: 0.97, pitch: 1.18 };
         case "healing":
           return { rate: 0.87, pitch: 1.12 };
-        case "lonely":
         case "sympathy":
-          return { rate: 0.85, pitch: 1.06 };
-        case "tired":
+          return { rate: 0.86, pitch: 1.06 };
         case "exhausted":
           return { rate: 0.84, pitch: 1.02 };
         case "panic":
@@ -997,8 +1056,8 @@
       }
     }
 
-    function speakText(text) {
-      if (!voiceEnabled || !appStarted) return;
+    function speakText(text, isWelcome = false) {
+      if (!voiceEnabled) return;
 
       if (!("speechSynthesis" in window)) {
         setStatus("この環境では音声非対応");
@@ -1016,6 +1075,8 @@
           .trim();
 
         if (!cleanText) return;
+
+        const delay = isWelcome ? 600 : 220;
 
         setTimeout(() => {
           try {
@@ -1053,14 +1114,12 @@
 
             synth.speak(utterance);
           } catch (err) {
-            console.error(err);
             stopSpeakingAnimation();
             setStatus("音声エラー");
           }
-        }, 220);
+        }, delay);
 
       } catch (e) {
-        console.error(e);
         stopSpeakingAnimation();
         setStatus("音声エラー");
       }
@@ -1103,12 +1162,12 @@
           const transcript = event.results[0][0].transcript || "";
           userInput.value = transcript.trim();
           setStatus("音声入力OK → 送信中");
-          sendMessage();
+          setTimeout(() => {
+            sendMessage();
+          }, 350);
         };
 
         recognition.onerror = (event) => {
-          console.log("音声認識エラー:", event.error);
-
           if (event.error === "not-allowed") {
             setStatus("マイク許可が必要です");
             alert("マイクが拒否されています。\n\nChromeの設定でこのページのマイクを許可してください。");
@@ -1136,12 +1195,17 @@
 
         recognition.start();
       } catch (e) {
-        console.error(e);
         isListening = false;
         micBtn.classList.remove("listening");
         setStatus("マイク起動失敗");
       }
     }
+
+    settingsModal.addEventListener("click", (e) => {
+      if (e.target === settingsModal) {
+        closeSettings();
+      }
+    });
   </script>
 </body>
 </html>
