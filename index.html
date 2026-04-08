@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>美咲AI</title>
-
   <style>
     * {
       box-sizing: border-box;
@@ -15,493 +14,483 @@
       margin: 0;
       padding: 0;
       width: 100%;
-      height: 100%;
-      overflow: hidden;
+      min-height: 100%;
+      background:
+        radial-gradient(circle at top, #1a2148 0%, #050816 70%);
       font-family: "Hiragino Sans", "Yu Gothic", sans-serif;
-      background: radial-gradient(circle at top, #1a2148 0%, #090d1f 72%);
-      color: #fff;
+      color: white;
+      overflow-x: hidden;
     }
 
     body {
       display: flex;
       justify-content: center;
-      align-items: stretch;
+      align-items: flex-start;
     }
 
     .app {
       width: 100%;
-      max-width: 480px;
-      height: 100vh;
+      max-width: 430px;
+      min-height: 100vh;
+      padding: 14px 14px 30px;
       display: flex;
       flex-direction: column;
-      gap: 12px;
-      padding: 14px;
-    }
-
-    .glass {
-      background: rgba(255,255,255,0.06);
-      border: 1px solid rgba(255,255,255,0.08);
-      backdrop-filter: blur(12px);
-      box-shadow: 0 8px 28px rgba(0,0,0,0.25);
-      border-radius: 28px;
-    }
-
-    .avatar-card {
+      gap: 14px;
       position: relative;
-      padding: 10px;
+    }
+
+    .card {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.28);
+      backdrop-filter: blur(6px);
     }
 
     .avatar-wrap {
+      position: relative;
       width: 100%;
-      aspect-ratio: 1 / 1;
+      height: 280px;
+      border-radius: 34px;
       overflow: hidden;
-      border-radius: 28px;
       border: 4px solid rgba(255,255,255,0.08);
       background: #111827;
-      position: relative;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04);
     }
 
-    .avatar-wrap img {
+    #avatar {
       width: 100%;
       height: 100%;
       object-fit: cover;
       display: block;
     }
 
-    .settings-btn {
+    .gear-btn {
       position: absolute;
-      top: 16px;
-      right: 16px;
-      width: 84px;
-      height: 84px;
+      top: 12px;
+      right: 12px;
+      width: 92px;
+      height: 92px;
       border-radius: 50%;
       border: none;
-      background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.55), rgba(255,255,255,0.14));
+      background: rgba(255,255,255,0.35);
+      backdrop-filter: blur(10px);
       color: white;
-      font-size: 34px;
+      font-size: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       cursor: pointer;
       z-index: 10;
-      box-shadow: 0 10px 28px rgba(0,0,0,0.25);
+      box-shadow: 0 10px 24px rgba(0,0,0,0.25);
     }
 
-    .main-bubble {
-      min-height: 160px;
+    .bubble {
+      border-radius: 34px;
       padding: 26px 24px;
-      font-size: 20px;
-      line-height: 1.9;
+      font-size: 22px;
+      line-height: 1.8;
+      min-height: 170px;
+      background: linear-gradient(180deg, rgba(40,49,87,0.85), rgba(23,27,51,0.92));
+      border: 1px solid rgba(255,255,255,0.06);
+      box-shadow: 0 10px 24px rgba(0,0,0,0.25);
       white-space: pre-wrap;
     }
 
     .status {
-      min-height: 24px;
-      font-size: 16px;
-      opacity: 0.92;
-      padding: 0 8px;
-    }
-
-    .history {
-      flex: 1;
-      min-height: 0;
-      overflow-y: auto;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      padding: 4px 2px;
-    }
-
-    .msg {
-      max-width: 88%;
-      padding: 14px 16px;
-      border-radius: 18px;
-      font-size: 16px;
-      line-height: 1.7;
-      white-space: pre-wrap;
-      word-break: break-word;
-    }
-
-    .msg.user {
-      align-self: flex-end;
-      background: rgba(255, 96, 168, 0.22);
-      border: 1px solid rgba(255,96,168,0.35);
-    }
-
-    .msg.ai {
-      align-self: flex-start;
-      background: rgba(255,255,255,0.08);
-      border: 1px solid rgba(255,255,255,0.08);
+      font-size: 18px;
+      opacity: 0.95;
+      padding-left: 4px;
+      min-height: 28px;
     }
 
     .bottom-bar {
-      display: grid;
-      grid-template-columns: 72px 1fr 112px;
-      gap: 12px;
+      margin-top: auto;
+      display: flex;
+      gap: 14px;
       align-items: center;
-      padding-bottom: env(safe-area-inset-bottom);
-    }
-
-    .icon-btn, .send-btn {
-      height: 72px;
-      border: none;
-      border-radius: 24px;
-      color: white;
-      cursor: pointer;
-      box-shadow: 0 10px 26px rgba(0,0,0,0.25);
-    }
-
-    .icon-btn {
-      width: 72px;
-      background: rgba(255,255,255,0.14);
-      font-size: 30px;
-    }
-
-    .send-btn {
-      background: linear-gradient(135deg, #ff6fb2, #ff4d9d);
-      font-size: 18px;
-      font-weight: bold;
+      padding-top: 6px;
     }
 
     .text-input {
-      width: 100%;
-      height: 72px;
-      border-radius: 24px;
+      width: 64px;
+      height: 112px;
+      border-radius: 32px;
       border: none;
-      outline: none;
-      padding: 0 20px;
-      font-size: 20px;
       background: rgba(255,255,255,0.95);
-      color: #111827;
+      color: #111;
+      font-size: 18px;
+      padding: 16px 10px;
+      outline: none;
+      text-align: center;
     }
 
-    /* モーダル */
+    .mic-btn {
+      flex: 1;
+      height: 112px;
+      border: none;
+      border-radius: 30px;
+      background: linear-gradient(180deg, rgba(46,50,77,0.95), rgba(30,33,54,0.95));
+      color: white;
+      font-size: 52px;
+      box-shadow: 0 14px 30px rgba(0,0,0,0.28);
+      cursor: pointer;
+    }
+
+    .send-btn {
+      width: 140px;
+      height: 112px;
+      border: none;
+      border-radius: 30px;
+      background: linear-gradient(180deg, #ff78b6, #ff4fa2);
+      color: white;
+      font-size: 28px;
+      font-weight: bold;
+      box-shadow: 0 16px 34px rgba(255, 88, 165, 0.35);
+      cursor: pointer;
+    }
+
     .modal-bg {
       position: fixed;
       inset: 0;
+      background: rgba(0,0,0,0.55);
       display: none;
       align-items: center;
       justify-content: center;
-      padding: 18px;
-      background: rgba(0,0,0,0.45);
+      padding: 16px;
       z-index: 999;
     }
 
     .modal {
       width: 100%;
-      max-width: 430px;
-      max-height: 88vh;
+      max-width: 390px;
+      max-height: 90vh;
       overflow-y: auto;
-      background: #251d41;
-      border-radius: 28px;
+      border-radius: 32px;
       padding: 24px 20px 28px;
-      box-shadow: 0 16px 50px rgba(0,0,0,0.45);
+      background: #251d3b;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+      color: white;
     }
 
     .modal h2 {
       margin: 0 0 18px;
-      font-size: 28px;
-      color: #ffd1e9;
+      font-size: 26px;
+      color: #f7c7dd;
+    }
+
+    .label {
+      font-size: 18px;
+      margin: 16px 0 8px;
+      display: block;
     }
 
     .field {
-      margin-bottom: 18px;
-    }
-
-    .field label {
-      display: block;
-      font-size: 16px;
-      margin-bottom: 8px;
-      opacity: 0.95;
-    }
-
-    .field input {
       width: 100%;
-      height: 58px;
       border: none;
       outline: none;
-      border-radius: 18px;
-      padding: 0 18px;
+      border-radius: 24px;
+      padding: 18px 18px;
       font-size: 18px;
       background: rgba(255,255,255,0.95);
-      color: #111827;
+      color: #111;
     }
 
-    .toggle {
+    .toggle-row {
       display: flex;
-      align-items: center;
       justify-content: space-between;
+      align-items: center;
+      margin-top: 14px;
       gap: 12px;
-      padding: 14px 16px;
-      margin-bottom: 12px;
-      border-radius: 18px;
-      background: rgba(255,255,255,0.08);
+      padding: 14px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
     }
 
-    .toggle span {
-      font-size: 16px;
+    .toggle-row span {
+      font-size: 17px;
       line-height: 1.5;
     }
 
-    .toggle input {
-      width: 22px;
-      height: 22px;
-      transform: scale(1.15);
+    .switch {
+      position: relative;
+      width: 58px;
+      height: 34px;
+      flex-shrink: 0;
     }
 
-    .row-btns {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      margin-top: 12px;
+    .switch input {
+      display: none;
     }
 
-    .mini-btn {
-      height: 52px;
+    .slider {
+      position: absolute;
+      inset: 0;
+      background: #777;
+      border-radius: 999px;
+      transition: 0.25s;
+    }
+
+    .slider::before {
+      content: "";
+      position: absolute;
+      width: 26px;
+      height: 26px;
+      left: 4px;
+      top: 4px;
+      border-radius: 50%;
+      background: white;
+      transition: 0.25s;
+    }
+
+    .switch input:checked + .slider {
+      background: #ff69b4;
+    }
+
+    .switch input:checked + .slider::before {
+      transform: translateX(24px);
+    }
+
+    .modal-buttons {
+      display: flex;
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    .save-btn, .close-btn {
+      flex: 1;
       border: none;
-      border-radius: 18px;
-      font-size: 16px;
+      border-radius: 20px;
+      padding: 16px;
+      font-size: 18px;
       font-weight: bold;
       cursor: pointer;
     }
 
     .save-btn {
-      background: linear-gradient(135deg, #ff6fb2, #ff4d9d);
+      background: linear-gradient(180deg, #ff78b6, #ff4fa2);
       color: white;
     }
 
-    .sub-btn {
+    .close-btn {
       background: rgba(255,255,255,0.12);
       color: white;
     }
 
-    .note {
-      margin-top: 12px;
-      font-size: 13px;
-      line-height: 1.7;
-      opacity: 0.82;
+    .small-note {
+      font-size: 14px;
+      color: rgba(255,255,255,0.8);
+      margin-top: 6px;
+      line-height: 1.6;
     }
 
-    @media (max-width: 420px) {
-      .main-bubble {
-        font-size: 18px;
-        min-height: 145px;
-      }
-
-      .settings-btn {
-        width: 78px;
-        height: 78px;
-      }
-
-      .text-input {
-        font-size: 18px;
-      }
+    .history-box {
+      display: none;
     }
   </style>
 </head>
 <body>
   <div class="app">
-    <div class="glass avatar-card">
-      <button class="settings-btn" onclick="openSettings()">⚙️</button>
-      <div class="avatar-wrap">
-        <img id="avatar" src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=900&q=80" alt="avatar">
-      </div>
+    <div class="avatar-wrap card">
+      <!-- ★ここを元の人物画像URLに差し替えてOK -->
+      <img
+        id="avatar"
+        src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=1200&auto=format&fit=crop"
+        alt="キャラクター"
+      />
+      <button class="gear-btn" onclick="openSettings()">⚙️</button>
     </div>
 
-    <div class="glass main-bubble" id="mainBubble">こんにちは。今日はどんな感じ？</div>
-    <div class="status" id="statusText">名前を待ってるよ…</div>
+    <div id="replyBubble" class="bubble">
+こんにちは。今日はどんな感じ？
+    </div>
 
-    <div class="history" id="historyBox"></div>
+    <div id="statusText" class="status">名前を待ってるよ…</div>
 
     <div class="bottom-bar">
-      <button class="icon-btn" onclick="toggleMic()">🎤</button>
-      <input class="text-input" id="userInput" placeholder="話しかけてね" />
+      <input id="textInput" class="text-input" type="text" placeholder="" />
+      <button id="micBtn" class="mic-btn" onclick="toggleManualMic()">🎤</button>
       <button class="send-btn" onclick="sendMessage()">送信</button>
+    </div>
+
+    <div class="history-box">
+      <pre id="historyDump"></pre>
     </div>
   </div>
 
-  <!-- 設定モーダル -->
-  <div class="modal-bg" id="settingsModal">
+  <!-- 設定 -->
+  <div id="settingsModal" class="modal-bg">
     <div class="modal">
       <h2>設定</h2>
 
-      <div class="field">
-        <label>あなたの呼び名（時々呼ぶ）</label>
-        <input id="userName" placeholder="だいすけ" />
+      <label class="label">あなたの呼び名（時々呼ぶ）</label>
+      <input id="userName" class="field" type="text" placeholder="だいすけ" />
+
+      <label class="label">キャラ名</label>
+      <input id="charName" class="field" type="text" placeholder="美咲" />
+
+      <label class="label">OpenAI APIキー</label>
+      <input id="openaiKey" class="field" type="password" placeholder="sk-..." />
+      <div class="small-note">GPTを使う時だけ必要。保存はしません。</div>
+
+      <label class="label">ElevenLabs APIキー</label>
+      <input id="elevenKey" class="field" type="password" placeholder="ElevenLabs API Key" />
+      <div class="small-note">Eleven音声を使う時だけ必要。保存はしません。</div>
+
+      <label class="label">Voice ID</label>
+      <input id="voiceId" class="field" type="text" placeholder="例: 21m00Tcm4TlvDq8ikWAM" />
+      <div class="small-note">ElevenLabsで使いたい声のVoice ID</div>
+
+      <label class="label">ウェイクワード（名前呼び起動）</label>
+      <input id="wakeWord" class="field" type="text" placeholder="みさき" />
+
+      <div class="toggle-row">
+        <span>ウェイクワード起動を使う</span>
+        <label class="switch">
+          <input id="wakeEnabled" type="checkbox" />
+          <span class="slider"></span>
+        </label>
       </div>
 
-      <div class="field">
-        <label>キャラ名（ウェイクワード）</label>
-        <input id="charName" placeholder="美咲" />
+      <div class="toggle-row">
+        <span>名前を呼ばれたら自動でマイクON</span>
+        <label class="switch">
+          <input id="autoMicOnWake" type="checkbox" />
+          <span class="slider"></span>
+        </label>
       </div>
 
-      <div class="field">
-        <label>OpenAI APIキー（保存しない）</label>
-        <input id="openaiKey" type="password" placeholder="sk-..." />
+      <div class="toggle-row">
+        <span>スマホ音声返答（ブラウザ音声）</span>
+        <label class="switch">
+          <input id="browserVoiceEnabled" type="checkbox" />
+          <span class="slider"></span>
+        </label>
       </div>
 
-      <div class="field">
-        <label>ElevenLabs APIキー（保存しない）</label>
-        <input id="elevenKey" type="password" placeholder="保存しない" />
-      </div>
-
-      <div class="field">
-        <label>Voice ID（保存する）</label>
-        <input id="voiceId" placeholder="例: EXAVITQu4vr4xnSDxMaL" />
-      </div>
-
-      <div class="toggle">
-        <span>ウェイクワード起動（名前で反応）</span>
-        <input type="checkbox" id="wakeEnabled" />
-      </div>
-
-      <div class="toggle">
-        <span>名前反応後、自動でマイクON</span>
-        <input type="checkbox" id="autoMicEnabled" />
-      </div>
-
-      <div class="toggle">
-        <span>スマホ音声で返答（ブラウザ音声）</span>
-        <input type="checkbox" id="browserVoiceEnabled" />
-      </div>
-
-      <div class="toggle">
+      <div class="toggle-row">
         <span>ElevenLabs音声を使う</span>
-        <input type="checkbox" id="elevenEnabled" />
+        <label class="switch">
+          <input id="elevenEnabled" type="checkbox" />
+          <span class="slider"></span>
+        </label>
       </div>
 
-      <div class="row-btns">
-        <button class="mini-btn save-btn" onclick="saveSettings()">保存</button>
-        <button class="mini-btn sub-btn" onclick="clearHistory()">履歴削除</button>
+      <div class="toggle-row">
+        <span>会話履歴を保持する</span>
+        <label class="switch">
+          <input id="historyEnabled" type="checkbox" />
+          <span class="slider"></span>
+        </label>
       </div>
 
-      <div class="row-btns">
-        <button class="mini-btn sub-btn" onclick="startWakeWord()">名前待機開始</button>
-        <button class="mini-btn sub-btn" onclick="closeSettings()">閉じる</button>
-      </div>
-
-      <div class="note">
-        ※ OpenAIキー / Elevenキーは保存しません。<br>
-        ※ 会話履歴・名前・Voice ID・ON/OFF設定だけ保存します。
+      <div class="modal-buttons">
+        <button class="save-btn" onclick="saveSettings()">保存</button>
+        <button class="close-btn" onclick="closeSettings()">閉じる</button>
       </div>
     </div>
   </div>
 
   <script>
     // =========================
-    // 保存キー（APIキー以外）
-    // =========================
-    const LS_KEYS = {
-      history: "misaki_history",
-      userName: "misaki_userName",
-      charName: "misaki_charName",
-      voiceId: "misaki_voiceId",
-      wakeEnabled: "misaki_wakeEnabled",
-      autoMicEnabled: "misaki_autoMicEnabled",
-      browserVoiceEnabled: "misaki_browserVoiceEnabled",
-      elevenEnabled: "misaki_elevenEnabled"
-    };
-
-    // =========================
-    // DOM
-    // =========================
-    const historyBox = document.getElementById("historyBox");
-    const mainBubble = document.getElementById("mainBubble");
-    const statusText = document.getElementById("statusText");
-    const userInput = document.getElementById("userInput");
-
-    const userNameInput = document.getElementById("userName");
-    const charNameInput = document.getElementById("charName");
-    const openaiKeyInput = document.getElementById("openaiKey");
-    const elevenKeyInput = document.getElementById("elevenKey");
-    const voiceIdInput = document.getElementById("voiceId");
-
-    const wakeEnabledInput = document.getElementById("wakeEnabled");
-    const autoMicEnabledInput = document.getElementById("autoMicEnabled");
-    const browserVoiceEnabledInput = document.getElementById("browserVoiceEnabled");
-    const elevenEnabledInput = document.getElementById("elevenEnabled");
-
-    // =========================
     // 状態
     // =========================
-    let conversationHistory = JSON.parse(localStorage.getItem(LS_KEYS.history) || "[]");
-    let micRecognition = null;
+    let recognition = null;
     let wakeRecognition = null;
-    let isMicListening = false;
-    let wakeCooldown = false;
+    let isManualListening = false;
+    let isWakeListening = false;
+    let isSpeaking = false;
+    let chatHistory = [];
+    let elevenAudio = null;
+
+    const replyBubble = document.getElementById("replyBubble");
+    const statusText = document.getElementById("statusText");
+    const textInput = document.getElementById("textInput");
 
     // =========================
-    // 初期化
+    // 保存対象（ローカル）
     // =========================
+    const defaultSettings = {
+      userName: "だいすけ",
+      charName: "美咲",
+      wakeWord: "みさき",
+      wakeEnabled: true,
+      autoMicOnWake: true,
+      browserVoiceEnabled: true,
+      elevenEnabled: false,
+      historyEnabled: true
+    };
+
     function loadSettings() {
-      userNameInput.value = localStorage.getItem(LS_KEYS.userName) || "だいすけ";
-      charNameInput.value = localStorage.getItem(LS_KEYS.charName) || "美咲";
-      voiceIdInput.value = localStorage.getItem(LS_KEYS.voiceId) || "";
+      const saved = JSON.parse(localStorage.getItem("misaki_settings") || "{}");
+      const s = { ...defaultSettings, ...saved };
 
-      wakeEnabledInput.checked = localStorage.getItem(LS_KEYS.wakeEnabled) !== "false";
-      autoMicEnabledInput.checked = localStorage.getItem(LS_KEYS.autoMicEnabled) !== "false";
-      browserVoiceEnabledInput.checked = localStorage.getItem(LS_KEYS.browserVoiceEnabled) !== "false";
-      elevenEnabledInput.checked = localStorage.getItem(LS_KEYS.elevenEnabled) === "true";
+      document.getElementById("userName").value = s.userName || "";
+      document.getElementById("charName").value = s.charName || "";
+      document.getElementById("wakeWord").value = s.wakeWord || "";
+      document.getElementById("wakeEnabled").checked = !!s.wakeEnabled;
+      document.getElementById("autoMicOnWake").checked = !!s.autoMicOnWake;
+      document.getElementById("browserVoiceEnabled").checked = !!s.browserVoiceEnabled;
+      document.getElementById("elevenEnabled").checked = !!s.elevenEnabled;
+      document.getElementById("historyEnabled").checked = !!s.historyEnabled;
+
+      // APIキーは保存しないので毎回空
+      document.getElementById("openaiKey").value = "";
+      document.getElementById("elevenKey").value = "";
+      document.getElementById("voiceId").value = sessionStorage.getItem("voiceId") || "";
+
+      // 履歴読み込み
+      if (s.historyEnabled) {
+        chatHistory = JSON.parse(localStorage.getItem("misaki_history") || "[]");
+      } else {
+        chatHistory = [];
+      }
+
+      updateStatus();
+      startWakeWordIfNeeded();
+    }
+
+    function getSettings() {
+      return {
+        userName: document.getElementById("userName").value.trim() || "だいすけ",
+        charName: document.getElementById("charName").value.trim() || "美咲",
+        wakeWord: document.getElementById("wakeWord").value.trim() || "みさき",
+        wakeEnabled: document.getElementById("wakeEnabled").checked,
+        autoMicOnWake: document.getElementById("autoMicOnWake").checked,
+        browserVoiceEnabled: document.getElementById("browserVoiceEnabled").checked,
+        elevenEnabled: document.getElementById("elevenEnabled").checked,
+        historyEnabled: document.getElementById("historyEnabled").checked,
+        openaiKey: document.getElementById("openaiKey").value.trim(),
+        elevenKey: document.getElementById("elevenKey").value.trim(),
+        voiceId: document.getElementById("voiceId").value.trim()
+      };
     }
 
     function saveSettings() {
-      localStorage.setItem(LS_KEYS.userName, userNameInput.value.trim() || "だいすけ");
-      localStorage.setItem(LS_KEYS.charName, charNameInput.value.trim() || "美咲");
-      localStorage.setItem(LS_KEYS.voiceId, voiceIdInput.value.trim());
-      localStorage.setItem(LS_KEYS.wakeEnabled, wakeEnabledInput.checked);
-      localStorage.setItem(LS_KEYS.autoMicEnabled, autoMicEnabledInput.checked);
-      localStorage.setItem(LS_KEYS.browserVoiceEnabled, browserVoiceEnabledInput.checked);
-      localStorage.setItem(LS_KEYS.elevenEnabled, elevenEnabledInput.checked);
+      const s = getSettings();
 
-      setStatus("設定を保存したよ");
+      localStorage.setItem("misaki_settings", JSON.stringify({
+        userName: s.userName,
+        charName: s.charName,
+        wakeWord: s.wakeWord,
+        wakeEnabled: s.wakeEnabled,
+        autoMicOnWake: s.autoMicOnWake,
+        browserVoiceEnabled: s.browserVoiceEnabled,
+        elevenEnabled: s.elevenEnabled,
+        historyEnabled: s.historyEnabled
+      }));
+
+      // Voice IDだけは保存してOK
+      sessionStorage.setItem("voiceId", s.voiceId);
+
+      if (!s.historyEnabled) {
+        chatHistory = [];
+        localStorage.removeItem("misaki_history");
+      }
+
       closeSettings();
-
-      if (wakeEnabledInput.checked) {
-        startWakeWord();
-      } else {
-        stopWakeWord();
-        setStatus("待機中");
-      }
+      updateStatus();
+      startWakeWordIfNeeded();
     }
 
-    function renderHistory() {
-      historyBox.innerHTML = "";
-      conversationHistory.forEach(item => {
-        const div = document.createElement("div");
-        div.className = "msg " + item.role;
-        div.textContent = item.text;
-        historyBox.appendChild(div);
-      });
-      historyBox.scrollTop = historyBox.scrollHeight;
-    }
-
-    function saveHistory() {
-      localStorage.setItem(LS_KEYS.history, JSON.stringify(conversationHistory));
-    }
-
-    function addMessage(role, text) {
-      conversationHistory.push({ role, text });
-      saveHistory();
-      renderHistory();
-
-      if (role === "ai") {
-        mainBubble.textContent = text;
-      }
-    }
-
-    function clearHistory() {
-      if (!confirm("会話履歴を消す？")) return;
-      conversationHistory = [];
-      saveHistory();
-      renderHistory();
-      mainBubble.textContent = "履歴を消したよ。";
-      setStatus("履歴を削除しました");
-    }
-
-    function setStatus(text) {
-      statusText.textContent = text;
-    }
-
-    // =========================
-    // モーダル
-    // =========================
     function openSettings() {
       document.getElementById("settingsModal").style.display = "flex";
     }
@@ -510,350 +499,360 @@
       document.getElementById("settingsModal").style.display = "none";
     }
 
-    // =========================
-    // 音声出力
-    // =========================
-    function speakText(text) {
-      const useEleven = elevenEnabledInput.checked;
-      const useBrowserVoice = browserVoiceEnabledInput.checked;
-
-      if (useEleven) {
-        elevenSpeak(text);
+    function updateStatus(text = null) {
+      const s = getSavedSettings();
+      if (text) {
+        statusText.textContent = text;
         return;
       }
 
-      if (!useBrowserVoice) return;
-
-      try {
-        speechSynthesis.cancel();
-        const utter = new SpeechSynthesisUtterance(text);
-        utter.lang = "ja-JP";
-        utter.rate = 1.0;
-        utter.pitch = 1.0;
-        speechSynthesis.speak(utter);
-      } catch (e) {
-        console.error("ブラウザ音声エラー", e);
-      }
-    }
-
-    async function elevenSpeak(text) {
-      const apiKey = elevenKeyInput.value.trim();
-      const voiceId = voiceIdInput.value.trim();
-
-      if (!apiKey || !voiceId) {
-        setStatus("ElevenのAPIキーかVoice IDが足りないよ");
-        return;
-      }
-
-      try {
-        const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
-          method: "POST",
-          headers: {
-            "xi-api-key": apiKey,
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            text,
-            model_id: "eleven_multilingual_v2"
-          })
-        });
-
-        if (!res.ok) {
-          const err = await res.text();
-          console.error(err);
-          setStatus("Eleven音声エラー");
-          return;
-        }
-
-        const blob = await res.blob();
-        const url = URL.createObjectURL(blob);
-        const audio = new Audio(url);
-        audio.play().catch(err => {
-          console.error(err);
-          setStatus("音声再生できなかった");
-        });
-      } catch (e) {
-        console.error(e);
-        setStatus("Eleven接続エラー");
-      }
-    }
-
-    // =========================
-    // OpenAI送信
-    // =========================
-    async function sendMessage() {
-      const text = userInput.value.trim();
-      if (!text) return;
-
-      const apiKey = openaiKeyInput.value.trim();
-      if (!apiKey) {
-        alert("OpenAI APIキーを設定してね");
-        return;
-      }
-
-      addMessage("user", text);
-      userInput.value = "";
-      setStatus("考え中...");
-
-      const userName = userNameInput.value.trim() || "だいすけ";
-      const charName = charNameInput.value.trim() || "美咲";
-
-      const systemPrompt = `
-あなたは「${charName}」という、やさしく寄り添う会話AIです。
-相手の名前は「${userName}」です。
-自然な会話で、AIっぽすぎず、人に話しかけるように返答してください。
-短すぎず、でも読みやすく。
-必要なら少し気づかいを入れてください。
-`;
-
-      const messages = [
-        { role: "system", content: systemPrompt },
-        ...conversationHistory.map(item => ({
-          role: item.role === "ai" ? "assistant" : "user",
-          content: item.text
-        }))
-      ];
-
-      try {
-        const res = await fetch("https://api.openai.com/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${apiKey}`
-          },
-          body: JSON.stringify({
-            model: "gpt-4o-mini",
-            messages,
-            temperature: 0.85
-          })
-        });
-
-        const data = await res.json();
-
-        if (!res.ok) {
-          console.error(data);
-          setStatus("OpenAIエラー");
-          alert("OpenAIエラーが出ました。APIキーや利用状況を確認してね。");
-          return;
-        }
-
-        const reply = data.choices?.[0]?.message?.content || "うまく返せなかった...";
-        addMessage("ai", reply);
-        speakText(reply);
-        setStatus("待機中");
-      } catch (e) {
-        console.error(e);
-        setStatus("通信エラー");
-      }
-    }
-
-    // =========================
-    // 手動マイク
-    // =========================
-    function toggleMic() {
-      if (isMicListening) {
-        stopMic();
+      if (isManualListening) {
+        statusText.textContent = "聞いてるよ…";
+      } else if (isSpeaking) {
+        statusText.textContent = `${s.charName}が話してるよ…`;
+      } else if (s.wakeEnabled) {
+        statusText.textContent = `「${s.wakeWord}」を待ってるよ…`;
       } else {
-        startMic();
+        statusText.textContent = "待機中";
       }
     }
 
-    function startMic() {
+    function getSavedSettings() {
+      const saved = JSON.parse(localStorage.getItem("misaki_settings") || "{}");
+      return { ...defaultSettings, ...saved };
+    }
+
+    function saveHistory() {
+      const s = getSavedSettings();
+      if (s.historyEnabled) {
+        localStorage.setItem("misaki_history", JSON.stringify(chatHistory));
+      }
+    }
+
+    // =========================
+    // 音声認識
+    // =========================
+    function createRecognition(onResult, continuous = false) {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (!SpeechRecognition) {
-        alert("このスマホ・ブラウザでは音声入力に対応していません");
-        return;
+        alert("このブラウザは音声認識に対応していません。Chrome系で開いてください。");
+        return null;
       }
 
-      try {
-        if (micRecognition) {
-          micRecognition.stop();
-          micRecognition = null;
-        }
+      const rec = new SpeechRecognition();
+      rec.lang = "ja-JP";
+      rec.interimResults = false;
+      rec.continuous = continuous;
 
-        micRecognition = new SpeechRecognition();
-        micRecognition.lang = "ja-JP";
-        micRecognition.interimResults = false;
-        micRecognition.maxAlternatives = 1;
+      rec.onresult = (event) => {
+        const text = event.results[event.results.length - 1][0].transcript.trim();
+        onResult(text);
+      };
 
-        micRecognition.onstart = () => {
-          isMicListening = true;
-          setStatus("聞いてるよ...");
-        };
+      rec.onerror = (e) => {
+        console.log("音声認識エラー:", e.error);
+      };
 
-        micRecognition.onresult = (event) => {
-          const transcript = event.results[0][0].transcript;
-          userInput.value = transcript;
-          setStatus("聞き取ったよ");
-          sendMessage();
-        };
-
-        micRecognition.onerror = (event) => {
-          console.error("mic error:", event.error);
-          isMicListening = false;
-          setStatus("マイクエラー: " + event.error);
-        };
-
-        micRecognition.onend = () => {
-          isMicListening = false;
-          setStatus("待機中");
-        };
-
-        micRecognition.start();
-      } catch (e) {
-        console.error(e);
-        setStatus("マイク開始できなかった");
-      }
+      return rec;
     }
 
-    function stopMic() {
-      try {
-        if (micRecognition) micRecognition.stop();
-      } catch (e) {
-        console.error(e);
-      }
-      isMicListening = false;
-      setStatus("待機中");
-    }
-
-    // =========================
-    // ウェイクワード
-    // =========================
-    function getWakeWords() {
-      const charName = (charNameInput.value.trim() || "美咲").toLowerCase();
-      return [
-        charName,
-        "ねえ" + charName,
-        charName + "ちゃん",
-        charName + "さん"
-      ];
-    }
-
-    function triggerWakeAction() {
-      if (wakeCooldown) return;
-      wakeCooldown = true;
-
-      const reply = "うん、呼んだ？";
-      mainBubble.textContent = reply;
-      addMessage("ai", reply);
-      speakText(reply);
-      setStatus("反応したよ");
-
-      if (autoMicEnabledInput.checked) {
-        setTimeout(() => {
-          startMic();
-        }, 900);
-      }
-
-      setTimeout(() => {
-        wakeCooldown = false;
-      }, 4000);
-    }
-
-    function startWakeWord() {
+    function startWakeWordIfNeeded() {
       stopWakeWord();
 
-      if (!wakeEnabledInput.checked) {
-        setStatus("名前起動OFF");
+      const s = getSavedSettings();
+      if (!s.wakeEnabled) {
+        updateStatus();
         return;
       }
 
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (!SpeechRecognition) {
-        setStatus("名前起動はこの端末で非対応");
-        return;
-      }
+      wakeRecognition = createRecognition(handleWakeWord, true);
+      if (!wakeRecognition) return;
+
+      wakeRecognition.onend = () => {
+        if (getSavedSettings().wakeEnabled && !isManualListening) {
+          setTimeout(() => {
+            try {
+              wakeRecognition.start();
+              isWakeListening = true;
+              updateStatus();
+            } catch (e) {}
+          }, 700);
+        }
+      };
 
       try {
-        wakeRecognition = new SpeechRecognition();
-        wakeRecognition.lang = "ja-JP";
-        wakeRecognition.continuous = true;
-        wakeRecognition.interimResults = true;
-        wakeRecognition.maxAlternatives = 1;
-
-        wakeRecognition.onstart = () => {
-          setStatus("名前を待ってるよ...");
-        };
-
-        wakeRecognition.onresult = (event) => {
-          let transcript = "";
-          for (let i = event.resultIndex; i < event.results.length; i++) {
-            transcript += event.results[i][0].transcript;
-          }
-
-          const heard = transcript.toLowerCase();
-          const wakeWords = getWakeWords();
-          const hit = wakeWords.some(word => heard.includes(word));
-
-          if (hit) {
-            console.log("Wake word hit:", heard);
-            triggerWakeAction();
-          }
-        };
-
-        wakeRecognition.onerror = (event) => {
-          console.error("wake error:", event.error);
-          setStatus("名前待機エラー: " + event.error);
-        };
-
-        wakeRecognition.onend = () => {
-          if (wakeEnabledInput.checked) {
-            setTimeout(() => {
-              startWakeWord();
-            }, 1200);
-          }
-        };
-
         wakeRecognition.start();
+        isWakeListening = true;
+        updateStatus();
       } catch (e) {
-        console.error(e);
-        setStatus("名前待機を開始できなかった");
+        console.log("ウェイクワード開始失敗", e);
       }
     }
 
     function stopWakeWord() {
-      try {
-        if (wakeRecognition) {
-          wakeRecognition.onend = null;
-          wakeRecognition.stop();
-          wakeRecognition = null;
+      if (wakeRecognition) {
+        try { wakeRecognition.stop(); } catch (e) {}
+        wakeRecognition = null;
+      }
+      isWakeListening = false;
+    }
+
+    function handleWakeWord(text) {
+      const s = getSavedSettings();
+      const normalized = text.replace(/\s/g, "").toLowerCase();
+      const wake = (s.wakeWord || "").replace(/\s/g, "").toLowerCase();
+
+      console.log("Wake heard:", normalized);
+
+      if (!wake) return;
+
+      if (normalized.includes(wake)) {
+        updateStatus(`「${s.wakeWord}」に反応したよ`);
+        replyBubble.textContent = `${s.userName}、呼んだ？`;
+
+        if (s.autoMicOnWake) {
+          stopWakeWord();
+          setTimeout(() => {
+            startManualMic();
+          }, 700);
         }
+      }
+    }
+
+    function toggleManualMic() {
+      if (isManualListening) {
+        stopManualMic();
+      } else {
+        startManualMic();
+      }
+    }
+
+    function startManualMic() {
+      stopWakeWord();
+
+      recognition = createRecognition(async (text) => {
+        textInput.value = text;
+        stopManualMic();
+        await sendMessage();
+      }, false);
+
+      if (!recognition) return;
+
+      recognition.onend = () => {
+        isManualListening = false;
+        updateStatus();
+        setTimeout(() => {
+          if (getSavedSettings().wakeEnabled && !isSpeaking) {
+            startWakeWordIfNeeded();
+          }
+        }, 600);
+      };
+
+      try {
+        recognition.start();
+        isManualListening = true;
+        updateStatus();
       } catch (e) {
-        console.error(e);
+        console.log("手動マイク開始失敗", e);
+      }
+    }
+
+    function stopManualMic() {
+      if (recognition) {
+        try { recognition.stop(); } catch (e) {}
+        recognition = null;
+      }
+      isManualListening = false;
+      updateStatus();
+    }
+
+    // =========================
+    // GPT送信
+    // =========================
+    async function sendMessage() {
+      const userText = textInput.value.trim();
+      if (!userText) return;
+
+      const s = getSettings();
+
+      replyBubble.textContent = "考え中…";
+      updateStatus("考えてるよ…");
+
+      textInput.value = "";
+
+      chatHistory.push({ role: "user", content: userText });
+      saveHistory();
+
+      if (!s.openaiKey) {
+        const fallback = `${s.userName}、今はOpenAI APIキーが入ってないから会話できないよ。設定から入れてね。`;
+        replyBubble.textContent = fallback;
+        await speakText(fallback);
+        return;
+      }
+
+      try {
+        const systemPrompt = `
+あなたは親しみやすく、やさしく、自然に会話する日本語AIキャラクターです。
+名前は「${s.charName}」です。
+相手の名前は「${s.userName}」です。
+会話は人工知能っぽすぎず、人間らしく、やわらかく返してください。
+短め〜中くらいの自然な会話文で返してください。
+相手がつらそうな時は、安心感と共感を大切にしてください。
+`;
+
+        const messages = [
+          { role: "system", content: systemPrompt },
+          ...chatHistory.slice(-12)
+        ];
+
+        const res = await fetch("https://api.openai.com/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${s.openaiKey}`
+          },
+          body: JSON.stringify({
+            model: "gpt-4o-mini",
+            messages,
+            temperature: 0.8
+          })
+        });
+
+        const data = await res.json();
+        console.log(data);
+
+        const aiText =
+          data?.choices?.[0]?.message?.content?.trim() ||
+          "うまく返せなかった…もう一回話してみて。";
+
+        chatHistory.push({ role: "assistant", content: aiText });
+        saveHistory();
+
+        replyBubble.textContent = aiText;
+        await speakText(aiText);
+      } catch (err) {
+        console.error(err);
+        const msg = "通信で少しつまずいたみたい。もう一回やってみて。";
+        replyBubble.textContent = msg;
+        await speakText(msg);
+      } finally {
+        setTimeout(() => {
+          if (getSavedSettings().wakeEnabled && !isManualListening) {
+            startWakeWordIfNeeded();
+          }
+        }, 1000);
       }
     }
 
     // =========================
-    // Enter送信
+    // 音声返答
     // =========================
-    userInput.addEventListener("keydown", (e) => {
+    async function speakText(text) {
+      const s = getSettings();
+
+      if (s.elevenEnabled && s.elevenKey && s.voiceId) {
+        try {
+          await speakWithEleven(text, s.elevenKey, s.voiceId);
+          return;
+        } catch (e) {
+          console.log("Eleven失敗 → ブラウザ音声へ", e);
+        }
+      }
+
+      if (s.browserVoiceEnabled) {
+        speakWithBrowser(text);
+      } else {
+        updateStatus();
+      }
+    }
+
+    function speakWithBrowser(text) {
+      window.speechSynthesis.cancel();
+
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.lang = "ja-JP";
+      utter.rate = 1.0;
+      utter.pitch = 1.1;
+
+      isSpeaking = true;
+      updateStatus();
+
+      utter.onend = () => {
+        isSpeaking = false;
+        updateStatus();
+      };
+
+      speechSynthesis.speak(utter);
+    }
+
+    async function speakWithEleven(text, apiKey, voiceId) {
+      if (elevenAudio) {
+        try {
+          elevenAudio.pause();
+          elevenAudio = null;
+        } catch (e) {}
+      }
+
+      isSpeaking = true;
+      updateStatus(`${getSavedSettings().charName}が話してるよ…`);
+
+      const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+        method: "POST",
+        headers: {
+          "Accept": "audio/mpeg",
+          "Content-Type": "application/json",
+          "xi-api-key": apiKey
+        },
+        body: JSON.stringify({
+          text,
+          model_id: "eleven_multilingual_v2",
+          voice_settings: {
+            stability: 0.45,
+            similarity_boost: 0.75,
+            style: 0.35,
+            use_speaker_boost: true
+          }
+        })
+      });
+
+      if (!res.ok) {
+        throw new Error("ElevenLabs API error");
+      }
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      elevenAudio = new Audio(url);
+
+      await elevenAudio.play();
+
+      elevenAudio.onended = () => {
+        isSpeaking = false;
+        updateStatus();
+      };
+    }
+
+    // =========================
+    // 初期化
+    // =========================
+    window.addEventListener("load", () => {
+      loadSettings();
+
+      // 初回メッセージ
+      const s = getSavedSettings();
+      replyBubble.textContent = `こんにちは。今日はどんな感じ？`;
+    });
+
+    // Enter送信
+    textInput.addEventListener("keydown", (e) => {
       if (e.key === "Enter") {
-        e.preventDefault();
         sendMessage();
       }
     });
 
-    // =========================
-    // 初期ロード
-    // =========================
-    loadSettings();
-    renderHistory();
-
-    if (wakeEnabledInput.checked) {
-      setTimeout(() => {
-        startWakeWord();
-      }, 1200);
-    } else {
-      setStatus("待機中");
-    }
-
-    // ブラウザ音声許可のきっかけ
-    document.body.addEventListener("click", () => {
-      try {
-        const u = new SpeechSynthesisUtterance("");
-        speechSynthesis.speak(u);
-      } catch(e) {}
-    }, { once: true });
+    // モーダル外タップで閉じる
+    document.getElementById("settingsModal").addEventListener("click", (e) => {
+      if (e.target.id === "settingsModal") closeSettings();
+    });
   </script>
 </body>
 </html>
