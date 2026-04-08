@@ -2,14 +2,11 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>美咲AI 完全安定版</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>美咲AI 完全版</title>
 
   <style>
-    * {
-      box-sizing: border-box;
-      -webkit-tap-highlight-color: transparent;
-    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
     html, body {
       margin: 0;
@@ -17,11 +14,11 @@
       height: 100%;
       font-family: "Hiragino Sans", "Yu Gothic", sans-serif;
       overflow: hidden;
-      transition: background 0.5s ease;
+      transition: background 0.45s ease;
     }
 
     body {
-      background: linear-gradient(to bottom, #2b314d, #0f172a);
+      background: linear-gradient(to bottom, #2b314d, #111827);
       color: white;
       display: flex;
       flex-direction: column;
@@ -33,44 +30,42 @@
       height: 100dvh;
       width: 100%;
       overflow: hidden;
-      padding-bottom: env(safe-area-inset-bottom);
     }
 
-    /* ===== 上：キャラ画像 ===== */
+    /* 上画像 */
     .top-character {
-      flex: 0 0 auto;
+      flex: 0 0 28%;
+      min-height: 170px;
+      max-height: 260px;
       display: flex;
       justify-content: center;
       align-items: center;
-      padding: 10px 12px 4px;
+      padding: 10px 12px 6px;
       position: relative;
     }
 
     .top-character img {
-      width: min(88vw, 360px);
-      max-height: 36vh;
-      aspect-ratio: 3 / 4;
+      width: min(74vw, 300px);
       height: auto;
-      object-fit: cover;
-      object-position: center top;
+      max-height: 100%;
+      object-fit: contain;
       border-radius: 28px;
-      border: 3px solid rgba(255,255,255,0.14);
-      box-shadow: 0 14px 30px rgba(0,0,0,0.35);
+      border: 2px solid rgba(255,255,255,0.14);
+      box-shadow: 0 14px 30px rgba(0,0,0,0.30);
       transition: all 0.35s ease;
       background: rgba(255,255,255,0.03);
-      display: block;
     }
 
     .settings-open {
       position: absolute;
-      top: 14px;
-      right: 18px;
+      top: 12px;
+      right: 14px;
       border: none;
       background: rgba(255,255,255,0.16);
       color: white;
-      font-size: 24px;
-      width: 58px;
-      height: 58px;
+      font-size: 22px;
+      width: 52px;
+      height: 52px;
       border-radius: 50%;
       cursor: pointer;
       backdrop-filter: blur(8px);
@@ -78,13 +73,13 @@
       z-index: 5;
     }
 
-    /* ===== 中：チャット ===== */
+    /* チャット */
     .chat-section {
       flex: 1;
       display: flex;
       flex-direction: column;
       min-height: 0;
-      padding: 0 10px;
+      padding: 0 10px 0;
       overflow: hidden;
     }
 
@@ -95,19 +90,19 @@
       display: flex;
       flex-direction: column;
       gap: 10px;
-      padding: 8px 4px 14px;
+      padding: 6px 4px 14px;
       scroll-behavior: smooth;
     }
 
     .message {
-      max-width: 84%;
-      padding: 15px 17px;
-      border-radius: 24px;
-      font-size: 18px;
-      line-height: 1.85;
+      max-width: 86%;
+      padding: 14px 16px;
+      border-radius: 22px;
+      font-size: 16px;
+      line-height: 1.8;
       white-space: pre-wrap;
       word-break: break-word;
-      animation: fadeIn 0.25s ease;
+      animation: fadeIn 0.22s ease;
     }
 
     .bot {
@@ -130,58 +125,52 @@
       font-style: italic;
     }
 
-    /* ===== ステータス ===== */
-    .status-wrap {
-      flex-shrink: 0;
-      padding: 0 14px 8px;
-    }
-
+    /* ステータス */
     .status-bar {
-      font-size: 13px;
+      font-size: 12px;
       opacity: 0.82;
-      min-height: 20px;
-      padding-left: 2px;
+      padding: 0 14px 8px;
+      min-height: 18px;
     }
 
-    /* ===== 下：入力 ===== */
+    /* 下入力 */
     .input-area {
-      display: grid;
-      grid-template-columns: 1fr 72px 72px 96px;
-      gap: 10px;
+      display: flex;
       align-items: center;
-      padding: 10px 12px 12px;
-      background: rgba(0,0,0,0.24);
+      gap: 8px;
+      padding: 10px;
+      padding-bottom: calc(10px + env(safe-area-inset-bottom));
+      background: rgba(0,0,0,0.25);
       border-top: 1px solid rgba(255,255,255,0.08);
       flex-shrink: 0;
-      backdrop-filter: blur(8px);
     }
 
-    input[type="text"], input[type="password"] {
-      width: 100%;
+    input[type="text"], input[type="password"], select {
+      flex: 1;
       min-width: 0;
-      padding: 16px 18px;
+      padding: 15px 16px;
       border-radius: 18px;
       border: none;
-      font-size: 18px;
+      font-size: 16px;
       outline: none;
       background: rgba(255,255,255,0.96);
       color: #222;
     }
 
-    .mic-btn,
-    .send-btn {
-      border: none;
-      border-radius: 22px;
-      color: white;
-      cursor: pointer;
+    .mic-btn, .send-btn {
       flex-shrink: 0;
+      border: none;
+      cursor: pointer;
+      color: white;
+      font-weight: bold;
     }
 
     .mic-btn {
-      width: 72px;
-      height: 72px;
+      width: 62px;
+      height: 62px;
+      border-radius: 20px;
       background: rgba(255,255,255,0.12);
-      font-size: 30px;
+      font-size: 28px;
     }
 
     .mic-btn.listening {
@@ -190,11 +179,11 @@
     }
 
     .send-btn {
-      width: 96px;
-      height: 72px;
+      width: 92px;
+      height: 62px;
+      border-radius: 20px;
       background: linear-gradient(135deg, #ff7eb3, #ff4f8b);
-      font-weight: bold;
-      font-size: 22px;
+      font-size: 20px;
       box-shadow: 0 10px 24px rgba(255,79,139,0.3);
     }
 
@@ -204,16 +193,13 @@
       transform: scale(0.97);
     }
 
-    #chatBox::-webkit-scrollbar {
-      width: 6px;
-    }
-
+    #chatBox::-webkit-scrollbar { width: 6px; }
     #chatBox::-webkit-scrollbar-thumb {
       background: rgba(255,255,255,0.2);
       border-radius: 999px;
     }
 
-    /* ===== アニメ ===== */
+    /* アニメ */
     .speaking {
       animation: pulseTalk 0.75s infinite ease-in-out;
     }
@@ -240,7 +226,7 @@
       to   { opacity: 1; transform: translateY(0); }
     }
 
-    /* ===== 設定モーダル ===== */
+    /* 設定モーダル */
     .modal {
       position: fixed;
       inset: 0;
@@ -259,7 +245,7 @@
     .modal-box {
       width: 100%;
       max-width: 390px;
-      max-height: 88vh;
+      max-height: 88dvh;
       overflow-y: auto;
       background: #2a2236;
       border-radius: 26px;
@@ -268,7 +254,7 @@
     }
 
     .modal-title {
-      font-size: 26px;
+      font-size: 24px;
       font-weight: bold;
       color: #ffd1e6;
       margin-bottom: 18px;
@@ -279,11 +265,10 @@
     }
 
     .setting-label {
-      font-size: 16px;
+      font-size: 15px;
       opacity: 0.95;
       margin-bottom: 8px;
       display: block;
-      line-height: 1.6;
     }
 
     .setting-input {
@@ -291,16 +276,16 @@
       padding: 14px;
       border-radius: 16px;
       border: none;
-      font-size: 18px;
+      font-size: 16px;
       outline: none;
     }
 
     .toggle-btn, .danger-btn, .close-btn, .save-btn {
       width: 100%;
-      padding: 16px;
+      padding: 15px;
       border: none;
       border-radius: 18px;
-      font-size: 18px;
+      font-size: 17px;
       font-weight: bold;
       cursor: pointer;
       margin-top: 10px;
@@ -327,167 +312,17 @@
     }
 
     .hint {
-      font-size: 13px;
-      opacity: 0.7;
+      font-size: 12px;
+      opacity: 0.74;
       margin-top: 6px;
       line-height: 1.6;
     }
 
-    /* ===== VoiceGate ===== */
-    .voicegate-sheet {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.45);
-      display: none;
-      align-items: flex-end;
-      justify-content: center;
-      z-index: 1200;
-    }
-
-    .voicegate-sheet.show {
-      display: flex;
-    }
-
-    .voicegate-box {
-      width: 100%;
-      max-width: 480px;
-      background: #231d30;
-      border-top-left-radius: 26px;
-      border-top-right-radius: 26px;
-      padding: 22px 18px 28px;
-      box-shadow: 0 -10px 30px rgba(0,0,0,0.35);
-      animation: slideUpSheet 0.28s ease;
-    }
-
-    .voicegate-title {
-      font-size: 24px;
-      font-weight: bold;
-      color: #ffd1e6;
-      margin-bottom: 14px;
-    }
-
-    .voicegate-text {
-      background: rgba(255,255,255,0.08);
-      border-radius: 18px;
-      padding: 16px;
-      font-size: 16px;
-      line-height: 1.8;
-      white-space: pre-wrap;
-      margin-bottom: 16px;
-      max-height: 180px;
-      overflow-y: auto;
-    }
-
-    .voicegate-main-btn,
-    .voicegate-sub-btn,
-    .voicegate-close-btn {
-      width: 100%;
-      border: none;
-      border-radius: 18px;
-      padding: 16px;
-      font-size: 17px;
-      font-weight: bold;
-      cursor: pointer;
-      margin-top: 10px;
-    }
-
-    .voicegate-main-btn {
-      background: linear-gradient(135deg, #7a69ff, #5f9bff);
-      color: white;
-    }
-
-    .voicegate-sub-btn {
-      background: rgba(255,255,255,0.12);
-      color: white;
-    }
-
-    .voicegate-close-btn {
-      background: linear-gradient(135deg, #ff7eb3, #ff4f8b);
-      color: white;
-    }
-
-    .voicegate-hint {
-      margin-top: 14px;
-      font-size: 13px;
-      opacity: 0.75;
-      line-height: 1.7;
-    }
-
-    @keyframes slideUpSheet {
-      from {
-        transform: translateY(100%);
-        opacity: 0.7;
-      }
-      to {
-        transform: translateY(0);
-        opacity: 1;
-      }
-    }
-
-    /* ===== スマホ最適化 ===== */
-    @media (max-width: 480px) {
-      .top-character {
-        padding: 8px 10px 2px;
-      }
-
-      .top-character img {
-        width: 86vw;
-        max-height: 34vh;
-        border-radius: 24px;
-      }
-
-      .settings-open {
-        width: 54px;
-        height: 54px;
-        font-size: 22px;
-        top: 12px;
-        right: 14px;
-      }
-
-      .message {
-        font-size: 17px;
-        line-height: 1.8;
-        padding: 14px 16px;
-      }
-
-      .input-area {
-        grid-template-columns: 1fr 64px 64px 88px;
-        gap: 8px;
-        padding: 10px 10px 12px;
-      }
-
-      .mic-btn {
-        width: 64px;
-        height: 64px;
-        border-radius: 20px;
-        font-size: 27px;
-      }
-
-      .send-btn {
-        width: 88px;
-        height: 64px;
-        border-radius: 20px;
-        font-size: 20px;
-      }
-
-      input[type="text"], input[type="password"] {
-        padding: 14px 16px;
-        font-size: 17px;
-      }
-
-      .modal-box {
-        max-height: 90vh;
-        border-radius: 24px;
-        padding: 18px;
-      }
-
-      .modal-title {
-        font-size: 24px;
-      }
-
-      .setting-input {
-        font-size: 17px;
-      }
+    @media (max-width: 390px) {
+      .top-character { flex-basis: 25%; min-height: 150px; }
+      .message { font-size: 15px; padding: 13px 15px; }
+      .mic-btn { width: 58px; height: 58px; }
+      .send-btn { width: 84px; height: 58px; font-size: 18px; }
     }
   </style>
 </head>
@@ -506,15 +341,12 @@
     </div>
 
     <!-- ステータス -->
-    <div class="status-wrap">
-      <div class="status-bar" id="statusBar">準備OK</div>
-    </div>
+    <div class="status-bar" id="statusBar">準備OK</div>
 
     <!-- 下 -->
     <div class="input-area">
       <input type="text" id="userInput" placeholder="何か話してみて…" />
       <button class="mic-btn" id="micBtn" onclick="startVoiceInput()">🎤</button>
-      <button class="mic-btn" onclick="openVoiceGateSheet()">🎧</button>
       <button class="send-btn" onclick="sendMessage()">送信</button>
     </div>
   </div>
@@ -537,7 +369,17 @@
       <div class="setting-row">
         <label class="setting-label">OpenAI APIキー</label>
         <input class="setting-input" id="apiKeyInput" type="password" placeholder="sk-..." />
-        <div class="hint">GPTを使う時だけ必要。使わないなら空でもOK。</div>
+        <div class="hint">GPT返答・OpenAI高品質音声に必要です。</div>
+      </div>
+
+      <div class="setting-row">
+        <label class="setting-label">音声モード</label>
+        <select class="setting-input" id="voiceModeSelect">
+          <option value="native">通常音声（スマホ）</option>
+          <option value="openai">OpenAI高品質音声</option>
+          <option value="off">OFF</option>
+        </select>
+        <div class="hint">返答後の読み上げ方法を選べます。</div>
       </div>
 
       <button class="save-btn" onclick="saveSettings()">💾 保存する</button>
@@ -545,33 +387,6 @@
       <button class="toggle-btn" id="voiceToggle" onclick="toggleVoice()">🔊 音声ON</button>
       <button class="danger-btn" onclick="resetMemory()">記憶をリセット</button>
       <button class="close-btn" onclick="closeSettings()">閉じる</button>
-    </div>
-  </div>
-
-  <!-- ボイスゲートシート -->
-  <div class="voicegate-sheet" id="voicegateSheet">
-    <div class="voicegate-box">
-      <div class="voicegate-title">🎧 自然音声で再生</div>
-      <div class="voicegate-text" id="voicegatePreview">
-        ここに美咲の最新メッセージが入ります
-      </div>
-
-      <button class="voicegate-main-btn" onclick="launchVoiceGate()">
-        ボイスゲートを開く
-      </button>
-
-      <button class="voicegate-sub-btn" onclick="copyLastReplyOnly()">
-        返答をもう一度コピー
-      </button>
-
-      <button class="voicegate-close-btn" onclick="closeVoiceGateSheet()">
-        閉じる
-      </button>
-
-      <div class="voicegate-hint">
-        美咲の最新返答を自動コピーします。<br>
-        ボイスゲートを開いたら貼り付けるだけです。
-      </div>
     </div>
   </div>
 
@@ -585,17 +400,17 @@
     const nameInput = document.getElementById("nameInput");
     const userNameInput = document.getElementById("userNameInput");
     const apiKeyInput = document.getElementById("apiKeyInput");
+    const voiceModeSelect = document.getElementById("voiceModeSelect");
     const statusBar = document.getElementById("statusBar");
     const micBtn = document.getElementById("micBtn");
-    const voicegateSheet = document.getElementById("voicegateSheet");
-    const voicegatePreview = document.getElementById("voicegatePreview");
 
     let voiceEnabled = localStorage.getItem("voiceEnabled") !== "false";
     let gptEnabled = localStorage.getItem("gptEnabled") === "true";
+    let voiceMode = localStorage.getItem("voiceMode") || "native";
     let availableVoices = [];
     let recognition = null;
     let isListening = false;
-    let lastBotReply = "";
+    let currentAudio = null;
 
     let memory = {
       characterName: localStorage.getItem("characterName") || "美咲",
@@ -614,6 +429,7 @@
     nameInput.value = memory.characterName;
     userNameInput.value = memory.userName;
     apiKeyInput.value = memory.apiKey;
+    voiceModeSelect.value = voiceMode;
 
     updateVoiceButton();
     updateGPTButton();
@@ -631,7 +447,7 @@
     };
 
     const moodBackgrounds = {
-      normal: "linear-gradient(to bottom, #2b314d, #0f172a)",
+      normal: "linear-gradient(to bottom, #2b314d, #111827)",
       worried: "linear-gradient(to bottom, #3f4c6b, #1d2230)",
       sympathy: "linear-gradient(to bottom, #4a3b60, #1c1a2a)",
       troubled: "linear-gradient(to bottom, #4c4b67, #1d2031)",
@@ -668,6 +484,7 @@
       nameInput.value = memory.characterName || "美咲";
       userNameInput.value = memory.userName || "";
       apiKeyInput.value = memory.apiKey || "";
+      voiceModeSelect.value = voiceMode || "native";
       settingsModal.classList.add("show");
     }
 
@@ -679,10 +496,12 @@
       memory.characterName = nameInput.value.trim() || "美咲";
       memory.userName = userNameInput.value.trim();
       memory.apiKey = apiKeyInput.value.trim();
+      voiceMode = voiceModeSelect.value;
 
       localStorage.setItem("characterName", memory.characterName);
       localStorage.setItem("userNickName", memory.userName);
       localStorage.setItem("openai_api_key", memory.apiKey);
+      localStorage.setItem("voiceMode", voiceMode);
 
       addMessage("設定を保存したよ😊", "bot");
       setStatus("設定を保存しました");
@@ -694,10 +513,8 @@
       localStorage.setItem("voiceEnabled", voiceEnabled);
       updateVoiceButton();
 
-      if (!voiceEnabled && ("speechSynthesis" in window)) {
-        window.speechSynthesis.cancel();
-        stopSpeakingAnimation();
-      }
+      stopAllSpeech();
+      setStatus(voiceEnabled ? "音声ON" : "音声OFF");
     }
 
     function toggleGPT() {
@@ -791,15 +608,16 @@
     }
 
     function botReply(text) {
-      lastBotReply = text;
       addMessage(text, "bot");
       saveChat("assistant", text);
       speakText(text);
     }
 
-    async function sendMessage(autoText = null) {
-      const text = autoText !== null ? autoText.trim() : userInput.value.trim();
+    async function sendMessage(forcedText = null) {
+      const text = (forcedText ?? userInput.value).trim();
       if (!text) return;
+
+      stopVoiceInput();
 
       addMessage(text, "user");
       saveChat("user", text);
@@ -1089,74 +907,139 @@
       }
     }
 
-    function speakText(text) {
-      if (!voiceEnabled) return;
-
-      if (!("speechSynthesis" in window)) {
-        console.log("音声非対応環境");
-        setStatus("この環境では音声非対応");
-        return;
-      }
+    function stopAllSpeech() {
+      try {
+        if ("speechSynthesis" in window) {
+          window.speechSynthesis.cancel();
+        }
+      } catch (e) {}
 
       try {
-        const synth = window.speechSynthesis;
-        synth.cancel();
+        if (currentAudio) {
+          currentAudio.pause();
+          currentAudio.currentTime = 0;
+          currentAudio = null;
+        }
+      } catch (e) {}
 
-        const cleanText = text
-          .replace(/\n/g, "。")
-          .replace(/😊|♡|✨|😌|😢|🥺|😳|💦|💭/g, "")
-          .replace(/…/g, "、")
-          .trim();
+      stopSpeakingAnimation();
+    }
 
-        if (!cleanText) return;
+    async function speakText(text) {
+      if (!voiceEnabled || voiceMode === "off") return;
 
-        setTimeout(() => {
-          try {
-            const utterance = new SpeechSynthesisUtterance(cleanText);
-            utterance.lang = "ja-JP";
+      stopAllSpeech();
 
-            const voiceStyle = getVoiceStyleByMood(memory.mood);
-            utterance.rate = voiceStyle.rate;
-            utterance.pitch = voiceStyle.pitch;
-            utterance.volume = 1.0;
+      const cleanText = text
+        .replace(/\n/g, "。")
+        .replace(/😊|♡|✨|😌|😢|🥺|😳|💦|💭/g, "")
+        .replace(/…/g, "、")
+        .trim();
 
-            const voices = synth.getVoices();
-            let preferredVoice =
-              voices.find(v => v.lang && v.lang.includes("ja") && v.name.includes("Google")) ||
-              voices.find(v => v.lang && v.lang.includes("ja"));
+      if (!cleanText) return;
 
-            if (preferredVoice) {
-              utterance.voice = preferredVoice;
-            }
+      if (voiceMode === "native") {
+        if (!("speechSynthesis" in window)) {
+          setStatus("この環境では音声非対応");
+          return;
+        }
 
-            utterance.onstart = () => {
-              startSpeakingAnimation();
-              setStatus("話してるよ…");
-            };
+        try {
+          const synth = window.speechSynthesis;
+          const utterance = new SpeechSynthesisUtterance(cleanText);
+          utterance.lang = "ja-JP";
 
-            utterance.onend = () => {
-              stopSpeakingAnimation();
-              setStatus("準備OK");
-            };
+          const voiceStyle = getVoiceStyleByMood(memory.mood);
+          utterance.rate = voiceStyle.rate;
+          utterance.pitch = voiceStyle.pitch;
+          utterance.volume = 1.0;
 
-            utterance.onerror = (e) => {
-              console.log("音声エラー詳細:", e);
-              stopSpeakingAnimation();
-              setStatus("音声再生できませんでした");
-            };
+          const voices = synth.getVoices();
+          const preferredVoice =
+            voices.find(v => v.lang && v.lang.includes("ja") && v.name.includes("Google")) ||
+            voices.find(v => v.lang && v.lang.includes("ja"));
 
-            synth.speak(utterance);
-          } catch (err) {
-            console.error("speech内部エラー", err);
+          if (preferredVoice) utterance.voice = preferredVoice;
+
+          utterance.onstart = () => {
+            startSpeakingAnimation();
+            setStatus("話してるよ…");
+          };
+
+          utterance.onend = () => {
             stopSpeakingAnimation();
-            setStatus("音声エラー");
-          }
-        }, 250);
+            setStatus("準備OK");
+          };
 
-      } catch (e) {
-        console.error("音声エラー", e);
-        stopSpeakingAnimation();
-        setStatus("音声エラー");
+          utterance.onerror = () => {
+            stopSpeakingAnimation();
+            setStatus("音声再生できませんでした");
+          };
+
+          setTimeout(() => synth.speak(utterance), 220);
+
+        } catch (e) {
+          console.error("native音声エラー", e);
+          stopSpeakingAnimation();
+          setStatus("音声エラー");
+        }
+      }
+
+      else if (voiceMode === "openai") {
+        if (!memory.apiKey) {
+          setStatus("APIキーが必要です");
+          return;
+        }
+
+        try {
+          startSpeakingAnimation();
+          setStatus("AI音声生成中…");
+
+          const res = await fetch("https://api.openai.com/v1/audio/speech", {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${memory.apiKey}`,
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              model: "gpt-4o-mini-tts",
+              voice: "alloy",
+              input: cleanText
+            })
+          });
+
+          if (!res.ok) {
+            throw new Error("OpenAI音声生成失敗");
+          }
+
+          const blob = await res.blob();
+          const audioUrl = URL.createObjectURL(blob);
+          currentAudio = new Audio(audioUrl);
+
+          currentAudio.onplay = () => {
+            startSpeakingAnimation();
+            setStatus("話してるよ…");
+          };
+
+          currentAudio.onended = () => {
+            stopSpeakingAnimation();
+            setStatus("準備OK");
+            URL.revokeObjectURL(audioUrl);
+          };
+
+          currentAudio.onerror = () => {
+            stopSpeakingAnimation();
+            setStatus("OpenAI音声再生失敗");
+            URL.revokeObjectURL(audioUrl);
+          };
+
+          await currentAudio.play();
+
+        } catch (e) {
+          console.error("openai音声エラー", e);
+          stopSpeakingAnimation();
+          setStatus("OpenAI音声失敗");
+        }
       }
     }
 
@@ -1166,7 +1049,6 @@
       } catch (e) {}
       isListening = false;
       micBtn.classList.remove("listening");
-      setStatus("マイク停止");
     }
 
     function startVoiceInput() {
@@ -1179,6 +1061,7 @@
 
       if (isListening) {
         stopVoiceInput();
+        setStatus("マイク停止");
         return;
       }
 
@@ -1201,11 +1084,12 @@
 
         recognition.onresult = (event) => {
           const transcript = event.results[0][0].transcript || "";
-          userInput.value = transcript.trim();
+          const finalText = transcript.trim();
+          userInput.value = finalText;
           setStatus("音声入力OK → 自動送信");
-          setTimeout(() => {
-            sendMessage(transcript.trim());
-          }, 350);
+          if (finalText) {
+            setTimeout(() => sendMessage(finalText), 250);
+          }
         };
 
         recognition.onerror = (event) => {
@@ -1245,55 +1129,8 @@
       }
     }
 
-    function openVoiceGateSheet() {
-      const textToUse = lastBotReply || "こんにちは。今日はどんな気分ですか？";
-      voicegatePreview.textContent = textToUse;
-      copyTextToClipboard(textToUse);
-      voicegateSheet.classList.add("show");
-      setStatus("VoiceGate用に返答をコピーしました");
-    }
-
-    function closeVoiceGateSheet() {
-      voicegateSheet.classList.remove("show");
-      setStatus("準備OK");
-    }
-
-    function copyLastReplyOnly() {
-      const textToUse = lastBotReply || "こんにちは。今日はどんな気分ですか？";
-      copyTextToClipboard(textToUse);
-      setStatus("返答をコピーしました");
-    }
-
-    function launchVoiceGate() {
-      const textToUse = lastBotReply || "こんにちは。今日はどんな気分ですか？";
-      copyTextToClipboard(textToUse);
-      window.open("https://vidweb.co.jp/voicegate/", "_blank");
-      setStatus("VoiceGateを開きました");
-    }
-
-    function copyTextToClipboard(text) {
-      try {
-        navigator.clipboard.writeText(text).catch(() => {
-          fallbackCopyText(text);
-        });
-      } catch (e) {
-        fallbackCopyText(text);
-      }
-    }
-
-    function fallbackCopyText(text) {
-      const temp = document.createElement("textarea");
-      temp.value = text;
-      document.body.appendChild(temp);
-      temp.select();
-      document.execCommand("copy");
-      document.body.removeChild(temp);
-    }
-
-    voicegateSheet.addEventListener("click", (e) => {
-      if (e.target === voicegateSheet) {
-        closeVoiceGateSheet();
-      }
+    settingsModal.addEventListener("click", (e) => {
+      if (e.target === settingsModal) closeSettings();
     });
   </script>
 </body>
