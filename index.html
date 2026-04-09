@@ -74,7 +74,7 @@
       z-index: 5;
     }
 
-    /* ===== 会話エリア（崩れ防止） ===== */
+    /* ===== 会話エリア ===== */
     .chat-section {
       flex: 1;
       min-height: 0;
@@ -127,45 +127,132 @@
       font-style: italic;
     }
 
-    /* ===== モードUI（崩れない固定） ===== */
-    .mode-wrap {
+    /* ===== 分析パネル ===== */
+    #analysisPanel {
+      display: none;
       flex-shrink: 0;
-      padding: 2px 4px 10px;
+      margin: 4px 2px 12px;
+      padding: 16px;
+      border-radius: 24px;
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.08);
+      box-shadow: 0 10px 24px rgba(0,0,0,0.16);
+      backdrop-filter: blur(6px);
+      overflow-y: auto;
+      max-height: 42%;
     }
 
-    .mode-title {
-      font-size: 15px;
+    .analysis-title {
+      font-size: 18px;
+      font-weight: bold;
+      margin-bottom: 14px;
+      color: #ffe4ef;
+    }
+
+    .animal-hero {
+      text-align: center;
+      margin-bottom: 14px;
+    }
+
+    .animal-emoji {
+      font-size: 76px;
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+
+    .animal-name {
+      font-size: 20px;
+      font-weight: bold;
+      margin-bottom: 6px;
+    }
+
+    .animal-sub {
+      font-size: 14px;
       opacity: 0.88;
-      margin: 0 0 10px 2px;
+      line-height: 1.8;
     }
 
-    .mode-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
+    .analysis-section {
+      margin-top: 16px;
+      padding-top: 14px;
+      border-top: 1px solid rgba(255,255,255,0.08);
     }
 
-    .mode-chip {
-      min-height: 68px;
-      border: none;
-      border-radius: 22px;
-      padding: 12px 10px;
+    .analysis-subtitle {
       font-size: 15px;
       font-weight: bold;
-      color: white;
-      cursor: pointer;
-      background: rgba(255,255,255,0.08);
-      backdrop-filter: blur(6px);
-      box-shadow: 0 10px 24px rgba(0,0,0,0.18);
-      transition: transform 0.18s ease, background 0.18s ease;
+      margin-bottom: 10px;
+      color: #f6dfff;
     }
 
-    .mode-chip.active {
-      background: linear-gradient(135deg, #7a69ff, #5f9bff);
+    .bar-row {
+      margin-bottom: 12px;
     }
 
-    .mode-chip:active {
-      transform: scale(0.98);
+    .bar-label {
+      font-size: 14px;
+      margin-bottom: 6px;
+      opacity: 0.94;
+    }
+
+    .bar-bg {
+      width: 100%;
+      height: 14px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.10);
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      height: 100%;
+      border-radius: 999px;
+      transition: width 0.55s ease;
+    }
+
+    .analysis-text {
+      font-size: 14px;
+      line-height: 1.9;
+      opacity: 0.94;
+    }
+
+    .compare-line {
+      font-size: 13px;
+      line-height: 1.9;
+      opacity: 0.88;
+    }
+
+    .weekly-block {
+      margin-top: 12px;
+    }
+
+    .weekly-row {
+      margin-bottom: 16px;
+    }
+
+    .weekly-label {
+      font-size: 13px;
+      margin-bottom: 8px;
+      opacity: 0.92;
+    }
+
+    .mini-bars {
+      display: flex;
+      align-items: flex-end;
+      gap: 6px;
+      height: 74px;
+    }
+
+    .mini-bar {
+      flex: 1;
+      min-width: 0;
+      border-radius: 10px 10px 6px 6px;
+      opacity: 0.92;
+    }
+
+    .weekly-note {
+      font-size: 12px;
+      opacity: 0.72;
+      margin-top: 8px;
     }
 
     /* ===== ステータス ===== */
@@ -236,11 +323,13 @@
       transform: scale(0.97);
     }
 
-    #chatBox::-webkit-scrollbar {
+    #chatBox::-webkit-scrollbar,
+    #analysisPanel::-webkit-scrollbar {
       width: 6px;
     }
 
-    #chatBox::-webkit-scrollbar-thumb {
+    #chatBox::-webkit-scrollbar-thumb,
+    #analysisPanel::-webkit-scrollbar-thumb {
       background: rgba(255,255,255,0.18);
       border-radius: 999px;
     }
@@ -396,18 +485,6 @@
         font-size: 28px;
       }
 
-      .mode-grid {
-        grid-template-columns: 1fr 1fr;
-        gap: 8px;
-      }
-
-      .mode-chip {
-        min-height: 60px;
-        font-size: 13px;
-        padding: 10px 8px;
-        border-radius: 18px;
-      }
-
       .input-area {
         grid-template-columns: 1fr 84px 106px;
       }
@@ -425,6 +502,19 @@
       .voice-grid {
         grid-template-columns: 1fr;
       }
+
+      .animal-emoji {
+        font-size: 66px;
+      }
+
+      .animal-name {
+        font-size: 18px;
+      }
+
+      #analysisPanel {
+        padding: 14px;
+        border-radius: 22px;
+      }
     }
   </style>
 </head>
@@ -440,17 +530,7 @@
     <!-- 会話 -->
     <div class="chat-section">
       <div id="chatBox"></div>
-
-      <!-- モード -->
-      <div class="mode-wrap">
-        <div class="mode-title">今の使い方を選んでね</div>
-        <div class="mode-grid">
-          <button class="mode-chip active" id="modeListenBtn" onclick="setTalkMode('listen')">💗 話を聞いてほしい</button>
-          <button class="mode-chip" id="modeOrganizeBtn" onclick="setTalkMode('organize')">🧠 気持ちを整理したい</button>
-          <button class="mode-chip" id="modeAnalyzeBtn" onclick="setTalkMode('analyze')">📊 今の自分を知りたい</button>
-          <button class="mode-chip" id="modeFreeBtn" onclick="setTalkMode('free')">🌙 自由に話したい</button>
-        </div>
-      </div>
+      <div id="analysisPanel"></div>
     </div>
 
     <!-- 状態 -->
@@ -506,6 +586,29 @@
       </div>
 
       <div class="setting-row">
+        <label class="setting-label">会話モード</label>
+        <select class="setting-input" id="talkModeSelect">
+          <option value="listen">💗 話を聞く</option>
+          <option value="organize">🧠 気持ちを整理する</option>
+          <option value="analyze">📊 分析する</option>
+          <option value="free">🌙 自由に話す</option>
+        </select>
+        <div class="hint">分析モードでは動物・グラフ・比較が出ます</div>
+      </div>
+
+      <div class="setting-row">
+        <label class="setting-label">比較する分析履歴</label>
+        <select class="setting-input" id="compareDepthSelect">
+          <option value="1">前回と比較</option>
+          <option value="2">2回前と比較</option>
+          <option value="3">3回前と比較</option>
+          <option value="4">4回前と比較</option>
+          <option value="5">5回前と比較</option>
+        </select>
+        <div class="hint">分析モードの比較対象です</div>
+      </div>
+
+      <div class="setting-row">
         <label class="setting-label">声の簡単切り替え（ボタン）</label>
         <div class="voice-grid">
           <button class="voice-chip" id="voiceChipGentle" onclick="setVoicePreset('gentle')">優しい</button>
@@ -539,18 +642,22 @@
     const voiceEngineSelect = document.getElementById("voiceEngineSelect");
     const statusBar = document.getElementById("statusBar");
     const micBtn = document.getElementById("micBtn");
+    const analysisPanel = document.getElementById("analysisPanel");
+    const talkModeSelect = document.getElementById("talkModeSelect");
+    const compareDepthSelect = document.getElementById("compareDepthSelect");
 
     let voiceEnabled = localStorage.getItem("voiceEnabled") !== "false";
     let gptEnabled = localStorage.getItem("gptEnabled") === "true";
     let elevenVoiceEnabled = localStorage.getItem("elevenVoiceEnabled") === "true";
     let voiceEngine = localStorage.getItem("voiceEngine") || "standard";
     let selectedVoicePreset = localStorage.getItem("selectedVoicePreset") || "";
+    let talkMode = localStorage.getItem("talkMode") || "listen";
+    let compareDepth = parseInt(localStorage.getItem("compareDepth") || "1", 10);
     let availableVoices = [];
     let recognition = null;
     let isListening = false;
     let isSpeaking = false;
     let lastBotReply = "";
-    let talkMode = localStorage.getItem("talkMode") || "listen";
 
     // ===== APIキーは保存しない =====
     let sessionSecrets = {
@@ -585,6 +692,8 @@
     elevenApiKeyInput.value = "";
     voiceIdInput.value = "";
     voiceEngineSelect.value = voiceEngine;
+    talkModeSelect.value = talkMode;
+    compareDepthSelect.value = String(compareDepth);
 
     updateVoiceButton();
     updateGPTButton();
@@ -622,40 +731,6 @@
       calm: "AZnzlk1XvdvUeBnXmlld"
     };
 
-    function updateModeButtons() {
-      const ids = ["modeListenBtn", "modeOrganizeBtn", "modeAnalyzeBtn", "modeFreeBtn"];
-      ids.forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.classList.remove("active");
-      });
-
-      const map = {
-        listen: "modeListenBtn",
-        organize: "modeOrganizeBtn",
-        analyze: "modeAnalyzeBtn",
-        free: "modeFreeBtn"
-      };
-
-      const activeBtn = document.getElementById(map[talkMode]);
-      if (activeBtn) activeBtn.classList.add("active");
-    }
-
-    function setTalkMode(mode) {
-      talkMode = mode;
-      localStorage.setItem("talkMode", mode);
-      updateModeButtons();
-
-      const modeText = {
-        listen: "話を聞くモード",
-        organize: "気持ち整理モード",
-        analyze: "自己分析モード",
-        free: "自由会話モード"
-      };
-
-      setStatus(`${modeText[mode]}に切り替えたよ`);
-    }
-
-    // ===== 感情→声自動連動 =====
     function getAutoVoiceIdByMood() {
       if (memory.mood === "happy") return voicePresets.bright;
       if (memory.mood === "sympathy" || memory.mood === "healing" || memory.mood === "exhausted") return voicePresets.gentle;
@@ -694,6 +769,8 @@
       elevenApiKeyInput.value = "";
       voiceIdInput.value = "";
       voiceEngineSelect.value = voiceEngine;
+      talkModeSelect.value = talkMode;
+      compareDepthSelect.value = String(compareDepth);
       settingsModal.classList.add("show");
     }
 
@@ -705,13 +782,18 @@
       memory.characterName = nameInput.value.trim() || "美咲";
       memory.userName = userNameInput.value.trim();
 
-      // APIキーはセッションのみ
       sessionSecrets.apiKey = apiKeyInput.value.trim();
       sessionSecrets.elevenApiKey = elevenApiKeyInput.value.trim();
       sessionSecrets.voiceId = voiceIdInput.value.trim();
 
       voiceEngine = voiceEngineSelect.value;
       localStorage.setItem("voiceEngine", voiceEngine);
+
+      talkMode = talkModeSelect.value;
+      localStorage.setItem("talkMode", talkMode);
+
+      compareDepth = parseInt(compareDepthSelect.value || "1", 10);
+      localStorage.setItem("compareDepth", String(compareDepth));
 
       localStorage.setItem("characterName", memory.characterName);
       localStorage.setItem("userNickName", memory.userName);
@@ -797,6 +879,7 @@
       localStorage.removeItem("hostess_currentNeed");
       localStorage.removeItem("hostess_unresolvedTopic");
       localStorage.removeItem("hostess_lastBotQuestion");
+      localStorage.removeItem("analysisHistory");
 
       memory.mood = "";
       memory.topic = "";
@@ -808,6 +891,7 @@
       memory.unresolvedTopic = "";
       memory.lastBotQuestion = "";
 
+      hideAnalysisPanel();
       addMessage("記憶をリセットしたよ😊\nまた最初からゆっくり話そう。", "bot");
       setFace("healing");
       setStatus("記憶をリセットしました");
@@ -837,10 +921,6 @@
       } catch (e) {}
     }
 
-    window.addEventListener("DOMContentLoaded", () => {
-      updateModeButtons();
-    });
-
     setTimeout(() => {
       setFace("normal");
       botReply(getWelcomeMessage(), true);
@@ -868,7 +948,13 @@
     function addMessage(text, sender, extraClass = "") {
       const msg = document.createElement("div");
       msg.className = `message ${sender} ${extraClass}`;
-      msg.textContent = text;
+
+      if (sender === "bot" && /<[^>]+>/.test(text)) {
+        msg.innerHTML = text;
+      } else {
+        msg.textContent = text;
+      }
+
       chatBox.appendChild(msg);
       chatBox.scrollTop = chatBox.scrollHeight;
       return msg;
@@ -909,12 +995,30 @@
 
         typingMsg.remove();
         botReply(reply);
+
+        if (talkMode === "analyze") {
+          const result = analyzeMentalState(text);
+          saveAnalysisHistory(result);
+          renderAnalysisPanel(result);
+        } else {
+          hideAnalysisPanel();
+        }
+
         setStatus("準備OK");
       } catch (e) {
         console.error(e);
         typingMsg.remove();
         const fallback = generateLocalReply(text);
         botReply(fallback);
+
+        if (talkMode === "analyze") {
+          const result = analyzeMentalState(text);
+          saveAnalysisHistory(result);
+          renderAnalysisPanel(result);
+        } else {
+          hideAnalysisPanel();
+        }
+
         setStatus("GPT失敗 → ローカル返答");
       }
     }
@@ -979,7 +1083,7 @@
         memory.currentFeeling = "anxious";
       } else if (containsAny(lower, ["イライラ", "むかつく", "腹立つ"])) {
         memory.currentFeeling = "angry";
-      } else if (containsAny(lower, ["疲れた", "しんどい", "無理", "限界", "きつい"])) {
+      } else if (containsAny(lower, ["疲れた", "しんどい", "無理", "限界"])) {
         memory.currentFeeling = "tired";
       }
 
@@ -1012,43 +1116,6 @@
       analyzeContext(t);
 
       const callName = maybeCallUserName();
-
-      // ===== モード別ローカル返答 =====
-      if (talkMode === "organize") {
-        setFace("troubled");
-        memory.mood = "troubled";
-        saveMemory();
-
-        if (containsAny(lower, ["疲れた", "しんどい", "きつい", "無理"])) {
-          return `${callName}今の感じ、少し整理してみようか。\n「体のしんどさ」と「気持ちのしんどさ」だと、今はどっちが強い？`;
-        }
-
-        return `${callName}うん、少し整理してみようか。\n今いちばん大きいのは「気持ち」？「出来事」？`;
-      }
-
-      if (talkMode === "analyze") {
-        setFace("worried");
-        memory.mood = "worried";
-        saveMemory();
-
-        if (containsAny(lower, ["疲れた", "しんどい", "きつい", "無理"])) {
-          return `${callName}今の言葉からすると、かなり消耗が続いてる感じがあるよ。\n最近ずっと気を張ってた？`;
-        }
-
-        return `${callName}今の言い方からすると、気持ちをかなり内側で抱え込みやすい状態かもしれない。\n最近、考えすぎて疲れる感じあった？`;
-      }
-
-      if (talkMode === "free") {
-        setFace("normal");
-        memory.mood = "normal";
-        saveMemory();
-
-        return pick([
-          `${callName}うん、話して😊\n今日はどんなことがあった？`,
-          `${callName}いいよ。\nそのまま思ったこと話してみて。`,
-          `${callName}ちゃんと聞いてるよ。\nどこからでも大丈夫。`
-        ]);
-      }
 
       const shortReply = t.length <= 12;
       const seemsAnswerToPrevious =
@@ -1085,7 +1152,7 @@
         ]);
       }
 
-      if (containsAny(lower, ["疲れた", "しんどい", "限界", "無理", "へとへと", "きつい"])) {
+      if (containsAny(lower, ["疲れた", "しんどい", "限界", "無理", "へとへと"])) {
         setFace("exhausted");
         memory.mood = "exhausted";
         memory.currentFeeling = "tired";
@@ -1195,20 +1262,6 @@
       memory.lastBotQuestion = "もう少し詳しく話せそう？";
       saveMemory();
 
-      if (memory.currentFeeling === "sad") {
-        return pick([
-          `${callName}うん、ちゃんと聞いてるよ。\n今は無理にまとめなくていいから、浮かぶまま話して大丈夫。`,
-          `${callName}その感じ、まだ少し心に残ってそうだね。\nどこからでもいいよ、続き話して。`
-        ]);
-      }
-
-      if (memory.currentFeeling === "anxious") {
-        return pick([
-          `${callName}うん、大丈夫。\n焦らなくていいから、一個ずつ話してみよっか。`,
-          `${callName}そのまま話していいよ。\n今の頭の中、整理するの手伝う。`
-        ]);
-      }
-
       return pick([
         `${callName}うん、ちゃんと聞いてるよ。\nもう少し詳しく話せそう？`,
         `${callName}なるほど…。\nその続き、もう少し聞いてもいい？`,
@@ -1244,14 +1297,7 @@
 - 必要なら感情を言語化して整理する
 - 時々だけ ${memory.userName || "ユーザー"} の呼び名を自然に入れてよい
 - 返答の文頭に必ず表情タグを1つだけ付ける
-
-現在の会話モード: ${talkMode}
-
-モード別の返答ルール:
-- listen: とにかく寄り添い重視。アドバイスしすぎない
-- organize: 気持ちや状況を整理して返す。少し構造化してよい
-- analyze: 相手の状態・傾向・背景をやさしく分析する
-- free: 自然な雑談・自由会話で返す
+- analyze モードの時は、寄り添いながらも「今の状態が少し見える」返答にする
 
 表情タグ:
 [happy]
@@ -1263,6 +1309,8 @@
 [panic]
 [exhausted]
 [normal]
+
+現在の会話モード: ${talkMode}
 `;
 
       const messages = [
@@ -1349,7 +1397,6 @@
 
       const engine = voiceEngineSelect.value || voiceEngine || "standard";
 
-      // ===== ElevenLabs優先 =====
       if (
         engine === "eleven" &&
         elevenVoiceEnabled &&
@@ -1411,7 +1458,6 @@
         }
       }
 
-      // ===== 標準音声 =====
       fallbackSpeech(cleanText, isWelcome);
     }
 
@@ -1548,6 +1594,305 @@
         micBtn.classList.remove("listening");
         setStatus("マイク起動失敗");
       }
+    }
+
+    // =========================
+    // 分析機能
+    // =========================
+
+    function clamp(n, min, max) {
+      return Math.max(min, Math.min(max, n));
+    }
+
+    function countMatches(text, words) {
+      let score = 0;
+      words.forEach(word => {
+        if (text.includes(word)) score += 1;
+      });
+      return score;
+    }
+
+    function analyzeMentalState(text) {
+      const lower = text.toLowerCase();
+
+      const fatigueWords = ["疲れた", "しんどい", "きつい", "無理", "へとへと", "だるい", "消耗", "限界", "疲れる"];
+      const anxietyWords = ["不安", "こわい", "怖い", "心配", "落ち着かない", "緊張", "どうしよう", "焦る"];
+      const enduranceWords = ["頑張", "我慢", "大丈夫", "無理して", "耐え", "気を使", "ちゃんとしなきゃ"];
+      const lonelinessWords = ["ひとり", "一人", "孤独", "寂しい", "さみしい", "分かってもらえない", "誰にも言えない"];
+      const recoveryWords = ["落ち着いた", "安心", "少し楽", "眠れた", "休めた", "大丈夫そう", "軽くなった", "回復"];
+
+      let fatigue = 18 + countMatches(lower, fatigueWords) * 14;
+      let anxiety = 14 + countMatches(lower, anxietyWords) * 14;
+      let endurance = 16 + countMatches(lower, enduranceWords) * 14;
+      let loneliness = 10 + countMatches(lower, lonelinessWords) * 16;
+      let recovery = 18 + countMatches(lower, recoveryWords) * 16;
+
+      if (containsAny(lower, ["泣きたい", "つらい", "苦しい"])) {
+        fatigue += 12;
+        anxiety += 10;
+      }
+
+      if (containsAny(lower, ["イライラ", "むかつく", "腹立つ"])) {
+        endurance += 8;
+      }
+
+      if (containsAny(lower, ["寝れない", "眠れない"])) {
+        fatigue += 12;
+        anxiety += 8;
+        recovery -= 8;
+      }
+
+      fatigue = clamp(fatigue, 5, 95);
+      anxiety = clamp(anxiety, 5, 95);
+      endurance = clamp(endurance, 5, 95);
+      loneliness = clamp(loneliness, 5, 95);
+      recovery = clamp(recovery, 5, 95);
+
+      const dominant = Math.max(fatigue, anxiety, endurance, loneliness, recovery);
+
+      let animal = "🐱";
+      let animalTitle = "安心不足ぎみのネコタイプ";
+      let animalDesc = "ひとりで抱えやすく、安心できる距離感が必要な状態です。";
+
+      if (dominant === fatigue) {
+        animal = "🐢";
+        animalTitle = "回復が必要なカメタイプ";
+        animalDesc = "今は前に進むより、まず減らさないことが大事な状態です。";
+      } else if (dominant === anxiety) {
+        animal = "🐰";
+        animalTitle = "気を張りやすいウサギタイプ";
+        animalDesc = "頭と気持ちが休みにくく、警戒モードが続きやすい状態です。";
+      } else if (dominant === endurance) {
+        animal = "🐶";
+        animalTitle = "がんばりすぎのイヌタイプ";
+        animalDesc = "人に合わせたり、ちゃんとしようとしすぎて消耗しやすい流れです。";
+      } else if (dominant === loneliness) {
+        animal = "🐱";
+        animalTitle = "安心を求めるネコタイプ";
+        animalDesc = "解決より先に、わかってもらえる安心感が必要な状態です。";
+      } else if (dominant === recovery) {
+        animal = "🐬";
+        animalTitle = "少し軽さが戻るイルカタイプ";
+        animalDesc = "しんどさはありつつも、少しずつ回復の流れが出てきています。";
+      }
+
+      const summary = buildAnalysisSummary({ fatigue, anxiety, endurance, loneliness, recovery, animalTitle });
+
+      return {
+        fatigue,
+        anxiety,
+        endurance,
+        loneliness,
+        recovery,
+        animal,
+        animalTitle,
+        animalDesc,
+        summary
+      };
+    }
+
+    function buildAnalysisSummary(result) {
+      const notes = [];
+
+      if (result.fatigue >= 70) {
+        notes.push("今日は「頑張れない」のではなく、すでにかなり消耗している状態に近いです。");
+      } else if (result.anxiety >= 70) {
+        notes.push("今は落ち着かなさや気の張りが強く、頭の中が休みにくい流れです。");
+      } else if (result.endurance >= 70) {
+        notes.push("今は『しんどいのに頑張ってしまう』傾向がかなり強めです。");
+      } else if (result.loneliness >= 65) {
+        notes.push("今は『一人』というより『分かってもらえない孤独』が強いかもしれません。");
+      } else if (result.recovery >= 60) {
+        notes.push("少しずつ気持ちや体に余白が戻ってきている流れがあります。");
+      } else {
+        notes.push("今は小さな負担が重なって、じわじわ削られやすい状態です。");
+      }
+
+      if (result.recovery <= 30) {
+        notes.push("回復の余白が少なめなので、今日は『減らす・休む・後回し』が大切です。");
+      }
+
+      if (result.endurance >= 65 && result.fatigue >= 65) {
+        notes.push("特に『我慢しながら消耗している』傾向が見えます。");
+      }
+
+      return notes.join("\n");
+    }
+
+    function saveAnalysisHistory(result) {
+      let history = JSON.parse(localStorage.getItem("analysisHistory") || "[]");
+
+      history.push({
+        date: new Date().toISOString(),
+        ...result
+      });
+
+      if (history.length > 20) {
+        history = history.slice(-20);
+      }
+
+      localStorage.setItem("analysisHistory", JSON.stringify(history));
+    }
+
+    function getAnalysisHistory() {
+      return JSON.parse(localStorage.getItem("analysisHistory") || "[]");
+    }
+
+    function getPastAnalysis(offset = 1) {
+      const history = getAnalysisHistory();
+      if (history.length <= offset) return null;
+      return history[history.length - 1 - offset];
+    }
+
+    function getWeeklyHistory() {
+      const history = getAnalysisHistory();
+      return history.slice(-7);
+    }
+
+    function createBarRow(label, value, color) {
+      return `
+        <div class="bar-row">
+          <div class="bar-label">${label}　${value}%</div>
+          <div class="bar-bg">
+            <div class="bar-fill" style="width:${value}%; background:${color};"></div>
+          </div>
+        </div>
+      `;
+    }
+
+    function diffText(label, now, old) {
+      const diff = now - old;
+      const sign = diff > 0 ? "+" : "";
+      return `<div class="compare-line">${label}　${old} → ${now}（${sign}${diff}）</div>`;
+    }
+
+    function createMiniBars(values, color) {
+      return `
+        <div class="mini-bars">
+          ${values.map(v => `
+            <div class="mini-bar" style="
+              height:${Math.max(10, v)}%;
+              background:${color};
+            "></div>
+          `).join("")}
+        </div>
+      `;
+    }
+
+    function getWeeklyComment(weekly) {
+      if (weekly.length < 2) return "まだ比較できるほど履歴がありません。";
+
+      const first = weekly[0];
+      const last = weekly[weekly.length - 1];
+
+      const fatigueDiff = (last.fatigue || 0) - (first.fatigue || 0);
+      const anxietyDiff = (last.anxiety || 0) - (first.anxiety || 0);
+      const recoveryDiff = (last.recovery || 0) - (first.recovery || 0);
+
+      if (fatigueDiff > 15 && recoveryDiff < -10) {
+        return "今週は疲れが増えていて、回復する時間が足りていない流れが見えます。";
+      }
+
+      if (anxietyDiff > 15) {
+        return "今週は気を張る場面が増えて、不安が高まりやすい流れが見えます。";
+      }
+
+      if (recoveryDiff > 10) {
+        return "今週は少しずつ回復の流れが出てきています。";
+      }
+
+      return "今週は大きく崩れすぎず、ゆるやかな波の中にいる状態です。";
+    }
+
+    function renderAnalysisPanel(result) {
+      if (!analysisPanel) return;
+
+      const past = getPastAnalysis(compareDepth);
+      const weekly = getWeeklyHistory();
+
+      const compareTitle = compareDepth === 1 ? "前回比較" : `${compareDepth}回前と比較`;
+
+      const compareHtml = past ? `
+        <div class="analysis-section">
+          <div class="analysis-subtitle">📈 ${compareTitle}</div>
+          ${diffText("疲労", result.fatigue, past.fatigue || 0)}
+          ${diffText("不安", result.anxiety, past.anxiety || 0)}
+          ${diffText("我慢", result.endurance, past.endurance || 0)}
+          ${diffText("孤独", result.loneliness, past.loneliness || 0)}
+          ${diffText("回復", result.recovery, past.recovery || 0)}
+        </div>
+      ` : `
+        <div class="analysis-section">
+          <div class="analysis-subtitle">📈 比較</div>
+          <div class="compare-line">まだ比較できる履歴が少ないので、あと少し話すと比較できるようになります。</div>
+        </div>
+      `;
+
+      const weeklyHtml = weekly.length >= 2 ? `
+        <div class="analysis-section">
+          <div class="analysis-subtitle">📅 今週のこころの流れ</div>
+
+          <div class="weekly-block">
+            <div class="weekly-row">
+              <div class="weekly-label">疲労</div>
+              ${createMiniBars(weekly.map(d => d.fatigue || 0), "#ff9a9a")}
+            </div>
+
+            <div class="weekly-row">
+              <div class="weekly-label">不安</div>
+              ${createMiniBars(weekly.map(d => d.anxiety || 0), "#b39cff")}
+            </div>
+
+            <div class="weekly-row">
+              <div class="weekly-label">回復力</div>
+              ${createMiniBars(weekly.map(d => d.recovery || 0), "#7fe1ad")}
+            </div>
+          </div>
+
+          <div class="weekly-note">左 → 右 で最近の流れです</div>
+          <div class="analysis-text" style="margin-top:10px;">${getWeeklyComment(weekly)}</div>
+        </div>
+      ` : `
+        <div class="analysis-section">
+          <div class="analysis-subtitle">📅 今週のこころの流れ</div>
+          <div class="analysis-text">まだ履歴が少ないので、分析を重ねると変化が見えるようになります。</div>
+        </div>
+      `;
+
+      analysisPanel.innerHTML = `
+        <div class="analysis-title">今日のこころの地図</div>
+
+        <div class="animal-hero">
+          <div class="animal-emoji">${result.animal}</div>
+          <div class="animal-name">${result.animalTitle}</div>
+          <div class="animal-sub">${result.animalDesc}</div>
+        </div>
+
+        <div class="analysis-section">
+          <div class="analysis-subtitle">📊 今のバランス</div>
+          ${createBarRow("疲労", result.fatigue, "#ff9a9a")}
+          ${createBarRow("不安", result.anxiety, "#b39cff")}
+          ${createBarRow("我慢", result.endurance, "#ffc17a")}
+          ${createBarRow("孤独", result.loneliness, "#87d6ff")}
+          ${createBarRow("回復力", result.recovery, "#7fe1ad")}
+        </div>
+
+        <div class="analysis-section">
+          <div class="analysis-subtitle">📝 わかりやすい解説</div>
+          <div class="analysis-text">${result.summary.replace(/\n/g, "<br>")}</div>
+        </div>
+
+        ${compareHtml}
+        ${weeklyHtml}
+      `;
+
+      analysisPanel.style.display = "block";
+    }
+
+    function hideAnalysisPanel() {
+      if (!analysisPanel) return;
+      analysisPanel.style.display = "none";
+      analysisPanel.innerHTML = "";
     }
 
     settingsModal.addEventListener("click", (e) => {
