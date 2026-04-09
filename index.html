@@ -6,7 +6,10 @@
   <title>美咲AI 完全版</title>
 
   <style>
-    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
 
     html, body {
       margin: 0;
@@ -31,18 +34,18 @@
       display: flex;
       flex-direction: column;
       overflow: hidden;
-      padding-bottom: 98px;
+      position: relative;
     }
 
     /* ===== 上画像 ===== */
     .top-character {
-      flex: 0 0 34vh;
-      min-height: 240px;
-      max-height: 360px;
+      flex: 0 0 30vh;
+      min-height: 210px;
+      max-height: 320px;
       display: flex;
       justify-content: center;
       align-items: center;
-      padding: 14px 14px 8px;
+      padding: 10px 12px 6px;
       position: relative;
     }
 
@@ -62,11 +65,11 @@
       position: absolute;
       top: 18px;
       right: 18px;
-      width: 76px;
-      height: 76px;
+      width: 68px;
+      height: 68px;
       border-radius: 50%;
       border: none;
-      font-size: 32px;
+      font-size: 28px;
       background: rgba(255,255,255,0.16);
       color: white;
       backdrop-filter: blur(8px);
@@ -75,13 +78,34 @@
       z-index: 5;
     }
 
+    /* ===== メインタブ切り替え ===== */
+    .main-panels {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .panel {
+      display: none;
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .panel.active {
+      display: flex;
+      flex-direction: column;
+    }
+
     /* ===== 会話エリア ===== */
     .chat-section {
       flex: 1;
       min-height: 0;
       display: flex;
       flex-direction: column;
-      padding: 0 12px;
+      padding: 0 10px;
       overflow: hidden;
     }
 
@@ -91,17 +115,17 @@
       overflow-y: auto;
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 10px;
       padding: 6px 2px 12px;
       scroll-behavior: smooth;
     }
 
     .message {
       max-width: 86%;
-      padding: 16px 18px;
+      padding: 14px 16px;
       border-radius: 24px;
-      font-size: clamp(16px, 2.4vw, 18px);
-      line-height: 1.95;
+      font-size: clamp(15px, 2.4vw, 18px);
+      line-height: 1.9;
       white-space: pre-wrap;
       word-break: break-word;
       animation: fadeIn 0.22s ease;
@@ -128,71 +152,168 @@
       font-style: italic;
     }
 
-    /* ===== 分析画面 ===== */
-    #analysisScreen {
-      display: none;
+    /* ===== ステータス ===== */
+    .status-bar {
+      flex-shrink: 0;
+      font-size: 13px;
+      opacity: 0.82;
+      padding: 0 14px 8px;
+      min-height: 22px;
+    }
+
+    /* ===== 入力エリア（小型化） ===== */
+    .input-area {
+      flex-shrink: 0;
+      display: grid;
+      grid-template-columns: 1fr 78px 96px;
+      gap: 10px;
+      padding: 10px 10px 8px;
+      background: rgba(0,0,0,0.20);
+      border-top: 1px solid rgba(255,255,255,0.08);
+      align-items: center;
+    }
+
+    input[type="text"], input[type="password"], select, textarea {
+      width: 100%;
+      min-width: 0;
+      padding: 14px 16px;
+      border-radius: 18px;
+      border: none;
+      outline: none;
+      font-size: 17px;
+      background: rgba(255,255,255,0.96);
+      color: #222;
+    }
+
+    textarea {
+      resize: none;
+      min-height: 100px;
+      font-family: inherit;
+      line-height: 1.8;
+    }
+
+    .mic-btn, .send-btn {
+      border: none;
+      border-radius: 22px;
+      color: white;
+      cursor: pointer;
+      font-weight: bold;
+      box-shadow: 0 12px 24px rgba(0,0,0,0.16);
+    }
+
+    .mic-btn {
+      width: 78px;
+      height: 68px;
+      font-size: 28px;
+      background: rgba(255,255,255,0.12);
+    }
+
+    .mic-btn.listening {
+      background: linear-gradient(135deg, #7a69ff, #5f9bff);
+      box-shadow: 0 0 0 8px rgba(122,105,255,0.18);
+    }
+
+    .send-btn {
+      width: 96px;
+      height: 68px;
+      font-size: 20px;
+      background: linear-gradient(135deg, #ff7eb3, #ff4f8b);
+      box-shadow: 0 14px 28px rgba(255,79,139,0.28);
+    }
+
+    .send-btn:active,
+    .mic-btn:active,
+    .settings-open:active,
+    .main-tab-btn:active,
+    .action-btn:active {
+      transform: scale(0.97);
+    }
+
+    #chatBox::-webkit-scrollbar,
+    .panel-scroll::-webkit-scrollbar,
+    .modal-box::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    #chatBox::-webkit-scrollbar-thumb,
+    .panel-scroll::-webkit-scrollbar-thumb,
+    .modal-box::-webkit-scrollbar-thumb {
+      background: rgba(255,255,255,0.18);
+      border-radius: 999px;
+    }
+
+    /* ===== 下3タブ（小型化） ===== */
+    .main-tabs {
+      flex-shrink: 0;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+      padding: 8px 10px 12px;
+      background: rgba(0,0,0,0.18);
+      border-top: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .main-tab-btn {
+      border: none;
+      border-radius: 24px;
+      padding: 14px 8px 12px;
+      color: white;
+      background: rgba(255,255,255,0.08);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 10px 24px rgba(0,0,0,0.16);
+      min-height: 92px;
+      transition: 0.2s ease;
+    }
+
+    .main-tab-btn.active {
+      background: linear-gradient(135deg, #ff7eb3, #ff4f8b);
+      box-shadow: 0 16px 32px rgba(255,79,139,0.24);
+    }
+
+    .main-tab-icon {
+      font-size: 34px;
+      line-height: 1;
+    }
+
+    .main-tab-label {
+      font-size: 15px;
+      font-weight: bold;
+    }
+
+    /* ===== 分析タブ ===== */
+    .panel-scroll {
       flex: 1;
       min-height: 0;
       overflow-y: auto;
-      padding: 0 12px 16px;
+      padding: 10px 12px 18px;
     }
 
-    .analysis-screen-card {
+    .glass-card {
       background: rgba(255,255,255,0.08);
       border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 28px;
+      box-shadow: 0 14px 28px rgba(0,0,0,0.18);
+      backdrop-filter: blur(8px);
+      border-radius: 26px;
       padding: 18px;
-      box-shadow: 0 12px 28px rgba(0,0,0,0.16);
-      margin-top: 6px;
-    }
-
-    .analysis-screen-title {
-      font-size: 28px;
-      font-weight: bold;
-      color: #ffdce9;
       margin-bottom: 14px;
     }
 
-    .analysis-screen-desc {
-      font-size: 15px;
-      line-height: 1.9;
-      opacity: 0.9;
-      margin-bottom: 18px;
-    }
-
-    .analysis-run-btn {
-      width: 100%;
-      padding: 18px;
-      border: none;
-      border-radius: 20px;
-      font-size: 18px;
+    .section-title {
+      font-size: 26px;
       font-weight: bold;
-      color: white;
-      cursor: pointer;
-      background: linear-gradient(135deg, #7a69ff, #5f9bff);
-      box-shadow: 0 14px 28px rgba(95,155,255,0.22);
+      color: #ffdbe9;
       margin-bottom: 14px;
     }
 
-    #analysisEmptyText {
-      font-size: 14px;
-      opacity: 0.78;
-      line-height: 1.8;
-      margin-top: 8px;
-    }
-
-    /* ===== 分析パネル ===== */
-    #analysisPanel {
-      display: none;
-      flex-shrink: 0;
-      margin: 14px 0 10px;
-      padding: 16px;
-      border-radius: 24px;
-      background: rgba(255,255,255,0.07);
-      border: 1px solid rgba(255,255,255,0.08);
-      box-shadow: 0 10px 24px rgba(0,0,0,0.16);
-      backdrop-filter: blur(6px);
-      overflow-y: auto;
+    .sub-title {
+      font-size: 17px;
+      font-weight: bold;
+      color: #ffeaf3;
+      margin-bottom: 10px;
     }
 
     .analysis-title {
@@ -204,17 +325,17 @@
 
     .animal-hero {
       text-align: center;
-      margin-bottom: 14px;
+      margin-bottom: 6px;
     }
 
     .animal-emoji {
-      font-size: 76px;
+      font-size: 74px;
       line-height: 1;
       margin-bottom: 8px;
     }
 
     .animal-name {
-      font-size: 20px;
+      font-size: 21px;
       font-weight: bold;
       margin-bottom: 6px;
     }
@@ -308,87 +429,163 @@
       margin-top: 8px;
     }
 
-    /* ===== ステータス ===== */
-    .status-bar {
-      flex-shrink: 0;
-      font-size: 13px;
-      opacity: 0.82;
-      padding: 0 16px 8px;
-      min-height: 22px;
-    }
-
-    /* ===== 入力エリア ===== */
-    .input-area {
-      flex-shrink: 0;
+    .analysis-actions {
       display: grid;
-      grid-template-columns: 1fr 88px 112px;
+      grid-template-columns: 1fr;
       gap: 10px;
-      padding: 12px;
-      background: rgba(0,0,0,0.24);
-      border-top: 1px solid rgba(255,255,255,0.08);
-      align-items: center;
+      margin-bottom: 14px;
     }
 
-    input[type="text"], input[type="password"], select {
+    .action-btn {
       width: 100%;
-      min-width: 0;
-      padding: 16px 18px;
+      padding: 16px;
+      border: none;
       border-radius: 20px;
-      border: none;
-      outline: none;
-      font-size: 18px;
-      background: rgba(255,255,255,0.96);
-      color: #222;
-    }
-
-    .mic-btn, .send-btn {
-      border: none;
-      border-radius: 24px;
-      color: white;
-      cursor: pointer;
+      font-size: 17px;
       font-weight: bold;
-      box-shadow: 0 12px 24px rgba(0,0,0,0.16);
-    }
-
-    .mic-btn {
-      width: 88px;
-      height: 84px;
-      font-size: 34px;
-      background: rgba(255,255,255,0.12);
-    }
-
-    .mic-btn.listening {
+      cursor: pointer;
+      color: white;
       background: linear-gradient(135deg, #7a69ff, #5f9bff);
-      box-shadow: 0 0 0 8px rgba(122,105,255,0.18);
+      box-shadow: 0 12px 24px rgba(95,155,255,0.20);
     }
 
-    .send-btn {
-      width: 112px;
-      height: 84px;
-      font-size: 22px;
-      background: linear-gradient(135deg, #ff7eb3, #ff4f8b);
-      box-shadow: 0 14px 28px rgba(255,79,139,0.28);
+    .advice-list, .cbt-list {
+      display: grid;
+      gap: 10px;
+      margin-top: 8px;
     }
 
-    .send-btn:active,
-    .mic-btn:active,
-    .settings-open:active {
-      transform: scale(0.97);
+    .advice-item, .cbt-item {
+      padding: 14px;
+      border-radius: 18px;
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.06);
+      font-size: 14px;
+      line-height: 1.85;
     }
 
-    #chatBox::-webkit-scrollbar,
-    #analysisPanel::-webkit-scrollbar,
-    #analysisScreen::-webkit-scrollbar,
-    .modal-box::-webkit-scrollbar {
-      width: 6px;
+    .pie-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      margin-top: 10px;
     }
 
-    #chatBox::-webkit-scrollbar-thumb,
-    #analysisPanel::-webkit-scrollbar-thumb,
-    #analysisScreen::-webkit-scrollbar-thumb,
-    .modal-box::-webkit-scrollbar-thumb {
-      background: rgba(255,255,255,0.18);
-      border-radius: 999px;
+    #pieChart {
+      width: 100%;
+      max-width: 280px;
+      aspect-ratio: 1 / 1;
+      background: rgba(255,255,255,0.04);
+      border-radius: 50%;
+    }
+
+    .pie-legend {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px 10px;
+      margin-top: 6px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      opacity: 0.95;
+    }
+
+    .legend-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    /* ===== 設定タブ ===== */
+    .settings-inline {
+      display: grid;
+      gap: 14px;
+    }
+
+    .setting-card {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.08);
+      box-shadow: 0 14px 28px rgba(0,0,0,0.18);
+      backdrop-filter: blur(8px);
+      border-radius: 26px;
+      padding: 18px;
+    }
+
+    .setting-row {
+      margin-bottom: 16px;
+    }
+
+    .setting-label {
+      font-size: 15px;
+      opacity: 0.95;
+      margin-bottom: 8px;
+      display: block;
+      line-height: 1.6;
+    }
+
+    .setting-input {
+      width: 100%;
+      padding: 14px 16px;
+      border-radius: 18px;
+      border: none;
+      font-size: 17px;
+      outline: none;
+    }
+
+    .toggle-btn, .danger-btn, .save-btn, .voice-chip {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 18px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 10px;
+      color: white;
+    }
+
+    .toggle-btn {
+      background: #5f5470;
+    }
+
+    .danger-btn {
+      background: #8a3d57;
+    }
+
+    .save-btn {
+      background: linear-gradient(135deg, #7a69ff, #5f9bff);
+    }
+
+    .hint {
+      font-size: 13px;
+      opacity: 0.72;
+      margin-top: 6px;
+      line-height: 1.6;
+    }
+
+    .voice-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .voice-chip {
+      padding: 12px 10px;
+      font-size: 15px;
+      background: rgba(255,255,255,0.1);
+      margin-top: 0;
+    }
+
+    .voice-chip.active {
+      background: linear-gradient(135deg, #7a69ff, #5f9bff);
     }
 
     /* ===== アニメ ===== */
@@ -418,7 +615,7 @@
       to   { opacity: 1; transform: translateY(0); }
     }
 
-    /* ===== 設定モーダル ===== */
+    /* ===== 旧モーダル（残す） ===== */
     .modal {
       position: fixed;
       inset: 0;
@@ -452,149 +649,32 @@
       margin-bottom: 18px;
     }
 
-    .setting-row {
-      margin-bottom: 16px;
-    }
-
-    .setting-label {
-      font-size: 16px;
-      opacity: 0.95;
-      margin-bottom: 8px;
-      display: block;
-      line-height: 1.6;
-    }
-
-    .setting-input {
-      width: 100%;
-      padding: 16px;
-      border-radius: 18px;
-      border: none;
-      font-size: 18px;
-      outline: none;
-    }
-
-    .toggle-btn, .danger-btn, .close-btn, .save-btn, .voice-chip {
-      width: 100%;
-      padding: 16px;
-      border: none;
-      border-radius: 18px;
-      font-size: 18px;
-      font-weight: bold;
-      cursor: pointer;
-      margin-top: 10px;
-    }
-
-    .toggle-btn {
-      background: #5f5470;
-      color: white;
-    }
-
-    .danger-btn {
-      background: #8a3d57;
-      color: white;
-    }
-
-    .save-btn {
-      background: linear-gradient(135deg, #7a69ff, #5f9bff);
-      color: white;
-    }
-
-    .close-btn {
-      background: linear-gradient(135deg, #ff7eb3, #ff4f8b);
-      color: white;
-    }
-
-    .hint {
-      font-size: 13px;
-      opacity: 0.72;
-      margin-top: 6px;
-      line-height: 1.6;
-    }
-
-    .voice-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 10px;
-      margin-top: 10px;
-    }
-
-    .voice-chip {
-      padding: 14px 10px;
-      font-size: 15px;
-      background: rgba(255,255,255,0.1);
-      color: white;
-      margin-top: 0;
-    }
-
-    .voice-chip.active {
-      background: linear-gradient(135deg, #7a69ff, #5f9bff);
-    }
-
-    /* ===== 下タブ ===== */
-    .bottom-tabs {
-      position: fixed;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 8px;
-      padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
-      background: rgba(8, 10, 20, 0.88);
-      backdrop-filter: blur(12px);
-      border-top: 1px solid rgba(255,255,255,0.08);
-      z-index: 998;
-    }
-
-    .tab-btn {
-      border: none;
-      border-radius: 22px;
-      background: rgba(255,255,255,0.08);
-      color: white;
-      padding: 12px 8px;
-      font-size: 20px;
-      font-weight: bold;
-      cursor: pointer;
-      min-height: 74px;
-      box-shadow: 0 10px 22px rgba(0,0,0,0.12);
-    }
-
-    .tab-btn span {
-      display: block;
-      font-size: 13px;
-      margin-top: 4px;
-      opacity: 0.92;
-    }
-
-    .tab-btn.active {
-      background: linear-gradient(135deg, #ff7eb3, #ff4f8b);
-      box-shadow: 0 14px 28px rgba(255,79,139,0.24);
-    }
-
     @media (max-width: 430px) {
       .top-character {
-        flex: 0 0 32vh;
-        min-height: 220px;
+        flex: 0 0 28vh;
+        min-height: 190px;
       }
 
       .settings-open {
-        width: 68px;
-        height: 68px;
-        font-size: 28px;
+        width: 62px;
+        height: 62px;
+        font-size: 26px;
       }
 
       .input-area {
-        grid-template-columns: 1fr 84px 106px;
+        grid-template-columns: 1fr 74px 92px;
       }
 
       .mic-btn {
-        width: 84px;
-        height: 80px;
+        width: 74px;
+        height: 64px;
+        font-size: 26px;
       }
 
       .send-btn {
-        width: 106px;
-        height: 80px;
+        width: 92px;
+        height: 64px;
+        font-size: 19px;
       }
 
       .voice-grid {
@@ -609,12 +689,20 @@
         font-size: 18px;
       }
 
-      #analysisPanel {
-        padding: 14px;
+      .main-tab-btn {
+        min-height: 86px;
         border-radius: 22px;
       }
 
-      .analysis-screen-title {
+      .main-tab-icon {
+        font-size: 30px;
+      }
+
+      .main-tab-label {
+        font-size: 14px;
+      }
+
+      .section-title {
         font-size: 24px;
       }
     }
@@ -625,127 +713,167 @@
 
     <!-- 上 -->
     <div class="top-character">
-      <img id="mainGirl" src="girl-normal.jpg?v=1" alt="美咲">
+      <img id="mainGirl" src="girl-normal.jpg" alt="美咲">
       <button class="settings-open" onclick="openSettings()">⚙</button>
     </div>
 
-    <!-- 会話 -->
-    <div class="chat-section">
-      <div id="chatBox"></div>
-    </div>
+    <!-- メイン領域 -->
+    <div class="main-panels">
 
-    <!-- 分析 -->
-    <div id="analysisScreen">
-      <div class="analysis-screen-card">
-        <div class="analysis-screen-title">📊 分析を見る</div>
-        <div class="analysis-screen-desc">
-          会話内容から、今のこころの状態を見やすく整理します。
+      <!-- 会話タブ -->
+      <div class="panel active" id="chatPanel">
+        <div class="chat-section">
+          <div id="chatBox"></div>
         </div>
 
-        <button class="analysis-run-btn" onclick="analyzeCurrentConversation()">
-          今の会話から分析する
-        </button>
+        <div class="status-bar" id="statusBar">準備OK</div>
 
-        <div id="analysisEmptyText">
-          まだ分析していません。<br>
-          上のボタンを押すと、動物タイプ・グラフ・比較・今週の流れが見られます。
+        <div class="input-area">
+          <input type="text" id="userInput" placeholder="何か話してみて…" />
+          <button class="mic-btn" id="micBtn" onclick="startVoiceInput()">🎤</button>
+          <button class="send-btn" onclick="sendMessage()">送信</button>
         </div>
       </div>
 
-      <div id="analysisPanel"></div>
+      <!-- 分析タブ -->
+      <div class="panel" id="analysisTabPanel">
+        <div class="panel-scroll">
+          <div class="glass-card">
+            <div class="section-title">📊 分析を見る</div>
+            <div class="analysis-actions">
+              <button class="action-btn" onclick="analyzeCurrentConversation()">今の会話から分析する</button>
+            </div>
+            <div class="analysis-text">
+              会話から今のこころの状態を見える化します。<br>
+              動物タイプ・棒グラフ・円グラフ・比較・行動アドバイス・気持ちの整理まで表示します。
+            </div>
+          </div>
+
+          <div id="analysisContent"></div>
+        </div>
+      </div>
+
+      <!-- 設定タブ -->
+      <div class="panel" id="settingsTabPanel">
+        <div class="panel-scroll">
+          <div class="settings-inline">
+
+            <div class="setting-card">
+              <div class="section-title">⚙ 設定</div>
+
+              <div class="setting-row">
+                <label class="setting-label">あなたの呼び名（時々呼ぶ）</label>
+                <input class="setting-input" id="userNameInput" placeholder="だいすけ">
+              </div>
+
+              <div class="setting-row">
+                <label class="setting-label">キャラ名</label>
+                <input class="setting-input" id="nameInput" placeholder="美咲">
+              </div>
+
+              <div class="setting-row">
+                <label class="setting-label">OpenAI APIキー（※保存しません）</label>
+                <input class="setting-input" id="apiKeyInput" type="password" placeholder="sk-..." />
+                <div class="hint">再起動すると空になります。会話履歴は残ります。</div>
+              </div>
+
+              <div class="setting-row">
+                <label class="setting-label">ElevenLabs APIキー（※保存しません）</label>
+                <input class="setting-input" id="elevenApiKeyInput" type="password" placeholder="sk_..." />
+                <div class="hint">自然音声を使う時だけ入力します。再起動で消えます。</div>
+              </div>
+
+              <div class="setting-row">
+                <label class="setting-label">Voice ID（※保存しません）</label>
+                <input class="setting-input" id="voiceIdInput" type="text" placeholder="wcs09USXSN5Bl7FXohVZ" />
+                <div class="hint">ElevenLabsの声ID。再起動で消えます。</div>
+              </div>
+
+              <div class="setting-row">
+                <label class="setting-label">音声エンジン</label>
+                <select class="setting-input" id="voiceEngineSelect">
+                  <option value="standard">スマホ標準音声</option>
+                  <option value="eleven">ElevenLabs音声</option>
+                </select>
+              </div>
+
+              <div class="setting-row">
+                <label class="setting-label">会話モード</label>
+                <select class="setting-input" id="talkModeSelect">
+                  <option value="listen">💗 話を聞く</option>
+                  <option value="organize">🧠 気持ちを整理する</option>
+                  <option value="analyze">📊 分析する</option>
+                  <option value="free">🌙 自由に話す</option>
+                </select>
+                <div class="hint">分析は下の「分析」タブからいつでも見られます</div>
+              </div>
+
+              <div class="setting-row">
+                <label class="setting-label">比較する分析履歴</label>
+                <select class="setting-input" id="compareDepthSelect">
+                  <option value="1">前回と比較</option>
+                  <option value="2">2回前と比較</option>
+                  <option value="3">3回前と比較</option>
+                  <option value="4">4回前と比較</option>
+                  <option value="5">5回前と比較</option>
+                </select>
+                <div class="hint">分析タブの比較対象です</div>
+              </div>
+
+              <div class="setting-row">
+                <label class="setting-label">声の簡単切り替え（ボタン）</label>
+                <div class="voice-grid">
+                  <button class="voice-chip" id="voiceChipGentle" onclick="setVoicePreset('gentle')">優しい</button>
+                  <button class="voice-chip" id="voiceChipBright" onclick="setVoicePreset('bright')">明るい</button>
+                  <button class="voice-chip" id="voiceChipCalm" onclick="setVoicePreset('calm')">落ち着き</button>
+                </div>
+                <div class="hint">押すと Voice ID 欄に反映されます。必要なら上書きしてOK。</div>
+              </div>
+
+              <button class="save-btn" onclick="saveSettings()">💾 保存する</button>
+              <button class="toggle-btn" id="gptToggle" onclick="toggleGPT()">🤖 GPT OFF</button>
+              <button class="toggle-btn" id="voiceToggle" onclick="toggleVoice()">🔊 音声ON</button>
+              <button class="toggle-btn" id="elevenToggle" onclick="toggleElevenVoice()">🎙 Eleven音声OFF</button>
+              <button class="danger-btn" onclick="resetMemory()">記憶をリセット</button>
+            </div>
+
+          </div>
+        </div>
+      </div>
     </div>
 
-    <!-- 状態 -->
-    <div class="status-bar" id="statusBar">準備OK</div>
+    <!-- 下3タブ -->
+    <div class="main-tabs">
+      <button class="main-tab-btn active" id="tabBtnChat" onclick="switchMainTab('chat')">
+        <div class="main-tab-icon">💬</div>
+        <div class="main-tab-label">会話</div>
+      </button>
 
-    <!-- 下入力 -->
-    <div class="input-area">
-      <input type="text" id="userInput" placeholder="何か話してみて…" />
-      <button class="mic-btn" id="micBtn" onclick="startVoiceInput()">🎤</button>
-      <button class="send-btn" onclick="sendMessage()">送信</button>
+      <button class="main-tab-btn" id="tabBtnAnalysis" onclick="switchMainTab('analysis')">
+        <div class="main-tab-icon">📊</div>
+        <div class="main-tab-label">分析</div>
+      </button>
+
+      <button class="main-tab-btn" id="tabBtnSettings" onclick="switchMainTab('settings')">
+        <div class="main-tab-icon">⚙</div>
+        <div class="main-tab-label">設定</div>
+      </button>
     </div>
   </div>
 
-  <!-- 下タブ -->
-  <div class="bottom-tabs">
-    <button class="tab-btn active" id="tabChatBtn" onclick="switchTab('chat')">💬<br><span>会話</span></button>
-    <button class="tab-btn" id="tabAnalysisBtn" onclick="switchTab('analysis')">📊<br><span>分析</span></button>
-    <button class="tab-btn" id="tabSettingsBtn" onclick="switchTab('settings')">⚙<br><span>設定</span></button>
-  </div>
-
-  <!-- 設定 -->
+  <!-- 旧モーダル（保険で残す） -->
   <div class="modal" id="settingsModal">
     <div class="modal-box">
       <div class="modal-title">設定</div>
-
-      <div class="setting-row">
-        <label class="setting-label">あなたの呼び名（時々呼ぶ）</label>
-        <input class="setting-input" id="userNameInput" placeholder="だいすけ">
-      </div>
-
-      <div class="setting-row">
-        <label class="setting-label">キャラ名</label>
-        <input class="setting-input" id="nameInput" placeholder="美咲">
-      </div>
-
-      <div class="setting-row">
-        <label class="setting-label">OpenAI APIキー（※保存しません）</label>
-        <input class="setting-input" id="apiKeyInput" type="password" placeholder="sk-..." />
-        <div class="hint">再起動すると空になります。会話履歴は残ります。</div>
-      </div>
-
-      <div class="setting-row">
-        <label class="setting-label">ElevenLabs APIキー（※保存しません）</label>
-        <input class="setting-input" id="elevenApiKeyInput" type="password" placeholder="sk_..." />
-        <div class="hint">自然音声を使う時だけ入力します。再起動で消えます。</div>
-      </div>
-
-      <div class="setting-row">
-        <label class="setting-label">Voice ID（※保存しません）</label>
-        <input class="setting-input" id="voiceIdInput" type="text" placeholder="wcs09USXSN5Bl7FXohVZ" />
-        <div class="hint">ElevenLabsの声ID。再起動で消えます。</div>
-      </div>
-
-      <div class="setting-row">
-        <label class="setting-label">音声エンジン</label>
-        <select class="setting-input" id="voiceEngineSelect">
-          <option value="standard">スマホ標準音声</option>
-          <option value="eleven">ElevenLabs音声</option>
-        </select>
-      </div>
-
-      <div class="setting-row">
-        <label class="setting-label">比較する分析履歴</label>
-        <select class="setting-input" id="compareDepthSelect">
-          <option value="1">前回と比較</option>
-          <option value="2">2回前と比較</option>
-          <option value="3">3回前と比較</option>
-          <option value="4">4回前と比較</option>
-          <option value="5">5回前と比較</option>
-        </select>
-        <div class="hint">分析画面の比較対象です</div>
-      </div>
-
-      <div class="setting-row">
-        <label class="setting-label">声の簡単切り替え（ボタン）</label>
-        <div class="voice-grid">
-          <button class="voice-chip" id="voiceChipGentle" onclick="setVoicePreset('gentle')">優しい</button>
-          <button class="voice-chip" id="voiceChipBright" onclick="setVoicePreset('bright')">明るい</button>
-          <button class="voice-chip" id="voiceChipCalm" onclick="setVoicePreset('calm')">落ち着き</button>
-        </div>
-        <div class="hint">押すと Voice ID 欄に反映されます。必要なら上書きしてOK。</div>
-      </div>
-
-      <button class="save-btn" onclick="saveSettings()">💾 保存する</button>
-      <button class="toggle-btn" id="gptToggle" onclick="toggleGPT()">🤖 GPT OFF</button>
-      <button class="toggle-btn" id="voiceToggle" onclick="toggleVoice()">🔊 音声ON</button>
-      <button class="toggle-btn" id="elevenToggle" onclick="toggleElevenVoice()">🎙 Eleven音声OFF</button>
-      <button class="danger-btn" onclick="resetMemory()">記憶をリセット</button>
-      <button class="close-btn" onclick="closeSettings()">閉じる</button>
+      <div class="analysis-text">今は下の「設定」タブから変更できます。</div>
+      <button class="save-btn" onclick="closeSettings()">閉じる</button>
     </div>
   </div>
 
   <script>
+    // =========================
+    // DOM
+    // =========================
     const chatBox = document.getElementById("chatBox");
     const userInput = document.getElementById("userInput");
     const mainGirl = document.getElementById("mainGirl");
@@ -760,24 +888,34 @@
     const voiceEngineSelect = document.getElementById("voiceEngineSelect");
     const statusBar = document.getElementById("statusBar");
     const micBtn = document.getElementById("micBtn");
-    const analysisPanel = document.getElementById("analysisPanel");
-    const analysisScreen = document.getElementById("analysisScreen");
-    const analysisEmptyText = document.getElementById("analysisEmptyText");
+    const talkModeSelect = document.getElementById("talkModeSelect");
     const compareDepthSelect = document.getElementById("compareDepthSelect");
-    const chatSection = document.querySelector(".chat-section");
-    const inputArea = document.querySelector(".input-area");
+    const analysisContent = document.getElementById("analysisContent");
 
+    // タブ
+    const chatPanel = document.getElementById("chatPanel");
+    const analysisTabPanel = document.getElementById("analysisTabPanel");
+    const settingsTabPanel = document.getElementById("settingsTabPanel");
+    const tabBtnChat = document.getElementById("tabBtnChat");
+    const tabBtnAnalysis = document.getElementById("tabBtnAnalysis");
+    const tabBtnSettings = document.getElementById("tabBtnSettings");
+
+    // =========================
+    // 状態
+    // =========================
     let voiceEnabled = localStorage.getItem("voiceEnabled") !== "false";
     let gptEnabled = localStorage.getItem("gptEnabled") === "true";
     let elevenVoiceEnabled = localStorage.getItem("elevenVoiceEnabled") === "true";
     let voiceEngine = localStorage.getItem("voiceEngine") || "standard";
     let selectedVoicePreset = localStorage.getItem("selectedVoicePreset") || "";
+    let talkMode = localStorage.getItem("talkMode") || "listen";
     let compareDepth = parseInt(localStorage.getItem("compareDepth") || "1", 10);
     let availableVoices = [];
     let recognition = null;
     let isListening = false;
     let isSpeaking = false;
     let lastBotReply = "";
+    let currentMainTab = "chat";
 
     // ===== APIキーは保存しない =====
     let sessionSecrets = {
@@ -807,10 +945,12 @@
     nameInput.value = memory.characterName;
     userNameInput.value = memory.userName;
 
+    // API系は毎回空
     apiKeyInput.value = "";
     elevenApiKeyInput.value = "";
     voiceIdInput.value = "";
     voiceEngineSelect.value = voiceEngine;
+    talkModeSelect.value = talkMode;
     compareDepthSelect.value = String(compareDepth);
 
     updateVoiceButton();
@@ -819,15 +959,15 @@
     updateVoicePresetButtons();
 
     const faceImages = {
-      normal: "girl-normal.jpg?v=1",
-      worried: "girl-worried.png?v=1",
-      sympathy: "girl-sympathy.png?v=1",
-      troubled: "girl-troubled.png?v=1",
-      healing: "girl-healing.png?v=1",
-      happy: "girl-happy.png?v=1",
-      irritated: "girl-irritated.png?v=1",
-      panic: "girl-panic.png?v=1",
-      exhausted: "girl-exhausted.png?v=1"
+      normal: "girl-normal.jpg",
+      worried: "girl-worried.png",
+      sympathy: "girl-sympathy.png",
+      troubled: "girl-troubled.png",
+      healing: "girl-healing.png",
+      happy: "girl-happy.png",
+      irritated: "girl-irritated.png",
+      panic: "girl-panic.png",
+      exhausted: "girl-exhausted.png"
     };
 
     const moodBackgrounds = {
@@ -860,34 +1000,21 @@
       statusBar.textContent = text;
     }
 
+    // =========================
+    // 顔切り替え（GPT ONでも確実に切替）
+    // =========================
     function setFace(type = "normal") {
-      const src = faceImages[type] || faceImages.normal;
+      const mood = faceImages[type] ? type : "normal";
+      const src = faceImages[mood];
+      document.body.style.background = moodBackgrounds[mood] || moodBackgrounds.normal;
 
-      console.log("顔切り替え:", type, src);
-      setStatus(`表情: ${type}`);
+      // 画像切替の確実化
+      const bust = src.includes("?") ? "&" : "?";
+      mainGirl.src = src + bust + "t=" + Date.now();
 
-      mainGirl.style.opacity = "0.35";
-
-      const img = new Image();
-      img.onload = () => {
-        mainGirl.src = src;
-        document.body.style.background = moodBackgrounds[type] || moodBackgrounds.normal;
-
-        mainGirl.classList.remove("face-change");
-        void mainGirl.offsetWidth;
-        mainGirl.classList.add("face-change");
-
-        mainGirl.style.opacity = "1";
-      };
-
-      img.onerror = () => {
-        console.log("画像読み込み失敗:", src);
-        setStatus(`画像読み込み失敗 → ${type}`);
-        mainGirl.src = faceImages.normal;
-        mainGirl.style.opacity = "1";
-      };
-
-      img.src = src;
+      mainGirl.classList.remove("face-change");
+      void mainGirl.offsetWidth;
+      mainGirl.classList.add("face-change");
     }
 
     function startSpeakingAnimation() {
@@ -901,14 +1028,7 @@
     }
 
     function openSettings() {
-      nameInput.value = memory.characterName || "美咲";
-      userNameInput.value = memory.userName || "";
-      apiKeyInput.value = "";
-      elevenApiKeyInput.value = "";
-      voiceIdInput.value = sessionSecrets.voiceId || "";
-      voiceEngineSelect.value = voiceEngine;
-      compareDepthSelect.value = String(compareDepth);
-      settingsModal.classList.add("show");
+      switchMainTab("settings");
     }
 
     function closeSettings() {
@@ -926,6 +1046,9 @@
       voiceEngine = voiceEngineSelect.value;
       localStorage.setItem("voiceEngine", voiceEngine);
 
+      talkMode = talkModeSelect.value;
+      localStorage.setItem("talkMode", talkMode);
+
       compareDepth = parseInt(compareDepthSelect.value || "1", 10);
       localStorage.setItem("compareDepth", String(compareDepth));
 
@@ -934,7 +1057,7 @@
 
       addMessage("設定を保存したよ😊", "bot");
       setStatus("設定を保存しました（APIキーは今回だけ有効）");
-      closeSettings();
+      switchMainTab("chat");
     }
 
     function toggleVoice() {
@@ -1025,11 +1148,11 @@
       memory.unresolvedTopic = "";
       memory.lastBotQuestion = "";
 
-      hideAnalysisPanel();
+      analysisContent.innerHTML = "";
       addMessage("記憶をリセットしたよ😊\nまた最初からゆっくり話そう。", "bot");
       setFace("healing");
       setStatus("記憶をリセットしました");
-      closeSettings();
+      switchMainTab("chat");
     }
 
     function loadVoices() {
@@ -1058,7 +1181,6 @@
     setTimeout(() => {
       setFace("normal");
       botReply(getWelcomeMessage(), true);
-      showLatestAnalysisIfExists();
     }, 700);
 
     function getWelcomeMessage() {
@@ -1131,12 +1253,22 @@
         typingMsg.remove();
         botReply(reply);
 
+        // analyzeモード時は自動更新もする（でも表示は分析タブ）
+        if (talkMode === "analyze") {
+          analyzeCurrentConversation(false);
+        }
+
         setStatus("準備OK");
       } catch (e) {
         console.error(e);
         typingMsg.remove();
         const fallback = generateLocalReply(text);
         botReply(fallback);
+
+        if (talkMode === "analyze") {
+          analyzeCurrentConversation(false);
+        }
+
         setStatus("GPT失敗 → ローカル返答");
       }
     }
@@ -1147,8 +1279,8 @@
 
     function saveChat(role, content) {
       memory.chatHistory.push({ role, content });
-      if (memory.chatHistory.length > 24) {
-        memory.chatHistory = memory.chatHistory.slice(-24);
+      if (memory.chatHistory.length > 30) {
+        memory.chatHistory = memory.chatHistory.slice(-30);
       }
       localStorage.setItem("hostess_chatHistory", JSON.stringify(memory.chatHistory));
     }
@@ -1240,7 +1372,7 @@
         shortReply ||
         containsAny(lower, ["そう", "うん", "違う", "いや", "たぶん", "少し", "まあ", "うーん"]);
 
-      if (containsAny(lower, ["悲しい", "泣きたい", "寂しい", "孤独", "なんだか悲しくなる", "つらい", "苦しい"])) {
+      if (containsAny(lower, ["悲しい", "泣きたい", "寂しい", "孤独", "なんだか悲しくなる"])) {
         setFace("sympathy");
         memory.mood = "sympathy";
         memory.currentFeeling = "sad";
@@ -1270,7 +1402,7 @@
         ]);
       }
 
-      if (containsAny(lower, ["疲れた", "しんどい", "限界", "無理", "へとへと"])) {
+      if (containsAny(lower, ["疲れた", "しんどい", "限界", "無理", "へとへと", "きつい"])) {
         setFace("exhausted");
         memory.mood = "exhausted";
         memory.currentFeeling = "tired";
@@ -1387,40 +1519,6 @@
       ]);
     }
 
-    function detectMoodFromUserText(text) {
-      const lower = text.toLowerCase();
-
-      if (containsAny(lower, ["嬉しい", "好き", "よかった", "助かった", "楽しい"])) {
-        return "happy";
-      }
-
-      if (containsAny(lower, ["癒して", "安心したい", "甘えたい"])) {
-        return "healing";
-      }
-
-      if (containsAny(lower, ["悲しい", "泣きたい", "寂しい", "孤独", "つらい", "苦しい"])) {
-        return "sympathy";
-      }
-
-      if (containsAny(lower, ["不安", "こわい", "怖い", "心配", "どうしよう"])) {
-        return "worried";
-      }
-
-      if (containsAny(lower, ["疲れた", "しんどい", "限界", "無理", "へとへと"])) {
-        return "exhausted";
-      }
-
-      if (containsAny(lower, ["イライラ", "むかつく", "腹立つ", "うざい"])) {
-        return "irritated";
-      }
-
-      if (containsAny(lower, ["困る", "迷う", "わからない", "悩む"])) {
-        return "troubled";
-      }
-
-      return memory.mood || "normal";
-    }
-
     async function generateGPTReply(userText) {
       const lower = userText.toLowerCase();
       rememberUserInfo(userText, lower);
@@ -1449,6 +1547,7 @@
 - 必要なら感情を言語化して整理する
 - 時々だけ ${memory.userName || "ユーザー"} の呼び名を自然に入れてよい
 - 返答の文頭に必ず表情タグを1つだけ付ける
+- analyze モードの時は、寄り添いながらも「今の状態が少し見える」返答にする
 
 表情タグ:
 [happy]
@@ -1461,13 +1560,7 @@
 [exhausted]
 [normal]
 
-重要:
-- 必ず返答の最初の1文字目から表情タグを付けてください
-- タグなしの返答は禁止です
-- 形式例:
-[sympathy]それはかなりしんどかったよね…
-[worried]不安が強くなってる感じがあるね…
-[happy]それはちょっと嬉しいね😊
+現在の会話モード: ${talkMode}
 `;
 
       const messages = [
@@ -1495,11 +1588,11 @@
 
       const data = await res.json();
       const raw = data.choices?.[0]?.message?.content?.trim() || "うまく言葉が出なかったけど、ちゃんとここにいるよ。";
-      return applyEmotionFromReply(raw, userText);
+      return applyEmotionFromReply(raw);
     }
 
-    function applyEmotionFromReply(text, userText = "") {
-      let mood = "";
+    function applyEmotionFromReply(text) {
+      let mood = "normal";
       let cleaned = text;
 
       const tags = ["happy", "healing", "worried", "sympathy", "troubled", "irritated", "panic", "exhausted", "normal"];
@@ -1513,13 +1606,13 @@
         }
       }
 
-      if (!mood) {
-        mood = detectMoodFromUserText(userText);
-      }
-
       memory.mood = mood;
       saveMemory();
-      setFace(mood);
+
+      // GPT ONでも確実に画像切替
+      setTimeout(() => {
+        setFace(mood);
+      }, 10);
 
       return cleaned;
     }
@@ -1758,9 +1851,29 @@
     }
 
     // =========================
+    // タブ切り替え
+    // =========================
+    function switchMainTab(tab) {
+      currentMainTab = tab;
+
+      [chatPanel, analysisTabPanel, settingsTabPanel].forEach(el => el.classList.remove("active"));
+      [tabBtnChat, tabBtnAnalysis, tabBtnSettings].forEach(el => el.classList.remove("active"));
+
+      if (tab === "chat") {
+        chatPanel.classList.add("active");
+        tabBtnChat.classList.add("active");
+      } else if (tab === "analysis") {
+        analysisTabPanel.classList.add("active");
+        tabBtnAnalysis.classList.add("active");
+      } else if (tab === "settings") {
+        settingsTabPanel.classList.add("active");
+        tabBtnSettings.classList.add("active");
+      }
+    }
+
+    // =========================
     // 分析機能
     // =========================
-
     function clamp(n, min, max) {
       return Math.max(min, Math.min(max, n));
     }
@@ -1838,6 +1951,8 @@
       }
 
       const summary = buildAnalysisSummary({ fatigue, anxiety, endurance, loneliness, recovery, animalTitle });
+      const advice = buildActionAdvice({ fatigue, anxiety, endurance, loneliness, recovery });
+      const cbt = buildCBTHints({ fatigue, anxiety, endurance, loneliness, recovery });
 
       return {
         fatigue,
@@ -1848,7 +1963,9 @@
         animal,
         animalTitle,
         animalDesc,
-        summary
+        summary,
+        advice,
+        cbt
       };
     }
 
@@ -1856,7 +1973,7 @@
       const notes = [];
 
       if (result.fatigue >= 70) {
-        notes.push("今日は「頑張れない」のではなく、すでにかなり消耗している状態に近いです。");
+        notes.push("今日は『頑張れない』のではなく、すでにかなり消耗している状態に近いです。");
       } else if (result.anxiety >= 70) {
         notes.push("今は落ち着かなさや気の張りが強く、頭の中が休みにくい流れです。");
       } else if (result.endurance >= 70) {
@@ -1878,6 +1995,96 @@
       }
 
       return notes.join("\n");
+    }
+
+    // ===== 行動アドバイス =====
+    function buildActionAdvice(result) {
+      const list = [];
+
+      if (result.fatigue >= 70) {
+        list.push("今日は『増やす』より『1つ減らす』を優先してみる");
+        list.push("5〜10分だけでも横になる・座って休む時間を先に確保する");
+      }
+
+      if (result.anxiety >= 70) {
+        list.push("頭の中で考え続けるより『今すぐ確認できること1つ』だけやる");
+        list.push("呼吸をゆっくりにして、通知や情報を少し減らしてみる");
+      }
+
+      if (result.endurance >= 70) {
+        list.push("『本当は今日はやりたくないこと』を1つだけ後回しにしてみる");
+        list.push("『ちゃんとしなきゃ』ではなく『今日はここまででいい』を使う");
+      }
+
+      if (result.loneliness >= 65) {
+        list.push("解決より先に、安心できる相手・場所・行動を1つ選んでみる");
+        list.push("短い一言でもいいので『今ちょっとしんどい』を外に出してみる");
+      }
+
+      if (result.recovery >= 60) {
+        list.push("少し楽だった行動を、今日もう一度だけ再現してみる");
+      }
+
+      if (list.length === 0) {
+        list.push("今日は『やること』より『減らせること』を1つ探してみる");
+        list.push("体を少し楽にする行動を先に選ぶ");
+      }
+
+      return list.slice(0, 4);
+    }
+
+    // ===== やさしいCBT =====
+    function buildCBTHints(result) {
+      const list = [];
+
+      if (result.anxiety >= 70) {
+        list.push({
+          title: "💭 気持ちの整理",
+          body: "今は『まだ起きていないこと』まで先回りして不安が大きくなっているかもしれません。"
+        });
+        list.push({
+          title: "🪞 やわらかい見方",
+          body: "『最悪の想像』と『今わかっている事実』を少し分けて考えてみてもよさそうです。"
+        });
+      }
+
+      if (result.endurance >= 70) {
+        list.push({
+          title: "💭 気持ちの整理",
+          body: "『自分がちゃんとしないと』が強くなっていて、気づかないうちに負荷を背負いすぎているかもしれません。"
+        });
+        list.push({
+          title: "🪞 やわらかい見方",
+          body: "『全部やる』ではなく『今日はここまで』でも十分な日があるかもしれません。"
+        });
+      }
+
+      if (result.fatigue >= 70) {
+        list.push({
+          title: "💭 気持ちの整理",
+          body: "今は『気合い不足』より『回復不足』に近い可能性があります。"
+        });
+        list.push({
+          title: "🌱 今日の見方",
+          body: "今日は前に進むより『悪化させない』が正解かもしれません。"
+        });
+      }
+
+      if (result.loneliness >= 65) {
+        list.push({
+          title: "💭 気持ちの整理",
+          body: "今は問題そのものより『ひとりで抱えている感じ』がしんどさを強めているかもしれません。"
+        });
+      }
+
+      if (list.length === 0) {
+        list.push({
+          title: "🌱 今日の見方",
+          body: "今は『正しく整理する』より、『今の自分に少し優しくする』方が先でも大丈夫です。"
+        });
+      }
+
+      return list.slice(0, 4);
     }
 
     function saveAnalysisHistory(result) {
@@ -1965,17 +2172,36 @@
       return "今週は大きく崩れすぎず、ゆるやかな波の中にいる状態です。";
     }
 
-    function renderAnalysisPanel(result) {
-      if (!analysisPanel) return;
+    function renderAdviceList(items) {
+      return `
+        <div class="advice-list">
+          ${items.map(item => `<div class="advice-item">🌱 ${item}</div>`).join("")}
+        </div>
+      `;
+    }
 
+    function renderCBTList(items) {
+      return `
+        <div class="cbt-list">
+          ${items.map(item => `
+            <div class="cbt-item">
+              <div style="font-weight:bold; margin-bottom:6px;">${item.title}</div>
+              <div>${item.body}</div>
+            </div>
+          `).join("")}
+        </div>
+      `;
+    }
+
+    function renderAnalysisPanel(result) {
       const past = getPastAnalysis(compareDepth);
       const weekly = getWeeklyHistory();
 
       const compareTitle = compareDepth === 1 ? "前回比較" : `${compareDepth}回前と比較`;
 
       const compareHtml = past ? `
-        <div class="analysis-section">
-          <div class="analysis-subtitle">📈 ${compareTitle}</div>
+        <div class="glass-card">
+          <div class="sub-title">📈 ${compareTitle}</div>
           ${diffText("疲労", result.fatigue, past.fatigue || 0)}
           ${diffText("不安", result.anxiety, past.anxiety || 0)}
           ${diffText("我慢", result.endurance, past.endurance || 0)}
@@ -1983,15 +2209,15 @@
           ${diffText("回復", result.recovery, past.recovery || 0)}
         </div>
       ` : `
-        <div class="analysis-section">
-          <div class="analysis-subtitle">📈 比較</div>
+        <div class="glass-card">
+          <div class="sub-title">📈 比較</div>
           <div class="compare-line">まだ比較できる履歴が少ないので、あと少し話すと比較できるようになります。</div>
         </div>
       `;
 
       const weeklyHtml = weekly.length >= 2 ? `
-        <div class="analysis-section">
-          <div class="analysis-subtitle">📅 今週のこころの流れ</div>
+        <div class="glass-card">
+          <div class="sub-title">📅 今週のこころの流れ</div>
 
           <div class="weekly-block">
             <div class="weekly-row">
@@ -2014,23 +2240,25 @@
           <div class="analysis-text" style="margin-top:10px;">${getWeeklyComment(weekly)}</div>
         </div>
       ` : `
-        <div class="analysis-section">
-          <div class="analysis-subtitle">📅 今週のこころの流れ</div>
+        <div class="glass-card">
+          <div class="sub-title">📅 今週のこころの流れ</div>
           <div class="analysis-text">まだ履歴が少ないので、分析を重ねると変化が見えるようになります。</div>
         </div>
       `;
 
-      analysisPanel.innerHTML = `
-        <div class="analysis-title">今日のこころの地図</div>
+      analysisContent.innerHTML = `
+        <div class="glass-card">
+          <div class="section-title">今日のこころの地図</div>
 
-        <div class="animal-hero">
-          <div class="animal-emoji">${result.animal}</div>
-          <div class="animal-name">${result.animalTitle}</div>
-          <div class="animal-sub">${result.animalDesc}</div>
+          <div class="animal-hero">
+            <div class="animal-emoji">${result.animal}</div>
+            <div class="animal-name">${result.animalTitle}</div>
+            <div class="animal-sub">${result.animalDesc}</div>
+          </div>
         </div>
 
-        <div class="analysis-section">
-          <div class="analysis-subtitle">📊 今のバランス</div>
+        <div class="glass-card">
+          <div class="sub-title">📊 今のバランス（棒グラフ）</div>
           ${createBarRow("疲労", result.fatigue, "#ff9a9a")}
           ${createBarRow("不安", result.anxiety, "#b39cff")}
           ${createBarRow("我慢", result.endurance, "#ffc17a")}
@@ -2038,97 +2266,119 @@
           ${createBarRow("回復力", result.recovery, "#7fe1ad")}
         </div>
 
-        <div class="analysis-section">
-          <div class="analysis-subtitle">📝 わかりやすい解説</div>
+        <div class="glass-card">
+          <div class="sub-title">🥧 今のこころ配分（円グラフ）</div>
+          <div class="pie-wrap">
+            <canvas id="pieChart" width="300" height="300"></canvas>
+            <div class="pie-legend">
+              <div class="legend-item"><span class="legend-dot" style="background:#ff9a9a;"></span>疲労</div>
+              <div class="legend-item"><span class="legend-dot" style="background:#b39cff;"></span>不安</div>
+              <div class="legend-item"><span class="legend-dot" style="background:#ffc17a;"></span>我慢</div>
+              <div class="legend-item"><span class="legend-dot" style="background:#87d6ff;"></span>孤独</div>
+              <div class="legend-item"><span class="legend-dot" style="background:#7fe1ad;"></span>回復力</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="glass-card">
+          <div class="sub-title">📝 わかりやすい解説</div>
           <div class="analysis-text">${result.summary.replace(/\n/g, "<br>")}</div>
+        </div>
+
+        <div class="glass-card">
+          <div class="sub-title">🌱 今日の行動アドバイス</div>
+          ${renderAdviceList(result.advice)}
+        </div>
+
+        <div class="glass-card">
+          <div class="sub-title">💭 気持ちの整理</div>
+          ${renderCBTList(result.cbt)}
         </div>
 
         ${compareHtml}
         ${weeklyHtml}
       `;
 
-      analysisPanel.style.display = "block";
-
-      if (analysisEmptyText) {
-        analysisEmptyText.style.display = "none";
-      }
+      drawPieChart(result);
     }
 
-    function hideAnalysisPanel() {
-      if (!analysisPanel) return;
-      analysisPanel.style.display = "none";
-      analysisPanel.innerHTML = "";
+    function drawPieChart(result) {
+      const canvas = document.getElementById("pieChart");
+      if (!canvas) return;
 
-      if (analysisEmptyText) {
-        analysisEmptyText.style.display = "block";
-      }
+      const ctx = canvas.getContext("2d");
+      const values = [
+        result.fatigue,
+        result.anxiety,
+        result.endurance,
+        result.loneliness,
+        result.recovery
+      ];
+      const colors = ["#ff9a9a", "#b39cff", "#ffc17a", "#87d6ff", "#7fe1ad"];
+      const total = values.reduce((a, b) => a + b, 0);
+
+      const w = canvas.width;
+      const h = canvas.height;
+      const cx = w / 2;
+      const cy = h / 2;
+      const radius = 110;
+
+      ctx.clearRect(0, 0, w, h);
+
+      let startAngle = -Math.PI / 2;
+
+      values.forEach((value, i) => {
+        const sliceAngle = (value / total) * Math.PI * 2;
+
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.arc(cx, cy, radius, startAngle, startAngle + sliceAngle);
+        ctx.closePath();
+        ctx.fillStyle = colors[i];
+        ctx.fill();
+
+        startAngle += sliceAngle;
+      });
+
+      // 中央白丸
+      ctx.beginPath();
+      ctx.arc(cx, cy, 50, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(20,20,35,0.85)";
+      ctx.fill();
+
+      ctx.fillStyle = "white";
+      ctx.font = "bold 18px sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("こころ", cx, cy - 8);
+      ctx.font = "13px sans-serif";
+      ctx.fillText("配分", cx, cy + 14);
     }
 
-    function analyzeCurrentConversation() {
-      const userOnly = memory.chatHistory
+    function analyzeCurrentConversation(moveToTab = true) {
+      const userOnlyText = memory.chatHistory
         .filter(item => item.role === "user")
         .map(item => item.content)
+        .slice(-8)
         .join(" ");
 
-      const targetText = userOnly || memory.lastMessage || "今日は少し気持ちを整理したい";
+      if (!userOnlyText.trim()) {
+        analysisContent.innerHTML = `
+          <div class="glass-card">
+            <div class="sub-title">📊 まだ分析できません</div>
+            <div class="analysis-text">先に少し会話すると分析できるようになります。</div>
+          </div>
+        `;
+        if (moveToTab) switchMainTab("analysis");
+        return;
+      }
 
-      const result = analyzeMentalState(targetText);
+      const result = analyzeMentalState(userOnlyText);
       saveAnalysisHistory(result);
       renderAnalysisPanel(result);
 
-      if (analysisEmptyText) {
-        analysisEmptyText.style.display = "none";
-      }
-
-      setStatus("分析を更新しました");
-    }
-
-    function showLatestAnalysisIfExists() {
-      const history = getAnalysisHistory();
-      if (!history.length) return;
-
-      const latest = history[history.length - 1];
-      renderAnalysisPanel(latest);
-
-      if (analysisEmptyText) {
-        analysisEmptyText.style.display = "none";
-      }
-    }
-
-    function switchTab(tab) {
-      const tabChatBtn = document.getElementById("tabChatBtn");
-      const tabAnalysisBtn = document.getElementById("tabAnalysisBtn");
-      const tabSettingsBtn = document.getElementById("tabSettingsBtn");
-
-      tabChatBtn.classList.remove("active");
-      tabAnalysisBtn.classList.remove("active");
-      tabSettingsBtn.classList.remove("active");
-
-      if (tab === "chat") {
-        tabChatBtn.classList.add("active");
-        chatSection.style.display = "flex";
-        inputArea.style.display = "grid";
-        analysisScreen.style.display = "none";
-        closeSettings();
-        setStatus("会話画面");
-      }
-
-      if (tab === "analysis") {
-        tabAnalysisBtn.classList.add("active");
-        chatSection.style.display = "none";
-        inputArea.style.display = "none";
-        analysisScreen.style.display = "block";
-        closeSettings();
-        setStatus("分析画面");
-      }
-
-      if (tab === "settings") {
-        tabSettingsBtn.classList.add("active");
-        chatSection.style.display = "flex";
-        inputArea.style.display = "grid";
-        analysisScreen.style.display = "none";
-        openSettings();
-        setStatus("設定");
+      if (moveToTab) {
+        switchMainTab("analysis");
       }
     }
 
