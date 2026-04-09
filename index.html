@@ -3,19 +3,16 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>ピピAI 完全版</title>
+  <title>美咲AI 完全版</title>
 
   <style>
-    * {
-      box-sizing: border-box;
-      -webkit-tap-highlight-color: transparent;
-    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
     html, body {
       margin: 0;
       padding: 0;
-      width: 100%;
       height: 100%;
+      width: 100%;
       overflow: hidden;
       font-family: "Hiragino Sans", "Yu Gothic", sans-serif;
       transition: background 0.45s ease;
@@ -77,6 +74,42 @@
       z-index: 5;
     }
 
+    /* ===== モードバー ===== */
+    .mode-wrap {
+      flex-shrink: 0;
+      padding: 0 12px 8px;
+    }
+
+    .mode-title {
+      font-size: 13px;
+      opacity: 0.75;
+      padding: 0 4px 8px;
+    }
+
+    .mode-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+    }
+
+    .mode-chip {
+      border: none;
+      border-radius: 18px;
+      padding: 14px 10px;
+      color: white;
+      font-size: 15px;
+      font-weight: bold;
+      background: rgba(255,255,255,0.10);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 8px 18px rgba(0,0,0,0.12);
+    }
+
+    .mode-chip.active {
+      background: linear-gradient(135deg, #7a69ff, #5f9bff);
+      transform: translateY(-1px);
+    }
+
     /* ===== 会話エリア ===== */
     .chat-section {
       flex: 1;
@@ -128,6 +161,29 @@
     .typing {
       opacity: 0.72;
       font-style: italic;
+    }
+
+    .summary-card {
+      align-self: stretch;
+      background: rgba(255,255,255,0.10);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 22px;
+      padding: 18px;
+      line-height: 1.9;
+      font-size: 16px;
+      animation: fadeIn 0.22s ease;
+      box-shadow: 0 10px 24px rgba(0,0,0,0.14);
+    }
+
+    .summary-title {
+      font-weight: bold;
+      color: #ffd1e6;
+      margin-bottom: 10px;
+      font-size: 17px;
+    }
+
+    .summary-line {
+      margin-bottom: 6px;
     }
 
     /* ===== ステータス ===== */
@@ -194,7 +250,8 @@
 
     .send-btn:active,
     .mic-btn:active,
-    .settings-open:active {
+    .settings-open:active,
+    .mode-chip:active {
       transform: scale(0.97);
     }
 
@@ -375,6 +432,10 @@
       .voice-grid {
         grid-template-columns: 1fr;
       }
+
+      .mode-grid {
+        grid-template-columns: 1fr;
+      }
     }
   </style>
 </head>
@@ -383,8 +444,18 @@
 
     <!-- 上 -->
     <div class="top-character">
-      <img id="mainGirl" src="girl-normal.jpg" alt="ピピ">
+      <img id="mainGirl" src="girl-normal.jpg" alt="美咲">
       <button class="settings-open" onclick="openSettings()">⚙</button>
+    </div>
+
+    <!-- モード -->
+    <div class="mode-wrap">
+      <div class="mode-title">今の使い方を選んでね</div>
+      <div class="mode-grid">
+        <button class="mode-chip active" id="modeListenBtn" onclick="setAppMode('listen')">💗 話を聞いてほしい</button>
+        <button class="mode-chip" id="modeOrganizeBtn" onclick="setAppMode('organize')">🧠 気持ちを整理したい</button>
+        <button class="mode-chip" id="modeAnalyzeBtn" onclick="setAppMode('analyze')">📊 今の自分を知りたい</button>
+      </div>
     </div>
 
     <!-- 会話 -->
@@ -415,7 +486,7 @@
 
       <div class="setting-row">
         <label class="setting-label">キャラ名</label>
-        <input class="setting-input" id="nameInput" placeholder="ピピ">
+        <input class="setting-input" id="nameInput" placeholder="美咲">
       </div>
 
       <div class="setting-row">
@@ -490,7 +561,6 @@
     let isSpeaking = false;
     let lastBotReply = "";
 
-    // ===== APIキーは保存しない =====
     let sessionSecrets = {
       apiKey: "",
       elevenApiKey: "",
@@ -498,7 +568,7 @@
     };
 
     let memory = {
-      characterName: localStorage.getItem("characterName") || "ピピ",
+      characterName: localStorage.getItem("characterName") || "美咲",
       userName: localStorage.getItem("userNickName") || "",
       mood: localStorage.getItem("hostess_mood") || "",
       topic: localStorage.getItem("hostess_topic") || "",
@@ -509,7 +579,12 @@
       currentFeeling: localStorage.getItem("hostess_currentFeeling") || "",
       currentNeed: localStorage.getItem("hostess_currentNeed") || "",
       unresolvedTopic: localStorage.getItem("hostess_unresolvedTopic") || "",
-      lastBotQuestion: localStorage.getItem("hostess_lastBotQuestion") || ""
+      lastBotQuestion: localStorage.getItem("hostess_lastBotQuestion") || "",
+
+      appMode: localStorage.getItem("hostess_appMode") || "listen",
+      emotionScores: JSON.parse(localStorage.getItem("hostess_emotionScores") || '{"anxiety":0,"fatigue":0,"lonely":0,"anger":0,"sadness":0,"relief":0}'),
+      lastSummary: localStorage.getItem("hostess_lastSummary") || "",
+      lastIssueLabel: localStorage.getItem("hostess_lastIssueLabel") || ""
     };
 
     memory.visitCount += 1;
@@ -517,7 +592,6 @@
 
     nameInput.value = memory.characterName;
     userNameInput.value = memory.userName;
-
     apiKeyInput.value = "";
     elevenApiKeyInput.value = "";
     voiceIdInput.value = "";
@@ -527,8 +601,8 @@
     updateGPTButton();
     updateElevenButton();
     updateVoicePresetButtons();
+    updateModeButtons();
 
-    // ===== ここが今回の画像差し換え部分 =====
     const faceImages = {
       normal: "girl-normal.jpg",
       worried: "girl-worried.png",
@@ -570,7 +644,6 @@
       statusBar.textContent = text;
     }
 
-    // ===== 画像切替を安定させる setFace =====
     function setFace(type = "normal") {
       const src = faceImages[type] || faceImages.normal;
       mainGirl.src = src;
@@ -592,7 +665,7 @@
     }
 
     function openSettings() {
-      nameInput.value = memory.characterName || "ピピ";
+      nameInput.value = memory.characterName || "美咲";
       userNameInput.value = memory.userName || "";
       apiKeyInput.value = "";
       elevenApiKeyInput.value = "";
@@ -606,7 +679,7 @@
     }
 
     function saveSettings() {
-      memory.characterName = nameInput.value.trim() || "ピピ";
+      memory.characterName = nameInput.value.trim() || "美咲";
       memory.userName = userNameInput.value.trim();
 
       sessionSecrets.apiKey = apiKeyInput.value.trim();
@@ -690,6 +763,31 @@
       });
     }
 
+    function setAppMode(mode) {
+      memory.appMode = mode;
+      localStorage.setItem("hostess_appMode", mode);
+      updateModeButtons();
+
+      if (mode === "listen") {
+        addMessage("💗 今は「話を聞いてほしい」モードだよ。\n無理に整理しなくていいから、そのまま話してね。", "bot");
+        setFace("healing");
+      } else if (mode === "organize") {
+        addMessage("🧠 今は「気持ちを整理したい」モードだよ。\n何がしんどいのか、一緒に少しずつ言葉にしていこう。", "bot");
+        setFace("troubled");
+      } else if (mode === "analyze") {
+        addMessage("📊 今は「今の自分を知りたい」モードだよ。\n話しながら、今の感情の傾向をやさしく見ていくね。", "bot");
+        setFace("normal");
+      }
+
+      saveChat("assistant", `[mode] ${mode}`);
+    }
+
+    function updateModeButtons() {
+      document.getElementById("modeListenBtn").classList.toggle("active", memory.appMode === "listen");
+      document.getElementById("modeOrganizeBtn").classList.toggle("active", memory.appMode === "organize");
+      document.getElementById("modeAnalyzeBtn").classList.toggle("active", memory.appMode === "analyze");
+    }
+
     function resetMemory() {
       localStorage.removeItem("hostess_mood");
       localStorage.removeItem("hostess_topic");
@@ -700,6 +798,10 @@
       localStorage.removeItem("hostess_currentNeed");
       localStorage.removeItem("hostess_unresolvedTopic");
       localStorage.removeItem("hostess_lastBotQuestion");
+      localStorage.removeItem("hostess_appMode");
+      localStorage.removeItem("hostess_emotionScores");
+      localStorage.removeItem("hostess_lastSummary");
+      localStorage.removeItem("hostess_lastIssueLabel");
 
       memory.mood = "";
       memory.topic = "";
@@ -710,7 +812,12 @@
       memory.currentNeed = "";
       memory.unresolvedTopic = "";
       memory.lastBotQuestion = "";
+      memory.appMode = "listen";
+      memory.emotionScores = { anxiety:0, fatigue:0, lonely:0, anger:0, sadness:0, relief:0 };
+      memory.lastSummary = "";
+      memory.lastIssueLabel = "";
 
+      updateModeButtons();
       addMessage("記憶をリセットしたよ😊\nまた最初からゆっくり話そう。", "bot");
       setFace("healing");
       setStatus("記憶をリセットしました");
@@ -746,22 +853,22 @@
     }, 700);
 
     function getWelcomeMessage() {
-      const name = memory.characterName || "ピピ";
+      const name = memory.characterName || "美咲";
       const user = memory.userName ? `${memory.userName}さん、` : "";
+      const modeText = getModeWelcomeText();
 
-      if (memory.visitCount >= 2 && memory.currentFeeling === "tired") {
-        return `${user}${name}だよ😊\n前もちょっとしんどそうだったよね。\n今日は昨日よりきつい感じある？`;
+      if (memory.visitCount >= 2 && memory.lastIssueLabel) {
+        return `${user}${name}だよ😊\n前は「${memory.lastIssueLabel}」っぽいしんどさが少しあったよね。\n${modeText}`;
       }
 
-      if (memory.visitCount >= 2 && memory.currentFeeling === "anxious") {
-        return `${user}${name}だよ😊\n前もちょっと不安そうだったよね。\n今日は少し落ち着いてる？`;
-      }
+      return `${user}${name}だよ😊\n${modeText}`;
+    }
 
-      if (memory.visitCount >= 2 && memory.currentFeeling === "sad") {
-        return `${user}${name}だよ😊\n前もちょっと心が沈んでる感じあったよね。\n今日はどんな感じ？`;
-      }
-
-      return `${user}${name}だよ😊\n今日はどんな感じだった？`;
+    function getModeWelcomeText() {
+      if (memory.appMode === "listen") return "今日は、無理に整理しなくていいからそのまま話してね。";
+      if (memory.appMode === "organize") return "今日は、頭の中のモヤモヤを少しずつ一緒にほどいていこうか。";
+      if (memory.appMode === "analyze") return "今日は、今の自分の状態を少し見えるようにしてみようか。";
+      return "今日はどんな感じだった？";
     }
 
     function addMessage(text, sender, extraClass = "") {
@@ -771,6 +878,22 @@
       chatBox.appendChild(msg);
       chatBox.scrollTop = chatBox.scrollHeight;
       return msg;
+    }
+
+    function addSummaryCard(summaryObj) {
+      const card = document.createElement("div");
+      card.className = "summary-card";
+
+      card.innerHTML = `
+        <div class="summary-title">🫧 今日の気持ちまとめ</div>
+        <div class="summary-line">・${summaryObj.line1}</div>
+        <div class="summary-line">・${summaryObj.line2}</div>
+        <div class="summary-line">・${summaryObj.line3}</div>
+        <div style="margin-top:12px; font-weight:bold; color:#ffd1e6;">今のあなたへの一言</div>
+        <div style="margin-top:8px;">${summaryObj.message}</div>
+      `;
+      chatBox.appendChild(card);
+      chatBox.scrollTop = chatBox.scrollHeight;
     }
 
     function botReply(text, isWelcome = false) {
@@ -808,12 +931,14 @@
 
         typingMsg.remove();
         botReply(reply);
+        maybeShowSummary(text, reply);
         setStatus("準備OK");
       } catch (e) {
         console.error(e);
         typingMsg.remove();
         const fallback = generateLocalReply(text);
         botReply(fallback);
+        maybeShowSummary(text, fallback);
         setStatus("GPT失敗 → ローカル返答");
       }
     }
@@ -835,12 +960,19 @@
 
       if (containsAny(lower, ["仕事", "会社", "上司", "職場", "残業"])) {
         memory.topic = "work";
+        memory.lastIssueLabel = "仕事";
       } else if (containsAny(lower, ["家族", "子ども", "娘", "息子"])) {
         memory.topic = "family";
+        memory.lastIssueLabel = "家族";
       } else if (containsAny(lower, ["不安", "眠れない", "寝れない"])) {
         memory.topic = "anxiety";
+        memory.lastIssueLabel = "不安";
       } else if (containsAny(lower, ["体調", "病院", "不調"])) {
         memory.topic = "health";
+        memory.lastIssueLabel = "体調";
+      } else if (containsAny(lower, ["人間関係", "友達", "恋愛"])) {
+        memory.topic = "relationship";
+        memory.lastIssueLabel = "人間関係";
       }
 
       saveMemory();
@@ -854,6 +986,10 @@
       localStorage.setItem("hostess_currentNeed", memory.currentNeed || "");
       localStorage.setItem("hostess_unresolvedTopic", memory.unresolvedTopic || "");
       localStorage.setItem("hostess_lastBotQuestion", memory.lastBotQuestion || "");
+      localStorage.setItem("hostess_appMode", memory.appMode || "listen");
+      localStorage.setItem("hostess_emotionScores", JSON.stringify(memory.emotionScores || {}));
+      localStorage.setItem("hostess_lastSummary", memory.lastSummary || "");
+      localStorage.setItem("hostess_lastIssueLabel", memory.lastIssueLabel || "");
     }
 
     function containsAny(text, words) {
@@ -869,17 +1005,64 @@
       return Math.random() < 0.35 ? `${memory.userName}さん、` : "";
     }
 
-    function analyzeContext(text) {
+    function analyzeEmotionScores(text) {
       const lower = text.toLowerCase();
 
-      if (containsAny(lower, ["悲しい", "泣きたい", "寂しい", "つらい", "苦しい"])) {
+      let scores = {
+        anxiety: 0,
+        fatigue: 0,
+        lonely: 0,
+        anger: 0,
+        sadness: 0,
+        relief: 0
+      };
+
+      if (containsAny(lower, ["不安", "心配", "こわい", "怖い", "どうしよう", "落ち着かない"])) scores.anxiety += 28;
+      if (containsAny(lower, ["疲れた", "しんどい", "限界", "無理", "へとへと", "だるい"])) scores.fatigue += 28;
+      if (containsAny(lower, ["寂しい", "孤独", "ひとり", "一人", "誰にも"])) scores.lonely += 28;
+      if (containsAny(lower, ["イライラ", "腹立つ", "むかつく", "うざい"])) scores.anger += 28;
+      if (containsAny(lower, ["悲しい", "泣きたい", "つらい", "苦しい", "しんどい"])) scores.sadness += 28;
+      if (containsAny(lower, ["安心", "ほっと", "落ち着く", "助かった", "少し楽"])) scores.relief += 22;
+
+      if (text.length >= 25) {
+        scores.anxiety += 6;
+        scores.sadness += 4;
+      }
+
+      memory.emotionScores = scores;
+      saveMemory();
+      return scores;
+    }
+
+    function getTopEmotion(scores) {
+      let topKey = "sadness";
+      let topVal = -1;
+      for (const key in scores) {
+        if (scores[key] > topVal) {
+          topVal = scores[key];
+          topKey = key;
+        }
+      }
+      return topKey;
+    }
+
+    function analyzeContext(text) {
+      const lower = text.toLowerCase();
+      const scores = analyzeEmotionScores(text);
+      const topEmotion = getTopEmotion(scores);
+
+      if (topEmotion === "sadness") {
         memory.currentFeeling = "sad";
-      } else if (containsAny(lower, ["不安", "こわい", "怖い", "心配"])) {
+      } else if (topEmotion === "anxiety") {
         memory.currentFeeling = "anxious";
-      } else if (containsAny(lower, ["イライラ", "むかつく", "腹立つ"])) {
+      } else if (topEmotion === "anger") {
         memory.currentFeeling = "angry";
-      } else if (containsAny(lower, ["疲れた", "しんどい", "無理", "限界"])) {
+      } else if (topEmotion === "fatigue") {
         memory.currentFeeling = "tired";
+      } else if (topEmotion === "lonely") {
+        memory.currentFeeling = "sad";
+      } else if (topEmotion === "relief") {
+        memory.currentFeeling = "relieved";
       }
 
       if (containsAny(lower, ["聞いて", "つらい", "悲しい", "しんどい"])) {
@@ -911,7 +1094,20 @@
       analyzeContext(t);
 
       const callName = maybeCallUserName();
+      const mode = memory.appMode;
 
+      if (mode === "organize") {
+        return generateOrganizeReply(t, lower, callName);
+      }
+
+      if (mode === "analyze") {
+        return generateAnalyzeReply(t, lower, callName);
+      }
+
+      return generateListenReply(t, lower, callName);
+    }
+
+    function generateListenReply(t, lower, callName) {
       const shortReply = t.length <= 12;
       const seemsAnswerToPrevious =
         shortReply ||
@@ -947,7 +1143,7 @@
         ]);
       }
 
-      if (containsAny(lower, ["疲れた", "しんどい", "限界", "無理", "へとへと", "きつい"])) {
+      if (containsAny(lower, ["疲れた", "しんどい", "限界", "無理", "へとへと"])) {
         setFace("exhausted");
         memory.mood = "exhausted";
         memory.currentFeeling = "tired";
@@ -974,20 +1170,6 @@
           `${callName}それはかなり引っかかるよね。\nちゃんと嫌だったって感覚、大事だよ。\n何が一番ムカッとした？`,
           `${callName}うん、それ腹立つやつだと思う。\n我慢して流すより、一回言葉にした方が楽になるかも。\nどこが一番嫌だった？`,
           `${callName}イラッとした時って、実は傷ついてる時もあるんだよね。\n今回は怒り寄り？それとも悲しい寄り？`
-        ]);
-      }
-
-      if (containsAny(lower, ["困る", "迷う", "わからない", "悩む"])) {
-        setFace("troubled");
-        memory.mood = "troubled";
-        memory.currentNeed = "guidance";
-        memory.lastBotQuestion = "どこで一番止まってる？";
-        saveMemory();
-
-        return pick([
-          `${callName}それ、簡単に決められないやつだね…。\n一緒に整理していこうか。\nどこで一番止まってる？`,
-          `${callName}悩みが大きいと、何から考えればいいか分からなくなるよね。\n今いちばん困ってる一点だけ出すなら何？`,
-          `${callName}うん、そこ迷うの自然だよ。\n答えを急がなくていいから、まず気持ちから並べてみよっか。`
         ]);
       }
 
@@ -1023,33 +1205,10 @@
         setFace(memory.mood || "normal");
         saveMemory();
 
-        if (memory.currentFeeling === "sad") {
-          return pick([
-            `${callName}うん…その流れだったんだね。\nそれなら気持ちが沈むのも自然だと思う。\nそのあと、一人で抱え込んでた？`,
-            `${callName}そっか…ちゃんとつながった。\nそれ、心の中でじわじわ効いてた感じかもしれないね。\n今もまだ残ってる？`
-          ]);
-        }
-
-        if (memory.currentFeeling === "anxious") {
-          return pick([
-            `${callName}なるほど…それが不安の中心なんだね。\n分かると少し整理しやすくなる。\n一番悪い想像までいくと、何が怖い？`,
-            `${callName}うん、その部分が引っかかってたのか。\nそれなら落ち着かないのも無理ないよ。\n今すぐできることはありそう？`
-          ]);
-        }
-
-        if (memory.currentFeeling === "tired") {
-          return pick([
-            `${callName}そっか…そこが一番重かったんだね。\nそれはかなり消耗すると思う。\n今、少し休めそう？`,
-            `${callName}なるほど、それで削られてたんだ。\n頑張りすぎてたかもしれないね。\n今日はもう何か減らせそう？`
-          ]);
-        }
-
-        if (memory.currentFeeling === "angry") {
-          return pick([
-            `${callName}うん、それは引っかかるよね。\n怒るの当然だと思う。\n本当はどうしてほしかった？`,
-            `${callName}なるほど…そこか。\nその嫌さ、ちゃんと言葉にできてるの大事だよ。\nまだモヤモヤ残ってる？`
-          ]);
-        }
+        return pick([
+          `${callName}うん、ちゃんとつながったよ。\nそれならその気持ちになるのも自然だと思う。\n今もまだ残ってる感じある？`,
+          `${callName}そっか…その流れだったんだね。\nそれなら無理に切り替えられないのも当然だよ。\n少し言葉にしてみる？`
+        ]);
       }
 
       setFace("normal");
@@ -1057,25 +1216,165 @@
       memory.lastBotQuestion = "もう少し詳しく話せそう？";
       saveMemory();
 
-      if (memory.currentFeeling === "sad") {
-        return pick([
-          `${callName}うん、ちゃんと聞いてるよ。\n今は無理にまとめなくていいから、浮かぶまま話して大丈夫。`,
-          `${callName}その感じ、まだ少し心に残ってそうだね。\nどこからでもいいよ、続き話して。`
-        ]);
-      }
-
-      if (memory.currentFeeling === "anxious") {
-        return pick([
-          `${callName}うん、大丈夫。\n焦らなくていいから、一個ずつ話してみよっか。`,
-          `${callName}そのまま話していいよ。\n今の頭の中、整理するの手伝う。`
-        ]);
-      }
-
       return pick([
         `${callName}うん、ちゃんと聞いてるよ。\nもう少し詳しく話せそう？`,
         `${callName}なるほど…。\nその続き、もう少し聞いてもいい？`,
         `${callName}うん、大丈夫。\n今の気持ちをそのまま話してみて。`
       ]);
+    }
+
+    function generateOrganizeReply(t, lower, callName) {
+      if (containsAny(lower, ["わからない", "モヤモヤ", "整理したい", "うまく言えない"])) {
+        setFace("troubled");
+        memory.mood = "troubled";
+        memory.lastBotQuestion = "今いちばん近いのは、不安・疲れ・悲しさ・怒りのどれ？";
+        saveMemory();
+
+        return `${callName}うん、今はまだ形になってない感じかもしれないね。\n無理にちゃんと話さなくて大丈夫。\n今いちばん近いのは、\n「不安」「疲れ」「悲しさ」「怒り」\nのどれに近い？`;
+      }
+
+      if (containsAny(lower, ["不安", "心配", "こわい", "怖い"])) {
+        setFace("worried");
+        memory.mood = "worried";
+        memory.lastBotQuestion = "その不安は『まだ起きてないこと』と『今もう起きてること』のどっち寄り？";
+        saveMemory();
+
+        return `${callName}今は「不安」がかなり前に出てそうだね。\n整理するとしたら、\nその不安は\n「まだ起きてないこと」\nと\n「今もう起きてること」\nのどっち寄りかな？`;
+      }
+
+      if (containsAny(lower, ["疲れた", "しんどい", "限界", "無理"])) {
+        setFace("exhausted");
+        memory.mood = "exhausted";
+        memory.lastBotQuestion = "体の疲れと心の疲れ、今はどっちが強そう？";
+        saveMemory();
+
+        return `${callName}今はかなりすり減ってる感じがあるね。\n整理するなら、\n「体の疲れ」\nと\n「心の疲れ」\nどっちが強そう？`;
+      }
+
+      if (containsAny(lower, ["イライラ", "腹立つ", "むかつく"])) {
+        setFace("irritated");
+        memory.mood = "irritated";
+        memory.lastBotQuestion = "その怒りの奥に、悲しさや悔しさもありそう？";
+        saveMemory();
+
+        return `${callName}その気持ち、ただの怒りだけじゃないかもしれないね。\nもし少し整理するなら、\nその奥に「悲しさ」や「悔しさ」もありそう？`;
+      }
+
+      setFace("troubled");
+      memory.mood = "troubled";
+      memory.lastBotQuestion = "今のしんどさを一言で言うなら何に近い？";
+      saveMemory();
+
+      return `${callName}今の気持ち、少しずつで大丈夫。\nまずは\n「今のしんどさを一言で言うなら何に近いか」\nから一緒に見てみようか。`;
+    }
+
+    function generateAnalyzeReply(t, lower, callName) {
+      const scores = memory.emotionScores || { anxiety:0, fatigue:0, lonely:0, anger:0, sadness:0, relief:0 };
+      const topEmotion = getTopEmotion(scores);
+
+      if (topEmotion === "anxiety") {
+        setFace("worried");
+        memory.mood = "worried";
+        saveMemory();
+        return `${callName}今の話し方を見ると、\n「疲れ」よりも「不安」が少し強めに出ていそうだよ。\n今は安心できる材料より、気になることの方が頭に残りやすい状態かもしれないね。`;
+      }
+
+      if (topEmotion === "fatigue") {
+        setFace("exhausted");
+        memory.mood = "exhausted";
+        saveMemory();
+        return `${callName}今の感じだと、\n一番強いのは「疲れ」っぽいよ。\n考えがまとまらないというより、まず回復が必要な状態に近いかもしれない。`;
+      }
+
+      if (topEmotion === "lonely") {
+        setFace("sympathy");
+        memory.mood = "sympathy";
+        saveMemory();
+        return `${callName}今の言葉からは、\n「孤独感」や「わかってほしさ」が少し強く見えるよ。\n問題そのものより、「一人で抱えてる感じ」がしんどさを大きくしてるかもしれないね。`;
+      }
+
+      if (topEmotion === "anger") {
+        setFace("irritated");
+        memory.mood = "irritated";
+        saveMemory();
+        return `${callName}今の状態は、\n表面は怒りでも、その奥に「傷つき」や「悔しさ」が混ざっていそうだよ。\nちゃんと引っかかった理由がある感じ。`;
+      }
+
+      if (topEmotion === "relief") {
+        setFace("happy");
+        memory.mood = "happy";
+        saveMemory();
+        return `${callName}今の話し方を見ると、\n少しずつ「安心」や「ゆるみ」が戻ってきてる感じがあるよ。\n完全に元気じゃなくても、少し楽になってきてる流れかもしれないね。`;
+      }
+
+      setFace("normal");
+      memory.mood = "normal";
+      saveMemory();
+
+      return `${callName}今の状態をざっくり見ると、\n感情が1つだけ強いというより、\n「疲れ」「不安」「気持ちの整理しにくさ」が少し混ざってる感じかもしれないよ。`;
+    }
+
+    function maybeShowSummary(userText, botText) {
+      if (memory.appMode !== "organize" && memory.appMode !== "analyze") return;
+      if (userText.length < 6) return;
+
+      const scores = memory.emotionScores || { anxiety:0, fatigue:0, lonely:0, anger:0, sadness:0, relief:0 };
+      const top = getTopEmotion(scores);
+
+      let summary = {
+        line1: "今の気持ちは、まだ少し言葉になりきっていない",
+        line2: "でも心や体に負担がかかっていそう",
+        line3: "今は整理より安心が必要かもしれない",
+        message: "今日は全部をはっきりさせなくても大丈夫だよ。"
+      };
+
+      if (top === "anxiety") {
+        summary = {
+          line1: "不安が少し強めに出ていそう",
+          line2: "頭の中で先のことを考えすぎやすい状態かも",
+          line3: "今は“安心できる材料”を増やす方が大事そう",
+          message: "今すぐ全部を解決しなくても大丈夫。まずは心を少し落ち着かせよう。"
+        };
+      } else if (top === "fatigue") {
+        summary = {
+          line1: "疲れがかなりたまっていそう",
+          line2: "気持ちの問題というより、消耗が大きい可能性もある",
+          line3: "今は整理より回復を優先してよさそう",
+          message: "今日は頑張るより、減らせるものを減らす方が大事かもしれないよ。"
+        };
+      } else if (top === "lonely") {
+        summary = {
+          line1: "孤独感や“わかってほしさ”が少し強そう",
+          line2: "一人で抱えている感じがしんどさを大きくしていそう",
+          line3: "今は正解より“受け止めてもらうこと”が必要かもしれない",
+          message: "ここでは一人で抱え込まなくて大丈夫だよ。"
+        };
+      } else if (top === "anger") {
+        summary = {
+          line1: "怒りやイライラが表に出やすい状態かも",
+          line2: "その奥に傷つきや悔しさもありそう",
+          line3: "ちゃんと嫌だった気持ちを無視しなくていい",
+          message: "怒りの裏にある本音も、大事にしていいよ。"
+        };
+      } else if (top === "sadness") {
+        summary = {
+          line1: "悲しさや心の重さが少し強めにありそう",
+          line2: "元気を出すより、今は弱っていい時間かもしれない",
+          line3: "気持ちを急いで切り替えなくていい",
+          message: "今日はちゃんとしなくて大丈夫。少しやわらぐだけでも十分だよ。"
+        };
+      } else if (top === "relief") {
+        summary = {
+          line1: "少しずつ安心感が戻ってきていそう",
+          line2: "まだ完全ではなくても、心は少しゆるみ始めているかも",
+          line3: "今の落ち着きを壊さず過ごすのが大事そう",
+          message: "少し楽になってきた感覚、ちゃんと大事にしていいよ。"
+        };
+      }
+
+      memory.lastSummary = JSON.stringify(summary);
+      saveMemory();
+      addSummaryCard(summary);
     }
 
     async function generateGPTReply(userText) {
@@ -1088,8 +1387,15 @@
         content: item.content
       }));
 
+      const modeGuide =
+        memory.appMode === "listen"
+          ? "今は『話を聞いてほしいモード』です。共感・安心・受け止めを優先し、整理しすぎない。"
+          : memory.appMode === "organize"
+          ? "今は『気持ちを整理したいモード』です。やさしく質問しながら感情や悩みを整理してください。"
+          : "今は『今の自分を知りたいモード』です。冷たくならず、やさしく感情傾向を言語化してください。";
+
       const systemPrompt = `
-あなたは「${memory.characterName || "ピピ"}」という、落ち着いた大人の女性です。
+あなたは「${memory.characterName || "美咲"}」という、落ち着いた大人の女性です。
 ユーザーに寄り添い、自然で人間らしい会話をしてください。
 
 会話方針:
@@ -1106,6 +1412,12 @@
 - 必要なら感情を言語化して整理する
 - 時々だけ ${memory.userName || "ユーザー"} の呼び名を自然に入れてよい
 - 返答の文頭に必ず表情タグを1つだけ付ける
+
+重要:
+- ${modeGuide}
+- ユーザーが悩みや孤独を抱えている前提で、安心感を壊さない
+- 必要なら「今の状態の見立て」をやさしく言ってよい
+- 医療診断のように断定しない
 
 表情タグ:
 [happy]
@@ -1195,7 +1507,7 @@
 
       const cleanText = text
         .replace(/\n/g, "。")
-        .replace(/😊|♡|✨|😌|😢|🥺|😳|💦|💭/g, "")
+        .replace(/😊|♡|✨|😌|😢|🥺|😳|💦|💭|🫧|📊|🧠|💗/g, "")
         .replace(/…/g, "、")
         .trim();
 
