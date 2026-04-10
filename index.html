@@ -490,12 +490,7 @@
     let isSpeaking = false;
     let lastBotReply = "";
 
-    // ===== APIキーは保存しない =====
-    let sessionSecrets = {
-      apiKey: "",
-      elevenApiKey: "",
-      voiceId: ""
-    };
+
 
     let memory = {
       characterName: localStorage.getItem("characterName") || "ピピ",
@@ -517,7 +512,14 @@
 
     nameInput.value = memory.characterName;
     userNameInput.value = memory.userName;
+nameInput.value = memory.characterName;
+userNameInput.value = memory.userName;
 
+apiKeyInput.value = sessionSecrets.apiKey;
+elevenApiKeyInput.value = sessionSecrets.elevenApiKey;
+voiceIdInput.value = sessionSecrets.voiceId;
+
+voiceEngineSelect.value = voiceEngine;
     apiKeyInput.value = "";
     elevenApiKeyInput.value = "";
     voiceIdInput.value = "";
@@ -539,7 +541,9 @@
       irritated: "girl-irritated.png",
       panic: "girl-panic.png",
       exhausted: "girl-exhausted.png"
-    };
+    };apiKeyInput.value = sessionSecrets.apiKey;
+elevenApiKeyInput.value = sessionSecrets.elevenApiKey;
+voiceIdInput.value = sessionSecrets.voiceId;
 
     const moodBackgrounds = {
       normal: "linear-gradient(to bottom, #2b314d, #09111f)",
@@ -594,9 +598,7 @@
     function openSettings() {
       nameInput.value = memory.characterName || "ピピ";
       userNameInput.value = memory.userName || "";
-      apiKeyInput.value = "";
-      elevenApiKeyInput.value = "";
-      voiceIdInput.value = "";
+      
       voiceEngineSelect.value = voiceEngine;
       settingsModal.classList.add("show");
     }
