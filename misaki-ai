@@ -1,193 +1,335 @@
-<!DOCTYPE html><html lang="ja">
+<!DOCTYPE html>
+<html lang="ja">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>美咲AI 完全版</title><style>
-body{margin:0;font-family:sans-serif;background:#09111f;color:white;}
-.app{display:flex;flex-direction:column;height:100vh;}
-.top-character{height:30vh;display:flex;justify-content:center;align-items:center;}
-.top-character img{width:90%;border-radius:20px;}
-#chatBox{flex:1;overflow:auto;padding:10px;display:flex;flex-direction:column;}
-.message{padding:10px;border-radius:15px;margin:5px 0;max-width:80%;}
-.user{background:#ff4f8b;align-self:flex-end;}
-.bot{background:#444;align-self:flex-start;}
-.input-area{display:flex;}
-input{flex:1;padding:10px;}
-button{padding:10px;}
-.tabs{display:flex;}
-.tab{flex:1;padding:10px;background:#222;text-align:center;}
-.panel{display:none;flex:1;}
-.panel.active{display:flex;flex-direction:column;}
-</style></head>
-<body><div class="app"><div class="top-character">
+<title>美咲AI 進化版</title>
+
+<style>
+body{
+  margin:0;
+  font-family:sans-serif;
+  background:#09111f;
+  color:white;
+}
+
+.app{
+  display:flex;
+  flex-direction:column;
+  height:100vh;
+}
+
+/* キャラ */
+.top-character{
+  height:30vh;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+}
+.top-character img{
+  width:90%;
+  border-radius:20px;
+}
+
+/* パネル */
+.panel{
+  display:none;
+  flex:1;
+  overflow:auto;
+}
+.panel.active{
+  display:flex;
+  flex-direction:column;
+}
+
+/* チャット */
+#chatBox{
+  flex:1;
+  overflow:auto;
+  padding:10px;
+  display:flex;
+  flex-direction:column;
+}
+
+.message{
+  padding:12px;
+  border-radius:16px;
+  margin:6px 0;
+  max-width:80%;
+}
+.user{
+  background:#ff4f8b;
+  align-self:flex-end;
+}
+.bot{
+  background:#444;
+}
+
+/* 入力 */
+.input-area{
+  display:flex;
+}
+input{
+  flex:1;
+  padding:10px;
+}
+button{
+  padding:10px;
+}
+
+/* タブ */
+.tabs{
+  display:flex;
+}
+.tab{
+  flex:1;
+  padding:10px;
+  background:#222;
+  text-align:center;
+}
+
+/* 設定 */
+.setting{
+  padding:10px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="app">
+
+<!-- キャラ -->
+<div class="top-character">
 <img id="mainGirl" src="girl-normal.jpg">
-</div><!-- 会話 --><div id="chatPanel" class="panel active">
+</div>
+
+<!-- 会話 -->
+<div id="chatPanel" class="panel active">
 <div id="chatBox"></div>
+
 <div class="input-area">
 <input id="userInput">
 <button onclick="sendMessage()">送信</button>
 </div>
-</div><!-- 分析 --><div id="analysisPanel" class="panel">
-<div id="analysisContent" style="padding:20px;"></div>
-</div><!-- 未来 --><div id="futurePanel" class="panel">
-<div id="futureContent" style="padding:20px;"></div>
-</div><!-- 設定 --><div id="settingsPanel" class="panel">
-<div style="padding:20px;">
-<h2>⚙ 設定</h2><div style="margin-bottom:15px;">
-<div>あなたの名前</div>
-<input id="userNameInput">
-</div><div style="margin-bottom:15px;">
-<div>キャラ名</div>
-<input id="aiNameInput">
-</div><button onclick="saveSettings()">保存</button>
-
 </div>
-</div><!-- タブ --><div class="tabs">
+
+<!-- 分析 -->
+<div id="analysisPanel" class="panel">
+<div id="analysisContent"></div>
+</div>
+
+<!-- 未来 -->
+<div id="futurePanel" class="panel">
+<div id="futureContent"></div>
+</div>
+
+<!-- 設定 -->
+<div id="settingsPanel" class="panel">
+<div class="setting">
+名前<input id="userNameInput">
+キャラ<input id="aiNameInput">
+<button onclick="saveSettings()">保存</button>
+</div>
+</div>
+
+<!-- タブ -->
+<div class="tabs">
 <div class="tab" onclick="switchTab('chat')">会話</div>
 <div class="tab" onclick="switchTab('analysis')">分析</div>
 <div class="tab" onclick="switchTab('future')">未来</div>
 <div class="tab" onclick="switchTab('settings')">設定</div>
-</div></div><script>
+</div>
 
-// ===== 状態 =====
-let memory={chatHistory:[],mood:"normal"};
-let isPremium = localStorage.getItem("isPremium") === "true";
+</div>
 
-// ===== 表情 =====
-const faceImages={
- normal:"girl-normal.jpg",
- happy:"girl-happy.png",
- sympathy:"girl-sympathy.png",
- worried:"girl-worried.png",
- troubled:"girl-troubled.png",
- healing:"girl-healing.png",
- irritated:"girl-irritated.png",
- panic:"girl-panic.png",
- exhausted:"girl-exhausted.png"
+<script>
+
+/* =====================
+記憶（人格の核）
+===================== */
+
+let memory={
+  userName: localStorage.getItem("userName") || "",
+  aiName: localStorage.getItem("aiName") || "美咲",
+  relationship: parseInt(localStorage.getItem("relationship")||"1"),
+  chatHistory:[]
 };
 
-function setFace(type){
- const img=document.getElementById("mainGirl");
- img.src=(faceImages[type]||faceImages.normal)+"?t="+Date.now();
- memory.mood=type;
-}
+/* =====================
+初期化
+===================== */
 
-// ===== タブ =====
+window.onload=()=>{
+  userNameInput.value = memory.userName;
+  aiNameInput.value = memory.aiName;
+};
+
+/* =====================
+タブ
+===================== */
+
 function switchTab(tab){
- document.querySelectorAll(".panel").forEach(p=>p.classList.remove("active"));
- if(tab==='chat') chatPanel.classList.add("active");
- if(tab==='analysis') analysisPanel.classList.add("active");
- if(tab==='future') futurePanel.classList.add("active");
- if(tab==='settings') settingsPanel.classList.add("active");
+  document.querySelectorAll(".panel").forEach(p=>p.classList.remove("active"));
+
+  if(tab==='chat') chatPanel.classList.add("active");
+  if(tab==='analysis') analysisPanel.classList.add("active");
+  if(tab==='future') futurePanel.classList.add("active");
+  if(tab==='settings') settingsPanel.classList.add("active");
 }
 
-// ===== チャット =====
-function addMessage(text,type){
- const div=document.createElement("div");
- div.className="message "+type;
- div.textContent=text;
- chatBox.appendChild(div);
- chatBox.scrollTop=chatBox.scrollHeight;
+/* =====================
+保存
+===================== */
+
+function saveSettings(){
+  memory.userName = userNameInput.value;
+  memory.aiName = aiNameInput.value;
+
+  localStorage.setItem("userName", memory.userName);
+  localStorage.setItem("aiName", memory.aiName);
 }
+
+/* =====================
+メッセージ
+===================== */
+
+function addMessage(text,type){
+  const div=document.createElement("div");
+  div.className="message "+type;
+  div.textContent=text;
+  chatBox.appendChild(div);
+  chatBox.scrollTop=chatBox.scrollHeight;
+}
+
+/* =====================
+送信
+===================== */
 
 function sendMessage(){
- const text=userInput.value.trim();
- if(!text) return;
+  const text=userInput.value;
+  if(!text) return;
 
- addMessage(text,"user");
- memory.chatHistory.push(text);
+  addMessage(text,"user");
+  memory.chatHistory.push(text);
 
- const reply=generateReply(text);
- addMessage(reply,"bot");
+  const reply=generateReply(text);
+  addMessage(reply,"bot");
 
- userInput.value="";
+  userInput.value="";
 }
 
-userInput.addEventListener("keypress",e=>{
- if(e.key==="Enter") sendMessage();
-});
+/* =====================
+人格AI（ここが核心）
+===================== */
 
 function generateReply(text){
- const lower=text.toLowerCase();
- const contains=(arr)=>arr.some(w=>lower.includes(w));
 
- if(contains(["疲れ","しんど","無理","限界"])){
- setFace("exhausted");
- return "かなり無理してる感じあるね…\n今日は少し力抜けそう？";
- }
+  const lower=text.toLowerCase();
+  const name = memory.userName ? memory.userName+"、" : "";
 
- if(contains(["不安","怖い","こわい","心配"])){
- setFace("worried");
- return "それ気になるよね…\n今いちばん引っかかってるのどこ？";
- }
+  /* ===== 関係性進化 ===== */
+  memory.relationship++;
 
- if(contains(["悲しい","つらい","寂しい"])){
- setFace("sympathy");
- return "そっか…それはしんどいね\n無理に元気にならなくていいよ";
- }
+  /* ===== 口調変化 ===== */
+  let tone = "polite";
 
- if(contains(["イライラ","むかつく","腹立つ"])){
- setFace("irritated");
- return "それはイラッとするね\n何が一番引っかかった？";
- }
+  if(memory.relationship > 15) tone="friendly";
+  if(memory.relationship > 30) tone="close";
 
- if(contains(["嬉しい","楽しい","よかった"])){
- setFace("happy");
- return "それいいね😊\nどんなところが一番よかった？";
- }
+  function speak(polite, friendly, close){
+    if(tone==="close") return close;
+    if(tone==="friendly") return friendly;
+    return polite;
+  }
 
- setFace("normal");
- return "ちゃんと聞いてるよ\nもう少し教えてくれる？";
+  /* ===== 感情 ===== */
+
+  if(lower.includes("疲")||lower.includes("しんど")){
+    setFace("exhausted");
+
+    return name + speak(
+      "かなり無理してる感じありますね…少し休めそうですか？",
+      "結構無理してる感じあるね…少し力抜けそう？",
+      "無理しすぎ…ちょっと休も？"
+    );
+  }
+
+  if(lower.includes("不安")||lower.includes("怖")){
+    setFace("worried");
+
+    return name + speak(
+      "不安が強そうですね…何が一番気になりますか？",
+      "それ気になるよね…どこが一番引っかかる？",
+      "それ怖いよね…一番イヤなとこどこ？"
+    );
+  }
+
+  if(lower.includes("嬉")||lower.includes("楽しい")){
+    setFace("happy");
+
+    return name + speak(
+      "それは良かったですね😊",
+      "それいいね😊",
+      "よかったじゃん😊"
+    );
+  }
+
+  setFace("normal");
+
+  return name + speak(
+    "ちゃんと聞いています。もう少し教えてください。",
+    "ちゃんと聞いてるよ、もう少し教えて？",
+    "ちゃんと聞いてるよ、続き教えて"
+  );
 }
 
-// ===== 分析 =====
+/* =====================
+表情
+===================== */
+
+function setFace(type){
+  const map={
+    normal:"girl-normal.jpg",
+    happy:"girl-happy.png",
+    worried:"girl-worried.png",
+    exhausted:"girl-exhausted.png"
+  };
+
+  mainGirl.src = map[type] || map.normal;
+}
+
+/* =====================
+分析（簡易）
+===================== */
+
 function analyze(){
- const text=memory.chatHistory.join(" ");
- let fatigue=text.includes("疲")?80:30;
- let anxiety=text.includes("不安")?70:30;
+  const text = memory.chatHistory.join("");
 
- analysisContent.innerHTML=`
- <h3>📊 分析</h3>
- <div>疲労:${fatigue}</div>
- <div>不安:${anxiety}</div>
- `;
+  let fatigue = text.includes("疲") ? 80 : 20;
+
+  analysisContent.innerHTML=`
+  疲労:${fatigue}
+  `;
 }
 
-// ===== 未来 =====
+/* =====================
+未来（分岐AI）
+===================== */
+
 function openFuture(){
- if(!isPremium){alert("プレミアム限定");return;}
 
- let resultA="回復ルート";
- let resultB="悪化ルート";
+  const text = memory.chatHistory.join("");
 
- if(memory.mood==="exhausted"){
- resultA="休めば回復";
- resultB="続けると限界";
- }
-
- futureContent.innerHTML=`
- <h3>🔮 未来分岐</h3>
- <div>A: ${resultA}</div>
- <div>B: ${resultB}</div>
- `;
+  futureContent.innerHTML=`
+  <h3>未来予測</h3>
+  A：休む → 回復ルート
+  <br>
+  B：続ける → 悪化ルート
+  `;
 }
 
-// ===== 設定 =====
-function saveSettings(){
- const name=userNameInput.value;
- const ai=aiNameInput.value;
+</script>
 
- localStorage.setItem("userName",name);
- localStorage.setItem("aiName",ai);
-
- alert("保存したよ");
-}
-
-// ===== 課金 =====
-function unlockPremium(){
- isPremium=true;
- localStorage.setItem("isPremium","true");
-}
-
-</script></body>
+</body>
 </html>
