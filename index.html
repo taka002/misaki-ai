@@ -3,52 +3,83 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>美咲AI 完成形</title>
+<title>美咲AI</title>
 
 <style>
 body{
   margin:0;
-  font-family:sans-serif;
   background:#09111f;
+  font-family:sans-serif;
   color:white;
-}
-
-/* ===== 全体固定 ===== */
-.app{
   height:100vh;
-  display:flex;
-  flex-direction:column;
   overflow:hidden;
 }
 
-/* ===== 画像（大きく＆固定） ===== */
+/* ===== 画像（完全固定） ===== */
 .top{
-  height:220px; /* ← 大きくした */
-  flex-shrink:0;
-  display:flex;
-  justify-content:center;
-  align-items:center;
+  position:fixed;
+  top:0;
+  left:0;
+  width:100%;
+  height:220px;
   background:#000;
 }
 
 .top img{
   width:100%;
   height:100%;
-  object-fit:contain; /* ← 顔切れない */
-  object-position:top;
+  object-fit:cover; /* ← 顔ちゃんと出る */
 }
 
-/* ===== メイン ===== */
-.main{
-  flex:1;
+/* ===== 入力 ===== */
+.input{
+  position:fixed;
+  bottom:60px;
+  left:0;
+  width:100%;
   display:flex;
-  flex-direction:column;
-  min-height:0;
+  gap:8px;
+  padding:8px;
+  background:#111;
 }
 
-/* ===== チャットだけスクロール ===== */
-#chatBox{
+input{
   flex:1;
+  padding:14px;
+  border-radius:12px;
+  border:none;
+}
+
+button{
+  padding:14px;
+  border-radius:12px;
+  border:none;
+}
+
+/* ===== タブ ===== */
+.tabs{
+  position:fixed;
+  bottom:0;
+  left:0;
+  width:100%;
+  height:60px;
+  display:flex;
+  background:#222;
+}
+
+.tab{
+  flex:1;
+  text-align:center;
+  line-height:60px;
+}
+
+/* ===== チャット（ここだけスクロール） ===== */
+#chatBox{
+  position:fixed;
+  top:220px;
+  bottom:120px; /* 入力+タブ分 */
+  left:0;
+  width:100%;
   overflow-y:auto;
   padding:10px;
 }
@@ -56,9 +87,9 @@ body{
 /* ===== メッセージ ===== */
 .message{
   max-width:80%;
-  padding:12px;
-  border-radius:16px;
-  margin:6px 0;
+  padding:14px;
+  border-radius:18px;
+  margin:8px 0;
 }
 
 .user{
@@ -71,68 +102,30 @@ body{
 }
 
 .time{
-  font-size:10px;
+  font-size:11px;
   opacity:0.6;
   margin-top:4px;
-}
-
-/* ===== 入力固定 ===== */
-.input{
-  display:flex;
-  gap:6px;
-  padding:8px;
-  background:#111;
-  flex-shrink:0;
-}
-
-input{
-  flex:1;
-  padding:12px;
-  border-radius:10px;
-  border:none;
-}
-
-button{
-  padding:12px;
-  border-radius:10px;
-  border:none;
-}
-
-/* ===== タブ固定 ===== */
-.tabs{
-  display:flex;
-  background:#222;
-  flex-shrink:0;
-}
-
-.tab{
-  flex:1;
-  text-align:center;
-  padding:12px;
 }
 </style>
 </head>
 
 <body>
 
-<div class="app">
-
-<!-- ===== 画像 ===== -->
+<!-- 画像 -->
 <div class="top">
-<img id="mainGirl" src="girl-normal.jpg">
+  <img id="mainGirl" src="girl-normal.jpg">
 </div>
 
-<!-- ===== チャット ===== -->
-<div class="main">
-  <div id="chatBox"></div>
+<!-- チャット -->
+<div id="chatBox"></div>
 
-  <div class="input">
-    <input id="userInput" placeholder="話しかけて…">
-    <button onclick="sendMessage()">送信</button>
-  </div>
+<!-- 入力 -->
+<div class="input">
+  <input id="userInput" placeholder="話しかけて…">
+  <button onclick="sendMessage()">送信</button>
 </div>
 
-<!-- ===== タブ ===== -->
+<!-- タブ -->
 <div class="tabs">
   <div class="tab">会話</div>
   <div class="tab">分析</div>
@@ -140,12 +133,10 @@ button{
   <div class="tab">設定</div>
 </div>
 
-</div>
-
 <script>
 
-/* ===== 表情9枚 ===== */
-const faces = {
+/* ===== 表情 ===== */
+const faces={
   normal:"girl-normal.jpg",
   happy:"girl-happy.png",
   worried:"girl-worried.png",
@@ -158,98 +149,70 @@ const faces = {
 };
 
 function setFace(type){
-  mainGirl.src = faces[type] || faces.normal;
+  mainGirl.src=faces[type]||faces.normal;
 }
 
-/* ===== 状態 ===== */
-let memory={
-  lastReply:""
-};
-
 /* ===== 時間 ===== */
-function getTime(){
+function now(){
   const d=new Date();
   return d.getHours()+":"+String(d.getMinutes()).padStart(2,"0");
 }
 
 /* ===== メッセージ ===== */
 function addMessage(text,type){
-
   const div=document.createElement("div");
   div.className="message "+type;
-
   div.innerHTML=`
     ${text}
-    <div class="time">${getTime()}</div>
+    <div class="time">${now()}</div>
   `;
-
   chatBox.appendChild(div);
   chatBox.scrollTop=chatBox.scrollHeight;
 }
 
 /* ===== 送信 ===== */
 function sendMessage(){
-  const text=userInput.value;
-  if(!text) return;
+  const t=userInput.value;
+  if(!t) return;
 
-  addMessage(text,"user");
+  addMessage(t,"user");
 
-  const reply = generateReply(text);
+  const r=reply(t);
 
   setTimeout(()=>{
-    addMessage(reply,"bot");
+    addMessage(r,"bot");
   },300);
 
   userInput.value="";
 }
 
-/* ===== AI（繰り返し防止・人格強化） ===== */
-function generateReply(text){
+/* ===== AI ===== */
+let last="";
 
-  const t=text.toLowerCase();
+function reply(t){
 
-  function has(arr){
-    return arr.some(w=>t.includes(w));
+  let r="ちゃんと聞いてるよ。もう少し教えてくれる？";
+
+  if(t.includes("こんにちは")){
+    setFace("happy");
+    r="こんにちは。来てくれてちょっと嬉しい。今日はどんな気分？";
   }
 
-  let r="";
-
-  if(has(["疲れ","しんど","無理"])){
-    setFace("exhausted");
-    r="ちょっと無理してる感じあるね…今日は少し力抜けそう？";
-  }
-
-  else if(has(["不安","怖い"])){
-    setFace("worried");
-    r="それ気になるよね…どこが一番引っかかってる？";
-  }
-
-  else if(has(["寂しい","つらい"])){
-    setFace("sympathy");
-    r="そっか…それはしんどいね。今ひとりで抱えてる感じ？";
-  }
-
-  else if(has(["イライラ"])){
-    setFace("irritated");
-    r="それはイラッとするね…何が一番嫌だった？";
-  }
-
-  else if(has(["嬉しい","楽しい"])){
+  else if(t.includes("楽しい")){
     setFace("happy");
     r="いいね、それ。どの瞬間が一番よかった？";
   }
 
-  else{
-    setFace("normal");
-    r="ちゃんと聞いてるよ。もう少し教えてくれる？";
+  else if(t.includes("疲れ")){
+    setFace("exhausted");
+    r="ちょっと無理してる感じあるね…少し力抜けそう？";
   }
 
-  if(r===memory.lastReply){
-    r+=" 少し違う言い方するとどう感じてる？";
+  if(r===last){
+    r+=" もう少しだけ教えてほしいな";
   }
 
-  memory.lastReply=r;
-
+  last=r;
   return r;
 }
 
