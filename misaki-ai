@@ -22,7 +22,6 @@ body{
   width:100%;
   height:180px;
 }
-
 .top img{
   width:100%;
   height:100%;
@@ -44,40 +43,29 @@ body{
 /* ===== 吹き出し ===== */
 .message{
   max-width:75%;
-  padding:10px 12px;
+  padding:10px;
   border-radius:16px;
   margin:6px 0;
   font-size:14px;
-  line-height:1.6;
-  animation:fade .2s;
-}
-
-@keyframes fade{
-  from{opacity:0; transform:translateY(5px);}
-  to{opacity:1;}
 }
 
 .user{
   background:#ff4f8b;
   margin-left:auto;
-  box-shadow:0 4px 12px rgba(255,79,139,.3);
 }
 
 .bot{
   background:#444;
-  box-shadow:0 4px 12px rgba(0,0,0,.3);
 }
 
 .time{
   font-size:10px;
   opacity:.6;
-  margin-top:2px;
 }
 
 .name{
   font-size:11px;
   opacity:.7;
-  margin-bottom:2px;
 }
 
 /* ===== 入力 ===== */
@@ -91,23 +79,21 @@ body{
   background:#111;
 }
 
-input{
-  flex:1;
-  padding:10px;
-  border-radius:10px;
-  border:none;
-  font-size:14px;
-}
-
-button{
-  padding:10px;
-  border-radius:10px;
-  border:none;
-}
-
-/* スタンプ */
 .stamp-btn{
-  width:40px;
+  width:42px;
+  height:42px;
+  flex-shrink:0;
+}
+
+#userInput{
+  flex:1;
+  min-width:0;
+  padding:10px;
+}
+
+.send-btn{
+  width:60px;
+  flex-shrink:0;
 }
 
 /* ===== タブ ===== */
@@ -124,29 +110,39 @@ button{
   flex:1;
   text-align:center;
   line-height:50px;
-  font-size:13px;
+}
+
+/* ===== スタンプ ===== */
+#stampPanel{
+  position:fixed;
+  bottom:110px;
+  width:100%;
+  background:#222;
+  display:none;
+  flex-wrap:wrap;
+  gap:10px;
+  padding:10px;
+  justify-content:center;
 }
 </style>
 </head>
 
 <body>
 
-<!-- 画像 -->
 <div class="top">
   <img id="mainGirl" src="girl-normal.jpg">
 </div>
 
-<!-- チャット -->
 <div id="chatBox"></div>
 
-<!-- 入力 -->
 <div class="input">
-  <button class="stamp-btn" onclick="openStamp()">😊</button>
+  <button class="stamp-btn" onclick="toggleStamp()">😊</button>
   <input id="userInput" placeholder="話しかけて…">
-  <button onclick="sendMessage()">送信</button>
+  <button class="send-btn" onclick="sendMessage()">送信</button>
 </div>
 
-<!-- タブ -->
+<div id="stampPanel"></div>
+
 <div class="tabs">
   <div class="tab">会話</div>
   <div class="tab">分析</div>
@@ -157,11 +153,12 @@ button{
 <script>
 
 /* ===== 記憶 ===== */
-let memory = JSON.parse(localStorage.getItem("memory") || "{}");
+let memory = JSON.parse(localStorage.getItem("memory")||"{}");
 
 if(!memory.history) memory.history=[];
+if(!memory.stamps) memory.stamps=[];
 if(!memory.personality) memory.personality={
-  type:"優しい",
+  type:"normal",
   trust:0
 };
 
@@ -179,7 +176,35 @@ const faces={
 };
 
 function setFace(t){
-  mainGirl.src = faces[t] || faces.normal;
+  mainGirl.src=faces[t]||faces.normal;
+}
+
+/* ===== スタンプ ===== */
+const stampList=[
+  {emoji:"😊", mood:"happy"},
+  {emoji:"😢", mood:"sympathy"},
+  {emoji:"😡", mood:"irritated"},
+  {emoji:"🥺", mood:"troubled"},
+  {emoji:"😴", mood:"exhausted"},
+  {emoji:"😰", mood:"panic"},
+  {emoji:"😟", mood:"worried"},
+  {emoji:"😌", mood:"healing"},
+  {emoji:"🙂", mood:"normal"}
+];
+
+function toggleStamp(){
+  const p=stampPanel;
+  p.style.display=p.style.display==="flex"?"none":"flex";
+
+  if(p.innerHTML===""){
+    stampList.forEach(s=>{
+      const b=document.createElement("button");
+      b.textContent=s.emoji;
+      b.style.fontSize="24px";
+      b.onclick=()=>sendStamp(s);
+      p.appendChild(b);
+    });
+  }
 }
 
 /* ===== 時間 ===== */
@@ -189,28 +214,86 @@ function now(){
 }
 
 /* ===== メッセージ ===== */
-function addMessage(text,type){
+function addMessage(t,type){
   const div=document.createElement("div");
   div.className="message "+type;
 
   if(type==="bot"){
-    div.innerHTML=`
-      <div class="name">美咲</div>
-      ${text}
-      <div class="time">${now()}</div>
-    `;
+    div.innerHTML=`<div class="name">美咲</div>${t}<div class="time">${now()}</div>`;
   }else{
-    div.innerHTML=`
-      ${text}
-      <div class="time">${now()}</div>
-    `;
+    div.innerHTML=`${t}<div class="time">${now()}</div>`;
   }
 
   chatBox.appendChild(div);
   chatBox.scrollTop=chatBox.scrollHeight;
 }
 
-/* ===== 送信 ===== */
+/* ===== スタンプ送信 ===== */
+function sendStamp(s){
+  addMessage(s.emoji,"user");
+
+  setFace(s.mood);
+
+  memory.stamps.push(s.mood);
+  memory.personality.trust++;
+
+  const reply=generateEmotionReply(s.mood);
+
+  setTimeout(()=>addMessage(reply,"bot"),300);
+
+  save();
+}
+
+/* ===== 性格変化ロジック ===== */
+function analyzePersonality(){
+
+  const counts={};
+
+  memory.stamps.slice(-10).forEach(m=>{
+    counts[m]=(counts[m]||0)+1;
+  });
+
+  const maxMood = Object.keys(counts).sort((a,b)=>counts[b]-counts[a])[0];
+
+  return maxMood || "normal";
+}
+
+/* ===== AI返答 ===== */
+function generateEmotionReply(mood){
+
+  const dominant = analyzePersonality();
+  let r="";
+
+  // 基本
+  switch(mood){
+    case "happy": r="いいね、その感じ"; break;
+    case "sympathy": r="そっか…ちょっとつらいね"; break;
+    case "irritated": r="それイラっとするよね"; break;
+    case "exhausted": r="かなり疲れてる感じあるね"; break;
+    default: r="ちゃんと聞いてるよ";
+  }
+
+  // 性格変化（ここが核心）
+  if(dominant==="sympathy"){
+    r += "…無理しなくていいよ";
+  }
+
+  if(dominant==="irritated"){
+    r += " 無理に抑えなくてもいいと思う";
+  }
+
+  if(dominant==="happy"){
+    r += " いい流れだね";
+  }
+
+  if(memory.personality.trust>10){
+    r="ねえ、"+r;
+  }
+
+  return r+"。少し話せそう？";
+}
+
+/* ===== テキスト送信 ===== */
 function sendMessage(){
   const t=userInput.value;
   if(!t) return;
@@ -220,79 +303,17 @@ function sendMessage(){
   memory.history.push(t);
   memory.personality.trust++;
 
-  const r=generateReply(t);
+  const r=generateEmotionReply("normal");
 
-  setTimeout(()=>{
-    addMessage(r,"bot");
-  },300);
+  setTimeout(()=>addMessage(r,"bot"),300);
 
   userInput.value="";
   save();
 }
 
-/* ===== スタンプ ===== */
-function openStamp(){
-  const list=["😊","😢","😡","🥺","😴"];
-  const s = list[Math.floor(Math.random()*list.length)];
-  sendMessageWithText(s);
-}
-
-function sendMessageWithText(t){
-  userInput.value=t;
-  sendMessage();
-}
-
 /* ===== 保存 ===== */
 function save(){
-  localStorage.setItem("memory", JSON.stringify(memory));
-}
-
-/* ===== AI（強化版） ===== */
-let lastReply="";
-
-function generateReply(t){
-
-  let mood="normal";
-  let reply="";
-
-  const trust = memory.personality.trust;
-
-  if(t.includes("疲れ")){
-    mood="exhausted";
-    reply="ちょっと無理してる感じあるね…";
-    if(trust>5) reply+="最近ずっと頑張ってる気がするよ";
-    reply+=" 少し力抜けそう？";
-  }
-
-  else if(t.includes("楽しい")){
-    mood="happy";
-    reply="いいね、それ。どの瞬間が一番よかった？";
-  }
-
-  else if(t.includes("こんにちは")){
-    mood="happy";
-    reply="こんにちは。来てくれてちょっと嬉しいな";
-  }
-
-  else{
-    mood="normal";
-    reply="ちゃんと聞いてるよ。もう少し教えてくれる？";
-  }
-
-  /* ===== 被り防止 ===== */
-  if(reply===lastReply){
-    reply+=" もう少しだけ知りたいな";
-  }
-
-  /* ===== 性格変化 ===== */
-  if(trust>10){
-    reply = "ねえ、"+reply;
-  }
-
-  setFace(mood);
-  lastReply=reply;
-
-  return reply;
+  localStorage.setItem("memory",JSON.stringify(memory));
 }
 
 </script>
