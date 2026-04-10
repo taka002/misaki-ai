@@ -3,19 +3,18 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>美咲AI 完全版</title>
+<title>美咲AI 完成版</title>
 
 <style>
 html,body{
   margin:0;
   height:100%;
   overflow:hidden;
-  background:#08121f;
   font-family:sans-serif;
   color:white;
 }
 
-/* ===== 上：画像 ===== */
+/* ===== 画像 ===== */
 .top{
   position:fixed;
   top:0;
@@ -32,7 +31,7 @@ html,body{
   border-radius:20px;
 }
 
-/* ===== 中：チャット ===== */
+/* ===== チャット ===== */
 #chatBox{
   position:fixed;
   top:28%;
@@ -126,6 +125,13 @@ onerror="this.src='https://via.placeholder.com/300x200'">
 
 <script>
 
+/* ===== 名前 ===== */
+let userName = localStorage.getItem("userName") || "";
+if(!userName){
+  userName = prompt("名前教えて？");
+  localStorage.setItem("userName", userName);
+}
+
 /* ===== 表情 ===== */
 const faces={
 normal:"girl-normal.jpg",
@@ -145,7 +151,7 @@ function time(){
          d.getMinutes().toString().padStart(2,"0");
 }
 
-/* ===== メッセージ表示 ===== */
+/* ===== メッセージ ===== */
 function addMessage(text,type){
   const div=document.createElement("div");
   div.className="message "+type;
@@ -164,7 +170,43 @@ function addMessage(text,type){
   chatBox.scrollTop = chatBox.scrollHeight;
 }
 
-/* ===== AI返信 ===== */
+/* ===== 夜モード ===== */
+function updateTheme(){
+  const hour = new Date().getHours();
+
+  if(hour >= 6 && hour < 12){
+    document.body.style.background="#102030";
+  }
+  else if(hour >= 12 && hour < 18){
+    document.body.style.background="#08121f";
+  }
+  else{
+    document.body.style.background="#050814";
+  }
+}
+setInterval(updateTheme,1000);
+
+/* ===== 音声 ===== */
+function speak(text){
+
+  const hour = new Date().getHours();
+
+  const msg=new SpeechSynthesisUtterance(text);
+  msg.lang="ja-JP";
+
+  msg.rate=1.0;
+  msg.pitch=1.2;
+
+  // 夜は甘く
+  if(hour >= 20 || hour < 5){
+    msg.rate=0.9;
+    msg.pitch=1.4;
+  }
+
+  speechSynthesis.speak(msg);
+}
+
+/* ===== AI ===== */
 function replyAI(text){
 
   let reply="ちゃんと聞いてるよ";
@@ -184,14 +226,19 @@ function replyAI(text){
     setFace("normal");
   }
 
-  // 既読表示
+  // 名前呼び
+  if(userName){
+    reply = userName + "、" + reply;
+  }
+
+  // 既読
   const read=document.createElement("div");
   read.style.fontSize="10px";
   read.style.color="#aaa";
   read.textContent="既読";
   chatBox.appendChild(read);
 
-  // タイピング演出
+  // タイピング
   const typing=document.createElement("div");
   typing.className="message bot";
   typing.textContent="…";
@@ -200,7 +247,7 @@ function replyAI(text){
   setTimeout(()=>{
     typing.remove();
     addMessage(reply,"bot");
-    speak(reply); // 音声再生
+    speak(reply);
   },1000);
 }
 
@@ -214,7 +261,7 @@ function sendMessage(){
   replyAI(text);
 }
 
-/* ===== 音声入力（完全安定版） ===== */
+/* ===== 音声入力 ===== */
 function startVoice(){
 
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -226,8 +273,6 @@ function startVoice(){
 
   const r = new SpeechRecognition();
   r.lang="ja-JP";
-  r.continuous=false;
-  r.interimResults=false;
 
   r.onresult=(e)=>{
     const text=e.results[0][0].transcript;
@@ -236,39 +281,33 @@ function startVoice(){
   };
 
   r.onerror=(e)=>{
-    console.log("音声:",e.error);
-
     if(e.error==="aborted") return;
     if(e.error==="no-speech") return;
     if(e.error==="not-allowed"){
       alert("マイク許可してね");
-      return;
-    }
-    if(e.error==="audio-capture"){
-      alert("マイク使えない");
-      return;
     }
   };
 
-  try{
-    r.start();
-  }catch(e){
-    console.log(e);
-  }
+  r.start();
 }
 
-/* ===== 音声出力 ===== */
-function speak(text){
-  const msg=new SpeechSynthesisUtterance(text);
-  msg.lang="ja-JP";
-  msg.rate=1.0;
-  msg.pitch=1.2;
-  speechSynthesis.speak(msg);
-}
-
-/* 初回 */
+/* ===== 初回 ===== */
 window.onload=()=>{
-  addMessage("おかえり","bot");
+
+  updateTheme();
+
+  let greet="おかえり";
+  const hour=new Date().getHours();
+
+  if(hour>=20){
+    greet="おかえり、待ってたよ";
+  }
+
+  if(userName){
+    greet=userName+"、"+greet;
+  }
+
+  addMessage(greet,"bot");
 };
 
 </script>
