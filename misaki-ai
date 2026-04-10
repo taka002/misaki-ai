@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>美咲AI 最終版</title>
+<title>美咲AI 完成形</title>
 
 <style>
 body{
@@ -13,29 +13,29 @@ body{
   color:white;
 }
 
-/* ===== 全体 ===== */
+/* ===== 全体固定 ===== */
 .app{
   height:100vh;
   display:flex;
   flex-direction:column;
+  overflow:hidden;
 }
 
-/* ===== キャラ ===== */
+/* ===== 画像（大きく＆固定） ===== */
 .top{
-  height:170px; /* ← 顔が全部見えるサイズ */
+  height:220px; /* ← 大きくした */
+  flex-shrink:0;
   display:flex;
   justify-content:center;
   align-items:center;
-  padding-top:10px;
+  background:#000;
 }
 
 .top img{
-  width:92%;
+  width:100%;
   height:100%;
-  object-fit:contain; /* ← 切れない */
-  object-position:top; /* ← 顔優先 */
-  border-radius:16px;
-  background:#000;
+  object-fit:contain; /* ← 顔切れない */
+  object-position:top;
 }
 
 /* ===== メイン ===== */
@@ -46,18 +46,7 @@ body{
   min-height:0;
 }
 
-/* ===== パネル ===== */
-.panel{
-  display:none;
-  flex:1;
-}
-
-.panel.active{
-  display:flex;
-  flex-direction:column;
-}
-
-/* ===== チャット ===== */
+/* ===== チャットだけスクロール ===== */
 #chatBox{
   flex:1;
   overflow-y:auto;
@@ -70,7 +59,6 @@ body{
   padding:12px;
   border-radius:16px;
   margin:6px 0;
-  line-height:1.6;
 }
 
 .user{
@@ -88,12 +76,13 @@ body{
   margin-top:4px;
 }
 
-/* ===== 入力 ===== */
+/* ===== 入力固定 ===== */
 .input{
   display:flex;
   gap:6px;
   padding:8px;
   background:#111;
+  flex-shrink:0;
 }
 
 input{
@@ -109,21 +98,17 @@ button{
   border:none;
 }
 
-/* ===== タブ ===== */
+/* ===== タブ固定 ===== */
 .tabs{
   display:flex;
   background:#222;
+  flex-shrink:0;
 }
 
 .tab{
   flex:1;
   text-align:center;
   padding:12px;
-}
-
-/* ===== 分析・未来 ===== */
-.card{
-  padding:15px;
 }
 </style>
 </head>
@@ -132,16 +117,13 @@ button{
 
 <div class="app">
 
-<!-- キャラ -->
+<!-- ===== 画像 ===== -->
 <div class="top">
 <img id="mainGirl" src="girl-normal.jpg">
 </div>
 
-<!-- メイン -->
+<!-- ===== チャット ===== -->
 <div class="main">
-
-<!-- 会話 -->
-<div id="chatPanel" class="panel active">
   <div id="chatBox"></div>
 
   <div class="input">
@@ -150,44 +132,39 @@ button{
   </div>
 </div>
 
-<!-- 分析 -->
-<div id="analysisPanel" class="panel">
-  <div class="card" id="analysisContent">まだデータが少ないよ</div>
-</div>
-
-<!-- 未来 -->
-<div id="futurePanel" class="panel">
-  <div class="card" id="futureContent">会話すると未来が見えてくるよ</div>
-</div>
-
-</div>
-
-<!-- タブ -->
+<!-- ===== タブ ===== -->
 <div class="tabs">
-  <div class="tab" onclick="switchTab('chat')">会話</div>
-  <div class="tab" onclick="switchTab('analysis')">分析</div>
-  <div class="tab" onclick="switchTab('future')">未来</div>
+  <div class="tab">会話</div>
+  <div class="tab">分析</div>
+  <div class="tab">未来</div>
+  <div class="tab">設定</div>
 </div>
 
 </div>
 
 <script>
 
-/* ===== 状態 ===== */
-let memory={
-  chatHistory:[],
-  lastReply:"",
-  mood:"normal"
+/* ===== 表情9枚 ===== */
+const faces = {
+  normal:"girl-normal.jpg",
+  happy:"girl-happy.png",
+  worried:"girl-worried.png",
+  sympathy:"girl-sympathy.png",
+  troubled:"girl-troubled.png",
+  healing:"girl-healing.png",
+  irritated:"girl-irritated.png",
+  panic:"girl-panic.png",
+  exhausted:"girl-exhausted.png"
 };
 
-/* ===== タブ ===== */
-function switchTab(tab){
-  document.querySelectorAll(".panel").forEach(p=>p.classList.remove("active"));
-
-  if(tab==="chat") chatPanel.classList.add("active");
-  if(tab==="analysis") analyze();
-  if(tab==="future") future();
+function setFace(type){
+  mainGirl.src = faces[type] || faces.normal;
 }
+
+/* ===== 状態 ===== */
+let memory={
+  lastReply:""
+};
 
 /* ===== 時間 ===== */
 function getTime(){
@@ -195,7 +172,7 @@ function getTime(){
   return d.getHours()+":"+String(d.getMinutes()).padStart(2,"0");
 }
 
-/* ===== メッセージ追加 ===== */
+/* ===== メッセージ ===== */
 function addMessage(text,type){
 
   const div=document.createElement("div");
@@ -210,20 +187,14 @@ function addMessage(text,type){
   chatBox.scrollTop=chatBox.scrollHeight;
 }
 
-/* ===== 表情 ===== */
-function setFace(type){
-  mainGirl.src="girl-"+type+".png";
-}
-
 /* ===== 送信 ===== */
 function sendMessage(){
   const text=userInput.value;
   if(!text) return;
 
   addMessage(text,"user");
-  memory.chatHistory.push(text);
 
-  const reply=generateReply(text);
+  const reply = generateReply(text);
 
   setTimeout(()=>{
     addMessage(reply,"bot");
@@ -232,82 +203,54 @@ function sendMessage(){
   userInput.value="";
 }
 
-/* ===== AI人格（強化版） ===== */
+/* ===== AI（繰り返し防止・人格強化） ===== */
 function generateReply(text){
 
   const t=text.toLowerCase();
 
-  function has(words){
-    return words.some(w=>t.includes(w));
+  function has(arr){
+    return arr.some(w=>t.includes(w));
   }
 
-  let reply="";
+  let r="";
 
-  if(has(["疲れ","しんど","無理","限界"])){
+  if(has(["疲れ","しんど","無理"])){
     setFace("exhausted");
-    reply="ちょっと無理してる感じあるね…今日は少し力抜けそう？";
+    r="ちょっと無理してる感じあるね…今日は少し力抜けそう？";
   }
 
-  else if(has(["不安","怖い","心配"])){
+  else if(has(["不安","怖い"])){
     setFace("worried");
-    reply="それ気になるよね…どこが一番引っかかってる？";
+    r="それ気になるよね…どこが一番引っかかってる？";
   }
 
   else if(has(["寂しい","つらい"])){
     setFace("sympathy");
-    reply="そっか…それはしんどいね。今ひとりで抱えてる感じ？";
+    r="そっか…それはしんどいね。今ひとりで抱えてる感じ？";
   }
 
-  else if(has(["イライラ","むかつく"])){
+  else if(has(["イライラ"])){
     setFace("irritated");
-    reply="それはイラッとするね…何が一番嫌だった？";
+    r="それはイラッとするね…何が一番嫌だった？";
   }
 
   else if(has(["嬉しい","楽しい"])){
     setFace("happy");
-    reply="いいね、それ。どの瞬間が一番よかった？";
+    r="いいね、それ。どの瞬間が一番よかった？";
   }
 
   else{
     setFace("normal");
-    reply="ちゃんと聞いてるよ。もう少し教えてくれる？";
+    r="ちゃんと聞いてるよ。もう少し教えてくれる？";
   }
 
-  /* 同じ返答防止 */
-  if(reply===memory.lastReply){
-    reply+=" 少し違う角度で聞くね、どんな感じ？";
+  if(r===memory.lastReply){
+    r+=" 少し違う言い方するとどう感じてる？";
   }
 
-  memory.lastReply=reply;
+  memory.lastReply=r;
 
-  return reply;
-}
-
-/* ===== 分析 ===== */
-function analyze(){
-  const text=memory.chatHistory.join("");
-
-  let fatigue = text.includes("疲") ? "高い" : "普通";
-  let anxiety = text.includes("不安") ? "あり" : "少なめ";
-
-  analysisContent.innerHTML=`
-    疲労：${fatigue}<br>
-    不安：${anxiety}
-  `;
-
-  analysisPanel.classList.add("active");
-}
-
-/* ===== 未来 ===== */
-function future(){
-
-  futureContent.innerHTML=`
-    このままだと少し消耗しそう<br><br>
-    A：休む → 回復ルート<br>
-    B：続ける → 負担増
-  `;
-
-  futurePanel.classList.add("active");
+  return r;
 }
 
 </script>
