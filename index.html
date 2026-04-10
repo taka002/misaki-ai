@@ -331,3 +331,24 @@ document.addEventListener("DOMContentLoaded",()=>{
     }
   });
 });
+const faces = {
+  normal:"girl-normal.jpg",
+  happy:"girl-happy.png",
+  healing:"girl-healing.png",
+  irritated:"girl-irritated.png",
+  sympathy:"girl-sympathy.png",
+  worried:"girl-worried.png",
+  troubled:"girl-troubled.png",
+  panic:"girl-panic.png",
+  exhausted:"girl-exhausted.png"
+};
+
+function changeFace(text){
+
+  if(text.includes("好き")) return face.src=faces.happy;
+  if(text.includes("疲")) return face.src=faces.exhausted;
+  if(text.includes("大丈夫")) return face.src=faces.sympathy;
+  if(text.includes("不安")) return face.src=faces.worried;
+
+  face.src=faces.normal;
+}
