@@ -21,158 +21,172 @@ button{padding:10px;}
 </style></head>
 <body><div class="app"><div class="top-character">
 <img id="mainGirl" src="girl-normal.jpg">
-</div><div id="chatPanel" class="panel active">
+</div><!-- 会話 --><div id="chatPanel" class="panel active">
 <div id="chatBox"></div>
 <div class="input-area">
 <input id="userInput">
 <button onclick="sendMessage()">送信</button>
 </div>
-</div><div id="analysisPanel" class="panel">
-<div id="analysisContent"></div>
-</div><div id="futurePanel" class="panel">
-<div id="futureContent"></div>
-</div><div class="tabs">
+</div><!-- 分析 --><div id="analysisPanel" class="panel">
+<div id="analysisContent" style="padding:20px;"></div>
+</div><!-- 未来 --><div id="futurePanel" class="panel">
+<div id="futureContent" style="padding:20px;"></div>
+</div><!-- 設定 --><div id="settingsPanel" class="panel">
+<div style="padding:20px;">
+<h2>⚙ 設定</h2><div style="margin-bottom:15px;">
+<div>あなたの名前</div>
+<input id="userNameInput">
+</div><div style="margin-bottom:15px;">
+<div>キャラ名</div>
+<input id="aiNameInput">
+</div><button onclick="saveSettings()">保存</button>
+
+</div>
+</div><!-- タブ --><div class="tabs">
 <div class="tab" onclick="switchTab('chat')">会話</div>
 <div class="tab" onclick="switchTab('analysis')">分析</div>
 <div class="tab" onclick="switchTab('future')">未来</div>
+<div class="tab" onclick="switchTab('settings')">設定</div>
 </div></div><script>
 
 // ===== 状態 =====
-let memory={
-  chatHistory:[],
-  mood:"normal"
-};
-
+let memory={chatHistory:[],mood:"normal"};
 let isPremium = localStorage.getItem("isPremium") === "true";
 
 // ===== 表情 =====
-const faceImages = {
-  normal:"girl-normal.jpg",
-  happy:"girl-happy.png",
-  sympathy:"girl-sympathy.png",
-  worried:"girl-worried.png",
-  troubled:"girl-troubled.png",
-  healing:"girl-healing.png",
-  irritated:"girl-irritated.png",
-  panic:"girl-panic.png",
-  exhausted:"girl-exhausted.png"
+const faceImages={
+ normal:"girl-normal.jpg",
+ happy:"girl-happy.png",
+ sympathy:"girl-sympathy.png",
+ worried:"girl-worried.png",
+ troubled:"girl-troubled.png",
+ healing:"girl-healing.png",
+ irritated:"girl-irritated.png",
+ panic:"girl-panic.png",
+ exhausted:"girl-exhausted.png"
 };
 
 function setFace(type){
-  const img=document.getElementById("mainGirl");
-  img.src=(faceImages[type]||faceImages.normal)+"?t="+Date.now();
-  memory.mood=type;
+ const img=document.getElementById("mainGirl");
+ img.src=(faceImages[type]||faceImages.normal)+"?t="+Date.now();
+ memory.mood=type;
 }
 
 // ===== タブ =====
 function switchTab(tab){
-  document.querySelectorAll(".panel").forEach(p=>p.classList.remove("active"));
-  if(tab==='chat') chatPanel.classList.add("active");
-  if(tab==='analysis') analysisPanel.classList.add("active");
-  if(tab==='future') futurePanel.classList.add("active");
+ document.querySelectorAll(".panel").forEach(p=>p.classList.remove("active"));
+ if(tab==='chat') chatPanel.classList.add("active");
+ if(tab==='analysis') analysisPanel.classList.add("active");
+ if(tab==='future') futurePanel.classList.add("active");
+ if(tab==='settings') settingsPanel.classList.add("active");
 }
 
 // ===== チャット =====
 function addMessage(text,type){
-  const div=document.createElement("div");
-  div.className="message "+type;
-  div.textContent=text;
-  chatBox.appendChild(div);
-  chatBox.scrollTop=chatBox.scrollHeight;
+ const div=document.createElement("div");
+ div.className="message "+type;
+ div.textContent=text;
+ chatBox.appendChild(div);
+ chatBox.scrollTop=chatBox.scrollHeight;
 }
 
 function sendMessage(){
-  const text=userInput.value.trim();
-  if(!text) return;
+ const text=userInput.value.trim();
+ if(!text) return;
 
-  addMessage(text,"user");
-  memory.chatHistory.push(text);
+ addMessage(text,"user");
+ memory.chatHistory.push(text);
 
-  const reply=generateReply(text);
-  addMessage(reply,"bot");
+ const reply=generateReply(text);
+ addMessage(reply,"bot");
 
-  userInput.value="";
+ userInput.value="";
 }
 
 userInput.addEventListener("keypress",e=>{
-  if(e.key==="Enter") sendMessage();
+ if(e.key==="Enter") sendMessage();
 });
 
 function generateReply(text){
+ const lower=text.toLowerCase();
+ const contains=(arr)=>arr.some(w=>lower.includes(w));
 
-  const lower=text.toLowerCase();
-  const contains=(arr)=>arr.some(w=>lower.includes(w));
+ if(contains(["疲れ","しんど","無理","限界"])){
+ setFace("exhausted");
+ return "かなり無理してる感じあるね…\n今日は少し力抜けそう？";
+ }
 
-  if(contains(["疲れ","しんど","無理","限界"])){
-    setFace("exhausted");
-    return "かなり無理してる感じあるね…\n今日は少し力抜けそう？";
-  }
+ if(contains(["不安","怖い","こわい","心配"])){
+ setFace("worried");
+ return "それ気になるよね…\n今いちばん引っかかってるのどこ？";
+ }
 
-  if(contains(["不安","怖い","こわい","心配"])){
-    setFace("worried");
-    return "それ気になるよね…\n今いちばん引っかかってるのどこ？";
-  }
+ if(contains(["悲しい","つらい","寂しい"])){
+ setFace("sympathy");
+ return "そっか…それはしんどいね\n無理に元気にならなくていいよ";
+ }
 
-  if(contains(["悲しい","つらい","寂しい"])){
-    setFace("sympathy");
-    return "そっか…それはしんどいね\n無理に元気にならなくていいよ";
-  }
+ if(contains(["イライラ","むかつく","腹立つ"])){
+ setFace("irritated");
+ return "それはイラッとするね\n何が一番引っかかった？";
+ }
 
-  if(contains(["イライラ","むかつく","腹立つ"])){
-    setFace("irritated");
-    return "それはイラッとするね\n何が一番引っかかった？";
-  }
+ if(contains(["嬉しい","楽しい","よかった"])){
+ setFace("happy");
+ return "それいいね😊\nどんなところが一番よかった？";
+ }
 
-  if(contains(["嬉しい","楽しい","よかった"])){
-    setFace("happy");
-    return "それいいね😊\nどんなところが一番よかった？";
-  }
-
-  setFace("normal");
-  return "ちゃんと聞いてるよ\nもう少し教えてくれる？";
+ setFace("normal");
+ return "ちゃんと聞いてるよ\nもう少し教えてくれる？";
 }
 
 // ===== 分析 =====
 function analyze(){
-  const text=memory.chatHistory.join(" ");
+ const text=memory.chatHistory.join(" ");
+ let fatigue=text.includes("疲")?80:30;
+ let anxiety=text.includes("不安")?70:30;
 
-  let fatigue=text.includes("疲")?80:30;
-  let anxiety=text.includes("不安")?70:30;
-
-  analysisContent.innerHTML=`
-    <div>疲労:${fatigue}</div>
-    <div>不安:${anxiety}</div>
-  `;
+ analysisContent.innerHTML=`
+ <h3>📊 分析</h3>
+ <div>疲労:${fatigue}</div>
+ <div>不安:${anxiety}</div>
+ `;
 }
 
 // ===== 未来 =====
 function openFuture(){
+ if(!isPremium){alert("プレミアム限定");return;}
 
-  if(!isPremium){
-    alert("プレミアム限定");
-    return;
-  }
+ let resultA="回復ルート";
+ let resultB="悪化ルート";
 
-  const mood=memory.mood;
+ if(memory.mood==="exhausted"){
+ resultA="休めば回復";
+ resultB="続けると限界";
+ }
 
-  let resultA="回復ルート（少し楽になる）";
-  let resultB="消耗ルート（悪化しやすい）";
+ futureContent.innerHTML=`
+ <h3>🔮 未来分岐</h3>
+ <div>A: ${resultA}</div>
+ <div>B: ${resultB}</div>
+ `;
+}
 
-  if(mood==="exhausted"){
-    resultA="休めばかなり回復";
-    resultB="続けると限界近い";
-  }
+// ===== 設定 =====
+function saveSettings(){
+ const name=userNameInput.value;
+ const ai=aiNameInput.value;
 
-  futureContent.innerHTML=`
-    <div>A: ${resultA}</div>
-    <div>B: ${resultB}</div>
-  `;
+ localStorage.setItem("userName",name);
+ localStorage.setItem("aiName",ai);
+
+ alert("保存したよ");
 }
 
 // ===== 課金 =====
 function unlockPremium(){
-  isPremium=true;
-  localStorage.setItem("isPremium","true");
+ isPremium=true;
+ localStorage.setItem("isPremium","true");
 }
 
 </script></body>
