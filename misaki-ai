@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>美咲AI 完全安定版</title>
+<title>美咲AI 人格強化版</title>
 
 <style>
 body{
@@ -13,7 +13,6 @@ body{
   color:white;
 }
 
-/* ===== 全体 ===== */
 .app{
   display:flex;
   flex-direction:column;
@@ -23,13 +22,13 @@ body{
 
 /* ===== 画像 ===== */
 .top{
-  height:110px;
-  flex-shrink:0;
+  height:120px;
 }
 .top img{
   width:100%;
   height:100%;
   object-fit:cover;
+  transform:translateY(12px);
 }
 
 /* ===== メイン ===== */
@@ -40,24 +39,26 @@ body{
   min-height:0;
 }
 
-/* ===== パネル ===== */
 .panel{
   display:none;
   flex:1;
   flex-direction:column;
-  min-height:0;
 }
 .panel.active{
   display:flex;
 }
 
 /* ===== チャット ===== */
+.chat-wrap{
+  display:flex;
+  flex-direction:column;
+  height:100%;
+}
+
 #chatBox{
   flex:1;
   overflow-y:auto;
   padding:10px;
-  display:flex;
-  flex-direction:column;
 }
 
 .msg{
@@ -83,21 +84,17 @@ body{
 
 /* ===== 入力 ===== */
 .input{
-  flex-shrink:0;
   display:flex;
-  padding:6px;
   gap:6px;
+  padding:6px;
   background:#111;
 }
-
 input{
   flex:1;
   min-width:0;
   padding:10px;
 }
-
 button{
-  flex-shrink:0;
   padding:10px;
 }
 
@@ -105,19 +102,12 @@ button{
 .tabs{
   height:50px;
   display:flex;
-  flex-shrink:0;
   background:#222;
 }
-
 .tab{
   flex:1;
   text-align:center;
   line-height:50px;
-}
-
-/* ===== 分析・未来 ===== */
-.box{
-  padding:15px;
 }
 </style>
 </head>
@@ -126,49 +116,47 @@ button{
 
 <div class="app">
 
-<!-- 上：画像 -->
 <div class="top">
 <img src="girl-normal.jpg">
 </div>
 
-<!-- 中央 -->
 <div class="main">
 
 <!-- 会話 -->
 <div id="chatPanel" class="panel active">
+<div class="chat-wrap">
+
 <div id="chatBox"></div>
 
 <div class="input">
 <input id="input">
 <button onclick="send()">送信</button>
 </div>
-</div>
 
-<!-- 分析 -->
-<div id="analysisPanel" class="panel">
-<div class="box" id="analysisContent">まだデータなし</div>
 </div>
-
-<!-- 未来 -->
-<div id="futurePanel" class="panel">
-<div class="box" id="futureContent">未来予測はここに表示</div>
 </div>
 
 <!-- 設定 -->
 <div id="settingsPanel" class="panel">
-<div class="box">
+<div style="padding:10px;">
 名前<input id="name"><br><br>
+
+性格
+<select id="personality">
+<option value="soft">優しい</option>
+<option value="cool">さっぱり</option>
+<option value="teasing">小悪魔</option>
+</select>
+
+<br><br>
 <button onclick="save()">保存</button>
 </div>
 </div>
 
 </div>
 
-<!-- 下タブ -->
 <div class="tabs">
 <div class="tab" onclick="switchTab('chat')">会話</div>
-<div class="tab" onclick="switchTab('analysis')">分析</div>
-<div class="tab" onclick="switchTab('future')">未来</div>
 <div class="tab" onclick="switchTab('settings')">設定</div>
 </div>
 
@@ -179,25 +167,29 @@ button{
 /* ===== 状態 ===== */
 let memory={
   name:localStorage.getItem("name")||"美咲",
-  history:JSON.parse(localStorage.getItem("history")||"[]")
+  personality:localStorage.getItem("personality")||"soft",
+  history:JSON.parse(localStorage.getItem("history")||"[]"),
+  lastReply:"",
+  level:parseInt(localStorage.getItem("level")||"1")
 };
 
 name.value=memory.name;
-
-/* ===== タブ ===== */
-function switchTab(tab){
-  document.querySelectorAll(".panel").forEach(p=>p.classList.remove("active"));
-
-  if(tab==="chat") chatPanel.classList.add("active");
-  if(tab==="analysis") analysisPanel.classList.add("active");
-  if(tab==="future") futurePanel.classList.add("active");
-  if(tab==="settings") settingsPanel.classList.add("active");
-}
+personality.value=memory.personality;
 
 /* ===== 保存 ===== */
 function save(){
   memory.name=name.value;
+  memory.personality=personality.value;
+
   localStorage.setItem("name",memory.name);
+  localStorage.setItem("personality",memory.personality);
+}
+
+/* ===== タブ ===== */
+function switchTab(tab){
+  document.querySelectorAll(".panel").forEach(p=>p.classList.remove("active"));
+  if(tab==="chat") chatPanel.classList.add("active");
+  if(tab==="settings") settingsPanel.classList.add("active");
 }
 
 /* ===== 時刻 ===== */
@@ -215,43 +207,64 @@ function add(text,type){
   chatBox.scrollTop=chatBox.scrollHeight;
 }
 
-/* ===== AI返答 ===== */
+/* ===== 名前呼び ===== */
+function maybeName(){
+  if(Math.random()<0.3 && name.value){
+    return name.value+"、";
+  }
+  return "";
+}
+
+/* ===== 性格トーン ===== */
+function tone(text){
+  if(memory.personality==="cool") return text.replace("ね","").replace("？","?");
+  if(memory.personality==="teasing") return text+"…ふふ"
+  return text;
+}
+
+/* ===== 関係性 ===== */
+function relation(){
+  if(memory.level<5) return "";
+  if(memory.level<15) return "ねぇ、";
+  return "ねぇさ、";
+}
+
+/* ===== 重複防止 ===== */
+function unique(r){
+  if(r===memory.lastReply){
+    return r+"…ちょっと違う言い方すると、";
+  }
+  memory.lastReply=r;
+  return r;
+}
+
+/* ===== AI ===== */
 function reply(t){
 
+  memory.level++;
+  localStorage.setItem("level",memory.level);
+
+  let intro = relation()+maybeName();
+
+  let r="";
+
   if(t.includes("疲")){
-    return "ちょっと無理してる感じあるね…少し休めそう？";
+    r="無理してる感じあるね…少し休めそう？";
+  }
+  else if(t.includes("不安")){
+    r="それ気になるよね…どこが一番引っかかる？";
+  }
+  else if(t.includes("嬉")){
+    r="それいいね、どこが一番よかった？";
+  }
+  else{
+    r="もう少し聞かせてほしいな";
   }
 
-  if(t.includes("不安")){
-    return "それ気になるよね…どこが一番引っかかる？";
-  }
+  r=intro + tone(r);
+  r=unique(r);
 
-  return "ちゃんと聞いてるよ、もう少し教えて？";
-}
-
-/* ===== 分析 ===== */
-function analyze(){
-  let text=memory.history.join(" ");
-
-  let fatigue=text.includes("疲")?80:20;
-
-  analysisContent.innerHTML=`
-    疲労度：${fatigue}
-  `;
-}
-
-/* ===== 未来 ===== */
-function future(){
-  let text=memory.history.join(" ");
-
-  if(text.includes("疲")){
-    futureContent.innerHTML=`
-    A：休む → 回復<br>
-    B：続ける → 悪化
-    `;
-  }else{
-    futureContent.innerHTML="まだ予測できません";
-  }
+  return r;
 }
 
 /* ===== 送信 ===== */
@@ -266,9 +279,6 @@ function send(){
 
   memory.history.push(t);
   localStorage.setItem("history",JSON.stringify(memory.history));
-
-  analyze();
-  future();
 
   input.value="";
 }
