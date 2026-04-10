@@ -6,75 +6,71 @@
 <title>美咲AI 完全版</title>
 
 <style>
-html,body{
+body{
   margin:0;
-  height:100%;
-  overflow:hidden;
   font-family:sans-serif;
-  background:#08121f;
+  background:#001522;
   color:white;
 }
 
-/* 上画像（表情） */
-.top{
-  position:fixed;
-  top:0;
-  width:100%;
-  height:28%;
-  display:flex;
-  justify-content:center;
+/* 上部 */
+.header{
+  text-align:center;
+  padding:10px;
 }
-.top img{
-  width:90%;
-  height:100%;
+.header img{
+  width:100%;
+  max-height:200px;
   object-fit:cover;
   border-radius:20px;
 }
 
 /* チャット */
-#chatBox{
-  position:fixed;
-  top:28%;
-  bottom:110px;
-  width:100%;
+.chat{
+  height:55vh;
   overflow-y:auto;
   padding:10px;
 }
 
-/* メッセージ */
-.message{
-  max-width:75%;
-  padding:10px;
-  border-radius:14px;
-  margin:6px;
+/* 吹き出し */
+.msg{
+  max-width:70%;
+  padding:12px;
+  margin:8px;
+  border-radius:20px;
+  position:relative;
 }
 .user{
-  background:#ff4f8b;
+  background:#ff4f7a;
   margin-left:auto;
 }
-.bot{
+.ai{
   background:#444;
 }
 
+/* 時刻 */
+.time{
+  font-size:10px;
+  opacity:0.7;
+  position:absolute;
+  right:10px;
+  bottom:-15px;
+}
+
 /* 入力 */
-.input{
+.inputArea{
   position:fixed;
-  bottom:50px;
+  bottom:60px;
   width:100%;
-  height:60px;
   display:flex;
-  padding:6px;
-  background:#111;
 }
 input{
   flex:1;
   padding:10px;
-  border-radius:10px;
-  border:none;
+  font-size:16px;
 }
 button{
-  width:60px;
-  margin-left:5px;
+  padding:10px;
 }
 
 /* タブ */
@@ -82,7 +78,6 @@ button{
   position:fixed;
   bottom:0;
   width:100%;
-  height:50px;
   display:flex;
   background:#222;
 }
@@ -92,308 +87,247 @@ button{
   padding:10px;
 }
 
-/* 設定 */
-#settingsPanel{
+/* 設定モーダル */
+.modal{
   display:none;
   position:fixed;
   top:10%;
-  left:5%;
-  width:90%;
-  max-height:80vh;
-  overflow-y:auto;
+  left:10%;
+  width:80%;
   background:#222;
-  padding:15px;
+  padding:20px;
   border-radius:10px;
-  z-index:999;
 }
-textarea{
+.modal input, select{
   width:100%;
+  margin:5px 0;
 }
 </style>
 </head>
 
 <body>
 
-<!-- 表情 -->
-<div class="top">
+<div class="header">
 <img id="face" src="girl-normal.jpg">
 </div>
 
-<!-- チャット -->
-<div id="chatBox"></div>
+<div id="chat" class="chat"></div>
 
-<!-- 入力 -->
-<div class="input">
+<div class="inputArea">
 <button onclick="startVoice()">🎤</button>
-<input id="userInput" placeholder="話しかけて...">
-<button onclick="sendMessage()">送信</button>
+<input id="text" placeholder="話しかけて...">
+<button onclick="send()">送信</button>
 </div>
 
-<!-- タブ -->
 <div class="tabs">
 <div class="tab">会話</div>
 <div class="tab">分析</div>
 <div class="tab">未来</div>
-<div class="tab" onclick="toggleSettings()">設定</div>
+<div class="tab" onclick="openSettings()">設定</div>
 </div>
 
 <!-- 設定 -->
-<div id="settingsPanel">
-
+<div id="modal" class="modal">
 <h3>設定</h3>
 
-名前<br>
-<input id="userName"><br><br>
+<input id="name" placeholder="名前">
+<select id="aiType">
+<option value="gpt">ChatGPT</option>
+<option value="gemini">Gemini</option>
+<option value="local">ローカル</option>
+</select>
 
-音声<br>
-<select id="voiceMode">
-<option value="off">OFF</option>
-<option value="native">スマホ音声</option>
-</select><br><br>
+<input id="openaiKey" placeholder="ChatGPT APIキー">
+<input id="geminiKey" placeholder="Gemini APIキー">
+<input id="elevenKey" placeholder="ElevenLabs APIキー">
+<input id="voiceId" placeholder="Voice ID">
 
-性格<br>
-<textarea id="personality">優しく寄り添う女性</textarea><br><br>
+<select id="voiceType">
+<option value="browser">スマホ音声</option>
+<option value="eleven">AI音声</option>
+</select>
 
 <button onclick="saveSettings()">保存</button>
-<button onclick="toggleSettings()">閉じる</button>
-
+<button onclick="closeSettings()">閉じる</button>
 </div>
 
 <script>
 
-/* =====================
-  表情データ
-===================== */
-
-const faceImg = document.getElementById("face");
-
-const faces = {
-  normal:"girl-normal.jpg",
-  happy:"girl-happy.png",
-  healing:"girl-healing.png",
-  irritated:"girl-irritated.png",
-  sympathy:"girl-sympathy.png",
-  worried:"girl-worried.png",
-  troubled:"girl-troubled.png",
-  panic:"girl-panic.png",
-  exhausted:"girl-exhausted.png"
-};
-
-function changeFace(type){
-  if(faces[type]){
-    faceImg.src = faces[type];
-  }
-}
-
-/* =====================
-  基本
-===================== */
-
-const chatBox = document.getElementById("chatBox");
-const userInput = document.getElementById("userInput");
-
-let isSending = false;
-
-/* =====================
-  設定
-===================== */
-
-function toggleSettings(){
-  settingsPanel.style.display =
-    settingsPanel.style.display==="none"?"block":"none";
-}
-
-function saveSettings(){
-  localStorage.setItem("userName", userName.value);
-  localStorage.setItem("voiceMode", voiceMode.value);
-  localStorage.setItem("personality", personality.value);
-  alert("保存したよ");
-}
-
-/* =====================
-  起動処理（超重要）
-===================== */
-
+/* ===== 初期 ===== */
 window.onload = ()=>{
-
-  userName.value = localStorage.getItem("userName") || "";
-  voiceMode.value = localStorage.getItem("voiceMode") || "native";
-
-  const name = userName.value || "あなた";
-  const hour = new Date().getHours();
-
-  let greet="";
-  let face="normal";
-
-  if(hour < 11){
-    greet="おはよう";
-    face="happy";
-  }else if(hour < 18){
-    greet="こんにちは";
-    face="normal";
-  }else{
-    greet="おかえり";
-    face="healing";
-  }
-
-  changeFace(face);
-
-  const msg = `${name}、${greet}`;
-  addMessage(msg,"bot");
-
-  setTimeout(()=>{
-    speak(msg);
-  },500);
-};
-
-/* =====================
-  メッセージ表示
-===================== */
-
-function addMessage(text,type){
-
-  const div=document.createElement("div");
-  div.className="message "+type;
-
-  const now=new Date();
-  const time = now.getHours().toString().padStart(2,"0") + ":" +
-               now.getMinutes().toString().padStart(2,"0");
-
-  div.innerHTML = `
-    <div>${text}</div>
-    <div style="font-size:10px;opacity:0.6;text-align:right;">${time}</div>
-  `;
-
-  chatBox.appendChild(div);
-  chatBox.scrollTop = chatBox.scrollHeight;
+  loadSettings();
+  greet();
 }
 
-/* =====================
-  音声
-===================== */
-
-function speak(text){
-
-  if(localStorage.getItem("voiceMode")==="off") return;
-
-  try{
-    speechSynthesis.cancel();
-
-    const msg = new SpeechSynthesisUtterance(text);
-    msg.lang="ja-JP";
-    msg.pitch=1.2;
-
-    speechSynthesis.speak(msg);
-  }catch(e){}
+/* ===== 設定 ===== */
+function saveSettings(){
+  localStorage.setItem("name", name.value);
+  localStorage.setItem("aiType", aiType.value);
+  localStorage.setItem("openaiKey", openaiKey.value);
+  localStorage.setItem("geminiKey", geminiKey.value);
+  localStorage.setItem("elevenKey", elevenKey.value);
+  localStorage.setItem("voiceId", voiceId.value);
+  localStorage.setItem("voiceType", voiceType.value);
+  alert("保存OK");
 }
 
-/* =====================
-  AI（人格付き）
-===================== */
-
-function replyAI(text){
-
-  let reply="";
-  let face="normal";
-
-  if(text.includes("疲")){
-    reply="無理してない？ちゃんと休めてる？";
-    face="exhausted";
-
-  }else if(text.includes("嬉") || text.includes("楽")){
-    reply="いいね、それ聞いて私も嬉しい";
-    face="happy";
-
-  }else if(text.includes("不安") || text.includes("心配")){
-    reply="そっか…それは不安になるよね";
-    face="worried";
-
-  }else if(text.includes("ムカ") || text.includes("イライラ")){
-    reply="それはちょっとイラっとするね";
-    face="irritated";
-
-  }else{
-    reply="ちゃんと聞いてるよ、続けて";
-    face="normal";
-  }
-
-  changeFace(face);
-  showReply(reply);
+function loadSettings(){
+  name.value = localStorage.getItem("name") || "";
+  aiType.value = localStorage.getItem("aiType") || "local";
+  openaiKey.value = localStorage.getItem("openaiKey") || "";
+  geminiKey.value = localStorage.getItem("geminiKey") || "";
+  elevenKey.value = localStorage.getItem("elevenKey") || "";
+  voiceId.value = localStorage.getItem("voiceId") || "";
+  voiceType.value = localStorage.getItem("voiceType") || "browser";
 }
 
-/* =====================
-  返信表示
-===================== */
+/* ===== UI ===== */
+function openSettings(){ modal.style.display="block"; }
+function closeSettings(){ modal.style.display="none"; }
 
-function showReply(reply){
+/* ===== メッセージ ===== */
+function addMsg(text, type){
+  const div = document.createElement("div");
+  div.className = "msg " + type;
+  div.innerText = text;
 
-  const typing=document.createElement("div");
-  typing.className="message bot";
-  typing.textContent="…";
+  const time = document.createElement("div");
+  time.className="time";
+  time.innerText = new Date().toLocaleTimeString();
+  div.appendChild(time);
 
-  chatBox.appendChild(typing);
-  chatBox.scrollTop = chatBox.scrollHeight;
-
-  setTimeout(()=>{
-    typing.remove();
-
-    addMessage(reply,"bot");
-
-    setTimeout(()=>{
-      speak(reply);
-    },200);
-
-  },500);
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
 }
 
-/* =====================
-  送信
-===================== */
-
-function sendMessage(){
-
-  if(isSending) return;
-
-  const text=userInput.value.trim();
+/* ===== 送信 ===== */
+async function send(){
+  const text = document.getElementById("text").value;
   if(!text) return;
 
-  isSending=true;
+  addMsg(text,"user");
+  document.getElementById("text").value="";
 
-  addMessage(text,"user");
-  userInput.value="";
+  let reply="...";
 
-  replyAI(text);
+  const type = localStorage.getItem("aiType");
 
-  setTimeout(()=>{
-    isSending=false;
-  },500);
-}
-
-/* =====================
-  音声入力
-===================== */
-
-function startVoice(){
-
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-
-  if(!SpeechRecognition){
-    alert("Chromeで開いてね");
-    return;
+  if(type==="gpt"){
+    reply = await sendGPT(text);
+  }else if(type==="gemini"){
+    reply = await sendGemini(text);
+  }else{
+    reply = "ちゃんと聞いてるよ";
   }
 
-  const r = new SpeechRecognition();
-  r.lang="ja-JP";
-
-  r.onresult=(e)=>{
-    const text=e.results[0][0].transcript;
-    userInput.value=text;
-    sendMessage();
-  };
-
-  r.start();
+  addMsg(reply,"ai");
+  speak(reply);
 }
 
+/* ===== GPT ===== */
+async function sendGPT(text){
+  const key = localStorage.getItem("openaiKey");
+
+  const res = await fetch("https://api.openai.com/v1/chat/completions",{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json",
+      "Authorization":"Bearer "+key
+    },
+    body:JSON.stringify({
+      model:"gpt-4o-mini",
+      messages:[
+        {role:"system",content:"優しい女性として会話して"},
+        {role:"user",content:text}
+      ]
+    })
+  });
+
+  const data = await res.json();
+  return data.choices?.[0]?.message?.content || "エラー";
+}
+
+/* ===== Gemini ===== */
+async function sendGemini(text){
+  const key = localStorage.getItem("geminiKey");
+
+  const res = await fetch(
+    "https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key="+key,
+  {
+    method:"POST",
+    headers:{ "Content-Type":"application/json"},
+    body:JSON.stringify({
+      contents:[{parts:[{text:text}]}]
+    })
+  });
+
+  const data = await res.json();
+  return data.candidates?.[0]?.content?.parts?.[0]?.text || "エラー";
+}
+
+/* ===== 音声 ===== */
+function speak(text){
+  const type = localStorage.getItem("voiceType");
+
+  if(type==="browser"){
+    const uttr = new SpeechSynthesisUtterance(text);
+    speechSynthesis.speak(uttr);
+  }else{
+    speakEleven(text);
+  }
+}
+
+async function speakEleven(text){
+  const key = localStorage.getItem("elevenKey");
+  const voice = localStorage.getItem("voiceId");
+
+  const res = await fetch(
+    `https://api.elevenlabs.io/v1/text-to-speech/${voice}`,
+    {
+      method:"POST",
+      headers:{
+        "xi-api-key":key,
+        "Content-Type":"application/json"
+      },
+      body:JSON.stringify({
+        text:text,
+        model_id:"eleven_multilingual_v2"
+      })
+    }
+  );
+
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  new Audio(url).play();
+}
+
+/* ===== 音声入力 ===== */
+function startVoice(){
+  const rec = new webkitSpeechRecognition();
+  rec.lang="ja-JP";
+  rec.onresult = e=>{
+    text.value = e.results[0][0].transcript;
+  };
+  rec.start();
+}
+
+/* ===== 起動時あいさつ ===== */
+function greet(){
+  const name = localStorage.getItem("name") || "";
+  const hour = new Date().getHours();
+
+  let msg="こんにちは";
+
+  if(hour<5) msg="まだ起きてるの？";
+  else if(hour<11) msg="おはよう";
+  else if(hour<18) msg="こんにちは";
+  else msg="こんばんは";
+
+  if(name) msg = name + "、" + msg;
+
+  addMsg(msg,"ai");
+  speak(msg);
+}
 </script>
 
 </body>
