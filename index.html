@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>美咲AI 最終版</title>
+<title>美咲AI 完成版</title>
 
 <style>
 body{
@@ -21,13 +21,13 @@ body{
 
 /* ===== 画像固定 ===== */
 .top{
-  height:30vh;
+  height:28vh;
   display:flex;
   justify-content:center;
   align-items:center;
 }
 .top img{
-  width:90%;
+  width:92%;
   height:100%;
   object-fit:cover;
   border-radius:20px;
@@ -45,7 +45,7 @@ body{
   padding:10px;
   border-radius:15px;
   margin:6px;
-  font-size:14px;
+  font-size:13px;
 }
 
 .user{
@@ -106,8 +106,8 @@ button{
 
 <!-- 入力 -->
 <div class="input">
-<input id="userInput" placeholder="話しかけて...">
 <button onclick="startVoice()">🎤</button>
+<input id="userInput" placeholder="話しかけて...">
 <button onclick="sendMessage()">送信</button>
 </div>
 
@@ -152,82 +152,95 @@ function addMessage(text, type){
   chatBox.scrollTop = chatBox.scrollHeight;
 }
 
+/* ===== 時間取得 ===== */
+
+function getHour(){
+  return new Date().getHours();
+}
+
+/* ===== 感情判定 ===== */
+
+function detectMood(text){
+
+  if(text.includes("疲れ") || text.includes("しんど")) return "tired";
+  if(text.includes("ムカ") || text.includes("イライラ")) return "angry";
+  if(text.includes("楽しい") || text.includes("嬉しい")) return "happy";
+
+  return "normal";
+}
+
+/* ===== 返信生成 ===== */
+
+function getReply(text){
+
+  const mood = detectMood(text);
+  const hour = getHour();
+  const name = memory.userName;
+
+  let base="";
+
+  // 夜モード
+  if(hour >= 22 || hour <= 5){
+
+    if(mood==="tired") base = `${name}…無理しすぎだよ、ちゃんと休も？`;
+    else base = `${name}、今日どうだった？少し話そ`;
+
+  }else{
+
+    if(mood==="tired") base = `${name}、ちょっと無理してない？`;
+    else if(mood==="happy") base = `${name}楽しそうだね`;
+    else if(mood==="angry") base = `それはちょっとイラっとするね`;
+    else base = `ちゃんと聞いてるよ`;
+  }
+
+  return {text:base, mood};
+}
+
+/* ===== 音声（感情対応） ===== */
+
+function speak(text, mood){
+
+  const uttr = new SpeechSynthesisUtterance(text);
+  uttr.lang = "ja-JP";
+
+  // 感情で変化
+  if(mood==="tired"){
+    uttr.rate = 0.9;
+    uttr.pitch = 1.0;
+  }
+
+  if(mood==="happy"){
+    uttr.rate = 1.1;
+    uttr.pitch = 1.3;
+  }
+
+  if(mood==="angry"){
+    uttr.rate = 1.2;
+    uttr.pitch = 0.9;
+  }
+
+  if(mood==="normal"){
+    uttr.rate = 1;
+    uttr.pitch = 1.2;
+  }
+
+  speechSynthesis.speak(uttr);
+}
+
 /* ===== 既読風 ===== */
 
 function showTyping(callback){
 
   const div=document.createElement("div");
   div.className="message bot";
-  div.textContent="既読…";
+  div.textContent="入力中...";
 
   chatBox.appendChild(div);
 
   setTimeout(()=>{
-    div.textContent="入力中...";
-  },800);
-
-  setTimeout(()=>{
     div.remove();
     callback();
-  },1800);
-}
-
-/* ===== 親密度 ===== */
-
-function updateAffinity(text){
-
-  if(text.includes("ありがとう") || text.includes("楽しい")){
-    memory.affinity+=2;
-  }else{
-    memory.affinity+=1;
-  }
-
-  localStorage.setItem("memory", JSON.stringify(memory));
-}
-
-/* ===== 名前呼び ===== */
-
-function getName(){
-  return memory.userName || "あなた";
-}
-
-/* ===== 性格変化 ===== */
-
-function getPersonalityReply(text){
-
-  const a = memory.affinity;
-  const name = getName();
-
-  if(text.includes("疲れ")){
-
-    if(a<5){
-      return "少し疲れてる感じあるね";
-    }
-
-    if(a<15){
-      return `${name}、ちょっと無理してない？`;
-    }
-
-    return `${name}、無理しすぎ…ちゃんと休も？`;
-  }
-
-  if(text.includes("楽しい")){
-    if(a<5) return "いいね";
-    if(a<15) return `${name}楽しそうだね`;
-    return `${name}楽しそうで嬉しいな`;
-  }
-
-  return random([
-    `${name}、もう少し教えて？`,
-    "ちゃんと聞いてるよ",
-    "それでどう感じた？"
-  ]);
-}
-
-/* ===== ランダム ===== */
-
-function random(arr){
-  return arr[Math.floor(Math.random()*arr.length)];
+  },1200);
 }
 
 /* ===== 送信 ===== */
@@ -240,13 +253,18 @@ function sendMessage(){
   addMessage(text,"user");
   memory.chat.push(text);
 
-  updateAffinity(text);
-
   userInput.value="";
 
   showTyping(()=>{
-    const reply = getPersonalityReply(text);
-    addMessage(reply,"bot");
+
+    const res = getReply(text);
+
+    addMessage(res.text,"bot");
+
+    setTimeout(()=>{
+      speak(res.text, res.mood);
+    },300);
+
   });
 
   localStorage.setItem("memory", JSON.stringify(memory));
@@ -258,18 +276,21 @@ function startVoice(){
 
   try{
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
     const recog = new SpeechRecognition();
 
     recog.lang="ja-JP";
 
     recog.onresult=(e)=>{
-      userInput.value = e.results[0][0].transcript;
+      const text = e.results[0][0].transcript;
+      userInput.value = text;
+      sendMessage();
     };
 
     recog.start();
 
   }catch(e){
-    alert("音声未対応");
+    alert("音声入力非対応");
   }
 }
 
