@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>美咲AI 完成版</title>
+<title>美咲AI 最終版</title>
 
 <style>
 html,body{
@@ -14,7 +14,7 @@ html,body{
   color:white;
 }
 
-/* ===== 画像 ===== */
+/* ===== 上画像 ===== */
 .top{
   position:fixed;
   top:0;
@@ -22,7 +22,6 @@ html,body{
   height:28%;
   display:flex;
   justify-content:center;
-  align-items:center;
 }
 .top img{
   width:90%;
@@ -64,18 +63,15 @@ html,body{
   width:100%;
   height:60px;
   display:flex;
-  align-items:center;
   padding:6px;
   background:#111;
 }
-
 input{
   flex:1;
   padding:10px;
   border-radius:10px;
   border:none;
 }
-
 button{
   width:50px;
   margin-left:5px;
@@ -104,8 +100,7 @@ button{
 <body>
 
 <div class="top">
-<img id="face" src="girl-normal.jpg"
-onerror="this.src='https://via.placeholder.com/300x200'">
+<img id="face" src="girl-normal.jpg">
 </div>
 
 <div id="chatBox"></div>
@@ -132,12 +127,42 @@ if(!userName){
   localStorage.setItem("userName", userName);
 }
 
+/* ===== 親密度 ===== */
+let love = Number(localStorage.getItem("love")) || 0;
+
+function addLove(){
+  love++;
+  localStorage.setItem("love", love);
+}
+
+/* ===== 記憶 ===== */
+let memory = JSON.parse(localStorage.getItem("memory")) || [];
+
+function saveMemory(text){
+  memory.push(text);
+  if(memory.length > 10) memory.shift();
+  localStorage.setItem("memory", JSON.stringify(memory));
+}
+
+function getMemoryHint(){
+  const text = memory.join(" ");
+  if(text.includes("東京")) return "東京の話してたよね";
+  if(text.includes("仕事")) return "仕事のこと気になってる";
+  if(text.includes("疲")) return "さっき疲れてる感じだったよね";
+  return "";
+}
+
 /* ===== 表情 ===== */
 const faces={
 normal:"girl-normal.jpg",
 happy:"girl-happy.png",
 exhausted:"girl-exhausted.png",
-worried:"girl-worried.png"
+worried:"girl-worried.png",
+healing:"girl-healing.png",
+irritated:"girl-irritated.png",
+panic:"girl-panic.png",
+sympathy:"girl-sympathy.png",
+troubled:"girl-troubled.png"
 };
 
 function setFace(type){
@@ -173,14 +198,9 @@ function addMessage(text,type){
 /* ===== 夜モード ===== */
 function updateTheme(){
   const hour = new Date().getHours();
-
-  if(hour >= 6 && hour < 12){
-    document.body.style.background="#102030";
-  }
-  else if(hour >= 12 && hour < 18){
+  if(hour < 18){
     document.body.style.background="#08121f";
-  }
-  else{
+  }else{
     document.body.style.background="#050814";
   }
 }
@@ -188,19 +208,13 @@ setInterval(updateTheme,1000);
 
 /* ===== 音声 ===== */
 function speak(text){
-
-  const hour = new Date().getHours();
-
   const msg=new SpeechSynthesisUtterance(text);
   msg.lang="ja-JP";
 
-  msg.rate=1.0;
-  msg.pitch=1.2;
-
-  // 夜は甘く
-  if(hour >= 20 || hour < 5){
-    msg.rate=0.9;
+  if(love > 20){
     msg.pitch=1.4;
+  }else{
+    msg.pitch=1.1;
   }
 
   speechSynthesis.speak(msg);
@@ -209,32 +223,55 @@ function speak(text){
 /* ===== AI ===== */
 function replyAI(text){
 
-  let reply="ちゃんと聞いてるよ";
+  addLove();
 
-  if(text.includes("疲")){
-    reply="無理してない？少し休も？";
-    setFace("exhausted");
-  }
-  else if(text.includes("楽")){
-    reply="いいね、それ嬉しい";
-    setFace("happy");
-  }
-  else if(text.includes("不安")){
-    reply="大丈夫？一人で抱えてない？";
-    setFace("worried");
-  }else{
-    setFace("normal");
+  let mood="normal";
+
+  if(text.includes("疲")) mood="exhausted";
+  else if(text.includes("楽")) mood="happy";
+  else if(text.includes("不安")) mood="worried";
+
+  setFace(mood);
+
+  // GPT風
+  let empathy="ちゃんと聞いてるよ";
+  let expand="少し気になってる";
+  let question="どうだった？";
+
+  if(mood==="exhausted"){
+    empathy="そっか、ちょっと疲れてる感じあるね";
+    expand="頑張ってるからこそだよ";
+    question="少し休めそう？";
   }
 
-  // 名前呼び
-  if(userName){
+  if(mood==="happy"){
+    empathy="いいね、その感じ好き";
+    expand="こっちまで嬉しくなる";
+    question="何が一番よかった？";
+  }
+
+  if(mood==="worried"){
+    empathy="そっか、不安あるよね";
+    expand="一人で抱えなくていいよ";
+    question="少し話せる？";
+  }
+
+  let reply = empathy + "。" + expand + "。" + question;
+
+  // 記憶
+  let hint = getMemoryHint();
+  if(hint) reply = hint + "。" + reply;
+
+  // 親密度で変化
+  if(love > 30){
+    reply = userName + "、" + reply + " そばにいるよ";
+  }else if(love > 10){
     reply = userName + "、" + reply;
   }
 
   // 既読
   const read=document.createElement("div");
   read.style.fontSize="10px";
-  read.style.color="#aaa";
   read.textContent="既読";
   chatBox.appendChild(read);
 
@@ -248,7 +285,7 @@ function replyAI(text){
     typing.remove();
     addMessage(reply,"bot");
     speak(reply);
-  },1000);
+  },800 + Math.random()*1200);
 }
 
 /* ===== 送信 ===== */
@@ -257,17 +294,16 @@ function sendMessage(){
   if(!text) return;
 
   addMessage(text,"user");
+  saveMemory(text);
   userInput.value="";
   replyAI(text);
 }
 
 /* ===== 音声入力 ===== */
 function startVoice(){
-
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-
   if(!SpeechRecognition){
-    alert("Chromeで開いてください");
+    alert("Chromeで開いてね");
     return;
   }
 
@@ -280,32 +316,17 @@ function startVoice(){
     sendMessage();
   };
 
-  r.onerror=(e)=>{
-    if(e.error==="aborted") return;
-    if(e.error==="no-speech") return;
-    if(e.error==="not-allowed"){
-      alert("マイク許可してね");
-    }
-  };
-
   r.start();
 }
 
 /* ===== 初回 ===== */
 window.onload=()=>{
-
   updateTheme();
 
   let greet="おかえり";
-  const hour=new Date().getHours();
+  if(love > 20) greet="おかえり、待ってた";
 
-  if(hour>=20){
-    greet="おかえり、待ってたよ";
-  }
-
-  if(userName){
-    greet=userName+"、"+greet;
-  }
+  if(userName) greet=userName+"、"+greet;
 
   addMessage(greet,"bot");
 };
