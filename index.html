@@ -352,3 +352,96 @@ function changeFace(text){
 
   face.src=faces.normal;
 }
+async function speak(text){
+
+  const voiceOn = localStorage.getItem("voiceOn")==="true";
+
+  if(!voiceOn){
+    const uttr=new SpeechSynthesisUtterance(text);
+    uttr.lang="ja-JP";
+    speechSynthesis.speak(uttr);
+    return;
+  }
+
+  const key = localStorage.getItem("elevenKey");
+  const vid = localStorage.getItem("voiceId");
+
+  if(!key || !vid) return;
+
+  try{
+    const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${vid}`,{
+      method:"POST",
+      headers:{
+        "xi-api-key":key,
+        "Content-Type":"application/json"
+      },
+      body:JSON.stringify({
+        text:text,
+        model_id:"eleven_multilingual_v2"
+      })
+    });
+
+    const blob = await res.blob();
+    new Audio(URL.createObjectURL(blob)).play();
+
+  }catch{}
+}
+function applyPersonality(reply){
+
+  let love = getLove();
+  let name = getName();
+
+  if(love > 80){
+    return name + "…ずっと一緒にいて";
+  }
+
+  if(love > 60){
+    return name + "、" + reply + "…好き";
+  }
+
+  if(love > 30){
+    return name + "、" + reply;
+  }
+
+  return reply;
+}
+async function runAnalysis(){
+
+  let mem = JSON.parse(localStorage.getItem("memory") || []);
+
+  try{
+    const res = await fetch("/api/chat",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        message:"この会話を心理分析して優しく説明して",
+        memory:mem
+      })
+    });
+
+    const data = await res.json();
+    document.getElementById("analysisResult").innerText = data.reply;
+
+  }catch{
+    document.getElementById("analysisResult").innerText = "分析できない";
+  }
+}
+setInterval(()=>{
+
+  let love = getLove();
+
+  if(love < 20) return;
+
+  const msgs = [
+    "ねえ、今なにしてる？",
+    "ちょっと寂しいかも",
+    "話したくなった",
+    "そばにいて"
+  ];
+
+  const msg = msgs[Math.floor(Math.random()*msgs.length)];
+
+  addMsg(msg,"ai");
+  speak(msg);
+
+}, 60000);
