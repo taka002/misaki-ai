@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>美咲AI 完全安定版</title>
+<title>美咲AI 完全版</title>
 
 <style>
 html,body{
@@ -90,7 +90,6 @@ button{
   flex:1;
   text-align:center;
   padding:10px;
-  font-size:12px;
 }
 
 /* 設定 */
@@ -116,7 +115,7 @@ textarea{
 <body>
 
 <div class="top">
-<img src="girl-normal.jpg" onerror="this.src='https://via.placeholder.com/300'">
+<img src="girl-normal.jpg">
 </div>
 
 <div id="chatBox"></div>
@@ -134,7 +133,6 @@ textarea{
 <div class="tab" onclick="toggleSettings()">設定</div>
 </div>
 
-<!-- 設定 -->
 <div id="settingsPanel">
 
 <h3>設定</h3>
@@ -149,24 +147,11 @@ AI<br>
 <option value="gemini">Gemini</option>
 </select><br><br>
 
-GPT APIキー<br>
-<input id="gptKey"><br><br>
-
-Gemini APIキー<br>
-<input id="geminiKey"><br><br>
-
 音声<br>
 <select id="voiceMode">
 <option value="off">OFF</option>
 <option value="native">スマホ音声</option>
-<option value="eleven">Eleven</option>
 </select><br><br>
-
-Eleven APIキー<br>
-<input id="elevenKey"><br><br>
-
-Voice ID<br>
-<input id="voiceId"><br><br>
 
 性格<br>
 <textarea id="personality">優しく寄り添う女性</textarea><br><br>
@@ -181,10 +166,12 @@ Voice ID<br>
 const chatBox = document.getElementById("chatBox");
 const userInput = document.getElementById("userInput");
 
-/* ===== 設定 ===== */
+let isSending = false;
+
+/* 設定 */
 function toggleSettings(){
-  const panel = document.getElementById("settingsPanel");
-  panel.style.display = panel.style.display === "none" ? "block" : "none";
+  settingsPanel.style.display =
+    settingsPanel.style.display==="none"?"block":"none";
 }
 
 function saveSettings(){
@@ -192,57 +179,33 @@ function saveSettings(){
   localStorage.setItem("aiMode", aiMode.value);
   localStorage.setItem("voiceMode", voiceMode.value);
   localStorage.setItem("personality", personality.value);
-  localStorage.setItem("gptKey", gptKey.value);
-  localStorage.setItem("geminiKey", geminiKey.value);
-  localStorage.setItem("elevenKey", elevenKey.value);
-  localStorage.setItem("voiceId", voiceId.value);
   alert("保存したよ");
 }
 
-/* ===== 初期 ===== */
+/* 初期 */
 window.onload=()=>{
 
   userName.value = localStorage.getItem("userName") || "";
   aiMode.value = localStorage.getItem("aiMode") || "local";
   voiceMode.value = localStorage.getItem("voiceMode") || "native";
-  personality.value = localStorage.getItem("personality") || "";
-
-  gptKey.value = localStorage.getItem("gptKey") || "";
-  geminiKey.value = localStorage.getItem("geminiKey") || "";
-  elevenKey.value = localStorage.getItem("elevenKey") || "";
-  voiceId.value = localStorage.getItem("voiceId") || "";
 
   const name = userName.value || "あなた";
   const hour = new Date().getHours();
 
-  let greet = hour < 11 ? "おはよう" : hour < 18 ? "こんにちは" : "おかえり";
+  let greet = hour<11?"おはよう":hour<18?"こんにちは":"おかえり";
 
   const msg = `${name}、${greet}`;
-
   addMessage(msg,"bot");
   speak(msg);
 };
 
-/* ===== メモリ ===== */
-function saveMemory(role,text){
-  let memory = JSON.parse(localStorage.getItem("memory") || "[]");
-  memory.push({role,text});
-  if(memory.length > 20) memory.shift();
-  localStorage.setItem("memory", JSON.stringify(memory));
-}
-
-function getMemoryText(){
-  const memory = JSON.parse(localStorage.getItem("memory") || "[]");
-  return memory.map(m => m.role + ":" + m.text).join("\n");
-}
-
-/* ===== メッセージ ===== */
+/* メッセージ */
 function addMessage(text,type){
 
   const div=document.createElement("div");
   div.className="message "+type;
 
-  const now = new Date();
+  const now=new Date();
   const time = now.getHours().toString().padStart(2,"0") + ":" +
                now.getMinutes().toString().padStart(2,"0");
 
@@ -253,154 +216,49 @@ function addMessage(text,type){
 
   chatBox.appendChild(div);
   chatBox.scrollTop = chatBox.scrollHeight;
-
-  saveMemory(type,text);
 }
 
-/* ===== 音声 ===== */
+/* 音声 */
 function speak(text){
 
-  const mode = localStorage.getItem("voiceMode");
-
-  if(mode==="off") return;
+  if(localStorage.getItem("voiceMode")==="off") return;
 
   try{
     speechSynthesis.cancel();
-    const msg=new SpeechSynthesisUtterance(text);
+    const msg = new SpeechSynthesisUtterance(text);
     msg.lang="ja-JP";
     speechSynthesis.speak(msg);
-  }catch(e){
-    console.log("音声エラー", e);
-  }
+  }catch(e){}
 }
 
-/* ===== Eleven ===== */
-async function playEleven(text){
+/* AI */
+function replyAI(text){
 
-  const key = localStorage.getItem("elevenKey");
-  const voiceId = localStorage.getItem("voiceId");
+  let reply="";
 
-  if(!key || !voiceId) return;
+  if(text.includes("疲")){
+    reply="疲れてるね…無理してない？";
+  }else if(text.includes("こんにちは")){
+    reply="こんにちは、来てくれて嬉しい";
+  }else{
+    reply="ちゃんと聞いてるよ、続けて";
+  }
 
-  const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,{
-    method:"POST",
-    headers:{
-      "xi-api-key":key,
-      "Content-Type":"application/json"
-    },
-    body:JSON.stringify({ text:text })
-  });
-
-  const blob = await res.blob();
-  const url = URL.createObjectURL(blob);
-  new Audio(url).play();
+  showReply(reply);
 }
 
-/* ===== AI ===== */
-async function replyAI(text){
-
-  try{
-
-    const mode = localStorage.getItem("aiMode");
-
-    if(mode==="gpt"){
-      await callGPT(text);
-      return;
-    }
-
-    if(mode==="gemini"){
-      await callGemini(text);
-      return;
-    }
-
-    let reply="ちゃんと聞いてるよ";
-
-    if(text.includes("疲")){
-      reply="疲れてるね…今日はどんな一日だった？";
-    }
-
-    showReply(reply);
-
-  }catch(e){
-    showReply("うまく話せなかった、ごめんね");
-  }
-}
-
-/* ===== GPT ===== */
-async function callGPT(text){
-
-  const key = localStorage.getItem("gptKey");
-  if(!key){
-    showReply("APIキー入れてね");
-    return;
-  }
-
-  try{
-    const res = await fetch("https://api.openai.com/v1/chat/completions",{
-      method:"POST",
-      headers:{
-        "Content-Type":"application/json",
-        "Authorization":"Bearer "+key
-      },
-      body:JSON.stringify({
-        model:"gpt-4o-mini",
-        messages:[
-          {role:"system",content:localStorage.getItem("personality")},
-          {role:"system",content:getMemoryText()},
-          {role:"user",content:text}
-        ]
-      })
-    });
-
-    const data = await res.json();
-    const reply = data.choices?.[0]?.message?.content || "エラー";
-
-    showReply(reply);
-
-  }catch(e){
-    showReply("通信エラー");
-  }
-}
-
-/* ===== Gemini ===== */
-async function callGemini(text){
-
-  const key = localStorage.getItem("geminiKey");
-  if(!key){
-    showReply("APIキー入れてね");
-    return;
-  }
-
-  try{
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${key}`,{
-      method:"POST",
-      headers:{ "Content-Type":"application/json" },
-      body:JSON.stringify({
-        contents:[{parts:[{text:text}]}]
-      })
-    });
-
-    const data = await res.json();
-    const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || "エラー";
-
-    showReply(reply);
-
-  }catch(e){
-    showReply("通信エラー");
-  }
-}
-
-/* ===== 返信 ===== */
+/* 返信 */
 function showReply(reply){
 
   const typing=document.createElement("div");
   typing.className="message bot";
   typing.textContent="…";
+
   chatBox.appendChild(typing);
   chatBox.scrollTop = chatBox.scrollHeight;
 
   setTimeout(()=>{
-    if(typing && typing.parentNode) typing.remove();
+    typing.remove();
 
     addMessage(reply,"bot");
 
@@ -411,19 +269,27 @@ function showReply(reply){
   },500);
 }
 
-/* ===== 送信 ===== */
+/* 送信 */
 function sendMessage(){
 
-  const text=userInput.value;
+  if(isSending) return;
+
+  const text=userInput.value.trim();
   if(!text) return;
+
+  isSending=true;
 
   addMessage(text,"user");
   userInput.value="";
 
   replyAI(text);
+
+  setTimeout(()=>{
+    isSending=false;
+  },500);
 }
 
-/* ===== 音声入力 ===== */
+/* 音声入力 */
 function startVoice(){
 
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
