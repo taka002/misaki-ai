@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>美咲AI</title>
+<title>美咲AI 完全版</title>
 
 <style>
 body{
@@ -13,16 +13,15 @@ body{
   color:white;
 }
 
-/* ===== 全体 ===== */
 .app{
   display:flex;
   flex-direction:column;
   height:100dvh;
 }
 
-/* ===== 画像（完全固定） ===== */
+/* ===== 画像 ===== */
 .top-character{
-  height:160px; /* ←ここが重要 */
+  height:160px;
   flex-shrink:0;
   padding:6px;
 }
@@ -33,15 +32,14 @@ body{
   border-radius:20px;
 }
 
-/* ===== チャットエリア ===== */
+/* ===== チャット ===== */
 .chat-area{
   flex:1;
   display:flex;
   flex-direction:column;
-  min-height:0; /* ←超重要（崩れ防止） */
+  min-height:0;
 }
 
-/* ===== メッセージだけスクロール ===== */
 #chatBox{
   flex:1;
   overflow-y:auto;
@@ -50,13 +48,11 @@ body{
   flex-direction:column;
 }
 
-/* ===== 吹き出し ===== */
 .message{
   padding:12px;
   border-radius:18px;
   margin:6px 0;
   max-width:75%;
-  font-size:16px;
 }
 
 .user{
@@ -68,11 +64,10 @@ body{
   background:#444;
 }
 
-/* ===== 入力固定 ===== */
+/* ===== 入力 ===== */
 .input-area{
   display:flex;
   padding:8px;
-  background:#09111f;
   flex-shrink:0;
 }
 input{
@@ -86,7 +81,7 @@ button{
   margin-left:6px;
 }
 
-/* ===== タブ固定 ===== */
+/* ===== タブ ===== */
 .tabs{
   display:flex;
   background:#222;
@@ -96,8 +91,11 @@ button{
   flex:1;
   padding:12px;
   text-align:center;
-  font-size:14px;
 }
+
+/* ===== パネル ===== */
+.panel{display:none;}
+.panel.active{display:block;}
 </style>
 </head>
 
@@ -105,60 +103,197 @@ button{
 
 <div class="app">
 
-<!-- 画像 -->
 <div class="top-character">
-  <img src="girl-normal.jpg">
+<img id="mainGirl" src="girl-normal.jpg">
 </div>
 
-<!-- チャット -->
+<!-- 会話 -->
+<div id="chatPanel" class="panel active">
 <div class="chat-area">
+<div id="chatBox"></div>
 
-  <div id="chatBox"></div>
+<div class="input-area">
+<input id="userInput">
+<button onclick="sendMessage()">送信</button>
+</div>
+</div>
+</div>
 
-  <div class="input-area">
-    <input id="userInput">
-    <button onclick="sendMessage()">送信</button>
-  </div>
-
+<!-- 設定 -->
+<div id="settingsPanel" class="panel">
+<div style="padding:10px;">
+AI名前：<input id="aiNameInput"><br><br>
+<button onclick="saveAIName()">保存</button>
+</div>
 </div>
 
 <!-- タブ -->
 <div class="tabs">
-  <div class="tab">会話</div>
-  <div class="tab">分析</div>
-  <div class="tab">未来</div>
-  <div class="tab">設定</div>
+<div class="tab" onclick="switchTab('chat')">会話</div>
+<div class="tab" onclick="switchTab('settings')">設定</div>
 </div>
 
 </div>
 
 <script>
 
-function addMessage(text,type){
-  const div=document.createElement("div");
-  div.className="message "+type;
-  div.textContent=text;
-  chatBox.appendChild(div);
+/* =====================
+記憶
+===================== */
 
-  // ↓ 常に一番下へ
-  chatBox.scrollTop = chatBox.scrollHeight;
+let memory = {
+  aiName: localStorage.getItem("aiName") || "美咲",
+  chatHistory: JSON.parse(localStorage.getItem("chatHistory") || "[]"),
+  emotionStats: JSON.parse(localStorage.getItem("emotionStats") || "{}"),
+  lastReplies:[]
+};
+
+document.getElementById("aiNameInput").value = memory.aiName;
+
+/* =====================
+保存
+===================== */
+function saveMemory(){
+  localStorage.setItem("chatHistory", JSON.stringify(memory.chatHistory));
+  localStorage.setItem("emotionStats", JSON.stringify(memory.emotionStats));
 }
 
+/* =====================
+表情
+===================== */
+const faces={
+ normal:"girl-normal.jpg",
+ happy:"girl-happy.jpg",
+ worried:"girl-worried.png",
+ sympathy:"girl-sympathy.png",
+ troubled:"girl-troubled.png",
+ healing:"girl-healing.png",
+ irritated:"girl-irritated.png",
+ panic:"girl-panic.png",
+ exhausted:"girl-exhausted.png"
+};
+
+function setFace(f){
+ document.getElementById("mainGirl").src = faces[f] || faces.normal;
+}
+
+/* =====================
+感情記録
+===================== */
+function recordEmotion(type){
+ memory.emotionStats[type]=(memory.emotionStats[type]||0)+1;
+}
+
+/* =====================
+重複防止
+===================== */
+function pick(arr){
+ const f=arr.filter(a=>!memory.lastReplies.includes(a));
+ const c=f.length?f[Math.floor(Math.random()*f.length)]:arr[Math.floor(Math.random()*arr.length)];
+ memory.lastReplies.push(c);
+ if(memory.lastReplies.length>5) memory.lastReplies.shift();
+ return c;
+}
+
+/* =====================
+記憶活用
+===================== */
+function recallContext(){
+ if(memory.chatHistory.length<3) return "";
+
+ const last = memory.chatHistory.slice(-3).join(" ");
+
+ if(last.includes("疲")) return "さっきからちょっと無理してる感じ続いてるね…";
+ if(last.includes("不安")) return "少し不安が続いてる感じあるね…";
+
+ return "";
+}
+
+/* =====================
+AI会話
+===================== */
+function generateReply(text){
+
+ let intro = recallContext();
+
+ if(text.includes("疲")){
+  setFace("exhausted");
+  recordEmotion("fatigue");
+
+  return intro + pick([
+   "ちょっと無理してる感じあるね…少し休めそう？",
+   "だいぶ頑張ってるね…今日は少し力抜ける？",
+   "疲れが溜まってる感じするね…ちゃんと休めてる？"
+  ]);
+ }
+
+ if(text.includes("不安")||text.includes("怖")){
+  setFace("worried");
+  recordEmotion("anxiety");
+
+  return intro + pick([
+   "それ気になるよね…どこが一番引っかかる？",
+   "不安になるのも無理ないよ…整理してみる？",
+   "その感じ、落ち着かないよね…"
+  ]);
+ }
+
+ setFace("normal");
+
+ return intro + pick([
+  "ちゃんと聞いてるよ、もう少し教えてくれる？",
+  "その話もう少し知りたいな",
+  "少し背景ありそうだね、どういう感じ？"
+ ]);
+}
+
+/* =====================
+表示
+===================== */
+function addMessage(text,type){
+ const div=document.createElement("div");
+ div.className="message "+type;
+ div.innerHTML=text;
+ chatBox.appendChild(div);
+ chatBox.scrollTop=chatBox.scrollHeight;
+}
+
+/* =====================
+送信
+===================== */
 function sendMessage(){
-  const text=userInput.value;
-  if(!text) return;
+ const text=userInput.value;
+ if(!text) return;
 
-  addMessage(text,"user");
+ addMessage(text,"user");
 
-  let reply="ちゃんと聞いてるよ";
+ memory.chatHistory.push(text);
+ saveMemory();
 
-  if(text.includes("疲")){
-    reply="ちょっと無理してる感じあるね…";
-  }
+ const reply=generateReply(text);
 
-  addMessage(reply,"bot");
+ addMessage(memory.aiName+"："+reply,"bot");
 
-  userInput.value="";
+ userInput.value="";
+}
+
+/* =====================
+タブ
+===================== */
+function switchTab(tab){
+ document.querySelectorAll(".panel").forEach(p=>p.classList.remove("active"));
+ if(tab==='chat') chatPanel.classList.add("active");
+ if(tab==='settings') settingsPanel.classList.add("active");
+}
+
+/* =====================
+名前保存
+===================== */
+function saveAIName(){
+ const val=document.getElementById("aiNameInput").value;
+ memory.aiName=val;
+ localStorage.setItem("aiName",val);
+ alert("保存したよ");
 }
 
 </script>
