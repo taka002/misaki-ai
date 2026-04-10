@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>美咲AI 安定版</title>
+<title>美咲AI 完全安定版</title>
 
 <style>
 body{
@@ -21,27 +21,37 @@ body{
   overflow:hidden;
 }
 
-/* ===== 上：画像 ===== */
+/* ===== 画像 ===== */
 .top{
-  height:120px;
+  height:110px;
   flex-shrink:0;
 }
 .top img{
   width:100%;
   height:100%;
   object-fit:cover;
-  border-radius:15px;
 }
 
-/* ===== 中央 ===== */
-.chat-area{
+/* ===== メイン ===== */
+.main{
   flex:1;
   display:flex;
   flex-direction:column;
   min-height:0;
 }
 
-/* スクロールはここだけ */
+/* ===== パネル ===== */
+.panel{
+  display:none;
+  flex:1;
+  flex-direction:column;
+  min-height:0;
+}
+.panel.active{
+  display:flex;
+}
+
+/* ===== チャット ===== */
 #chatBox{
   flex:1;
   overflow-y:auto;
@@ -50,7 +60,6 @@ body{
   flex-direction:column;
 }
 
-/* ===== 吹き出し ===== */
 .msg{
   max-width:75%;
   padding:10px;
@@ -67,19 +76,17 @@ body{
   background:#444;
 }
 
-/* 時刻 */
 .time{
   font-size:10px;
   opacity:0.6;
-  margin-top:3px;
 }
 
 /* ===== 入力 ===== */
 .input{
   flex-shrink:0;
   display:flex;
-  gap:6px;
   padding:6px;
+  gap:6px;
   background:#111;
 }
 
@@ -87,22 +94,18 @@ input{
   flex:1;
   min-width:0;
   padding:10px;
-  border-radius:10px;
-  border:none;
 }
 
 button{
   flex-shrink:0;
   padding:10px;
-  border:none;
-  border-radius:10px;
 }
 
 /* ===== タブ ===== */
 .tabs{
-  flex-shrink:0;
-  display:flex;
   height:50px;
+  display:flex;
+  flex-shrink:0;
   background:#222;
 }
 
@@ -112,9 +115,10 @@ button{
   line-height:50px;
 }
 
-/* ===== 設定 ===== */
-.panel{display:none;}
-.panel.active{display:block;}
+/* ===== 分析・未来 ===== */
+.box{
+  padding:15px;
+}
 </style>
 </head>
 
@@ -122,36 +126,49 @@ button{
 
 <div class="app">
 
-<!-- 画像 -->
+<!-- 上：画像 -->
 <div class="top">
 <img src="girl-normal.jpg">
 </div>
 
+<!-- 中央 -->
+<div class="main">
+
 <!-- 会話 -->
 <div id="chatPanel" class="panel active">
-<div class="chat-area">
-
 <div id="chatBox"></div>
 
 <div class="input">
 <input id="input">
 <button onclick="send()">送信</button>
 </div>
-
 </div>
+
+<!-- 分析 -->
+<div id="analysisPanel" class="panel">
+<div class="box" id="analysisContent">まだデータなし</div>
+</div>
+
+<!-- 未来 -->
+<div id="futurePanel" class="panel">
+<div class="box" id="futureContent">未来予測はここに表示</div>
 </div>
 
 <!-- 設定 -->
 <div id="settingsPanel" class="panel">
-<div style="padding:10px;">
+<div class="box">
 名前<input id="name"><br><br>
 <button onclick="save()">保存</button>
 </div>
 </div>
 
-<!-- タブ -->
+</div>
+
+<!-- 下タブ -->
 <div class="tabs">
 <div class="tab" onclick="switchTab('chat')">会話</div>
+<div class="tab" onclick="switchTab('analysis')">分析</div>
+<div class="tab" onclick="switchTab('future')">未来</div>
 <div class="tab" onclick="switchTab('settings')">設定</div>
 </div>
 
@@ -170,7 +187,10 @@ name.value=memory.name;
 /* ===== タブ ===== */
 function switchTab(tab){
   document.querySelectorAll(".panel").forEach(p=>p.classList.remove("active"));
+
   if(tab==="chat") chatPanel.classList.add("active");
+  if(tab==="analysis") analysisPanel.classList.add("active");
+  if(tab==="future") futurePanel.classList.add("active");
   if(tab==="settings") settingsPanel.classList.add("active");
 }
 
@@ -195,7 +215,7 @@ function add(text,type){
   chatBox.scrollTop=chatBox.scrollHeight;
 }
 
-/* ===== AI ===== */
+/* ===== AI返答 ===== */
 function reply(t){
 
   if(t.includes("疲")){
@@ -207,6 +227,31 @@ function reply(t){
   }
 
   return "ちゃんと聞いてるよ、もう少し教えて？";
+}
+
+/* ===== 分析 ===== */
+function analyze(){
+  let text=memory.history.join(" ");
+
+  let fatigue=text.includes("疲")?80:20;
+
+  analysisContent.innerHTML=`
+    疲労度：${fatigue}
+  `;
+}
+
+/* ===== 未来 ===== */
+function future(){
+  let text=memory.history.join(" ");
+
+  if(text.includes("疲")){
+    futureContent.innerHTML=`
+    A：休む → 回復<br>
+    B：続ける → 悪化
+    `;
+  }else{
+    futureContent.innerHTML="まだ予測できません";
+  }
 }
 
 /* ===== 送信 ===== */
@@ -221,6 +266,9 @@ function send(){
 
   memory.history.push(t);
   localStorage.setItem("history",JSON.stringify(memory.history));
+
+  analyze();
+  future();
 
   input.value="";
 }
