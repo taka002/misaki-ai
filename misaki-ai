@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>美咲AI 完成版</title>
+<title>美咲AI 安定版</title>
 
 <style>
 body{
@@ -13,15 +13,17 @@ body{
   color:white;
 }
 
+/* ===== 全体 ===== */
 .app{
   display:flex;
   flex-direction:column;
   height:100vh;
 }
 
-/* ===== 画像固定 ===== */
+/* ===== 画像（固定） ===== */
 .top{
-  height:28vh;
+  flex-shrink:0;
+  height:25vh;
   display:flex;
   justify-content:center;
   align-items:center;
@@ -33,13 +35,14 @@ body{
   border-radius:20px;
 }
 
-/* ===== チャット ===== */
+/* ===== チャット（ここだけスクロール） ===== */
 #chatBox{
   flex:1;
   overflow-y:auto;
   padding:10px;
 }
 
+/* ===== メッセージ ===== */
 .message{
   max-width:75%;
   padding:10px;
@@ -57,29 +60,43 @@ body{
   background:#444;
 }
 
-/* ===== 入力 ===== */
+/* ===== 入力エリア（固定） ===== */
 .input{
+  flex-shrink:0;
   display:flex;
+  align-items:center;
   padding:8px;
   background:#111;
 }
 
 input{
   flex:1;
-  padding:10px;
-  border-radius:10px;
+  padding:12px;
+  border-radius:12px;
   border:none;
+  font-size:14px;
 }
 
 button{
-  margin-left:5px;
-  padding:10px;
+  margin-left:6px;
+  padding:12px;
   border:none;
-  border-radius:10px;
+  border-radius:12px;
+  font-size:14px;
 }
 
-/* ===== タブ ===== */
+/* ===== スタンプパネル ===== */
+#stampPanel{
+  display:none;
+  flex-wrap:wrap;
+  gap:10px;
+  padding:10px;
+  background:#222;
+}
+
+/* ===== タブ（固定） ===== */
 .tabs{
+  flex-shrink:0;
   display:flex;
   background:#222;
 }
@@ -98,14 +115,18 @@ button{
 
 <!-- 画像 -->
 <div class="top">
-<img id="mainImg" src="girl-normal.jpg">
+<img src="girl-normal.jpg">
 </div>
 
 <!-- チャット -->
 <div id="chatBox"></div>
 
+<!-- スタンプ -->
+<div id="stampPanel"></div>
+
 <!-- 入力 -->
 <div class="input">
+<button onclick="toggleStamp()">😊</button>
 <button onclick="startVoice()">🎤</button>
 <input id="userInput" placeholder="話しかけて...">
 <button onclick="sendMessage()">送信</button>
@@ -123,151 +144,57 @@ button{
 
 <script>
 
-/* ===== 状態 ===== */
-
-let memory = JSON.parse(localStorage.getItem("memory") || "{}");
-
-if(!memory.chat) memory.chat=[];
-if(!memory.affinity) memory.affinity=0;
-if(!memory.userName) memory.userName="あなた";
-
 /* ===== メッセージ ===== */
 
-function addMessage(text, type){
+function addMessage(text,type){
 
   const div=document.createElement("div");
   div.className="message "+type;
 
-  const time = new Date().toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"});
-
-  const name = type==="bot" ? "美咲" : "";
-
-  div.innerHTML = `
-    ${name ? `<div style="font-size:11px;color:#aaa">${name}</div>` : ""}
-    ${text}
-    <div style="font-size:10px;color:#aaa">${time}</div>
-  `;
+  div.textContent=text;
 
   chatBox.appendChild(div);
   chatBox.scrollTop = chatBox.scrollHeight;
-}
-
-/* ===== 時間取得 ===== */
-
-function getHour(){
-  return new Date().getHours();
-}
-
-/* ===== 感情判定 ===== */
-
-function detectMood(text){
-
-  if(text.includes("疲れ") || text.includes("しんど")) return "tired";
-  if(text.includes("ムカ") || text.includes("イライラ")) return "angry";
-  if(text.includes("楽しい") || text.includes("嬉しい")) return "happy";
-
-  return "normal";
-}
-
-/* ===== 返信生成 ===== */
-
-function getReply(text){
-
-  const mood = detectMood(text);
-  const hour = getHour();
-  const name = memory.userName;
-
-  let base="";
-
-  // 夜モード
-  if(hour >= 22 || hour <= 5){
-
-    if(mood==="tired") base = `${name}…無理しすぎだよ、ちゃんと休も？`;
-    else base = `${name}、今日どうだった？少し話そ`;
-
-  }else{
-
-    if(mood==="tired") base = `${name}、ちょっと無理してない？`;
-    else if(mood==="happy") base = `${name}楽しそうだね`;
-    else if(mood==="angry") base = `それはちょっとイラっとするね`;
-    else base = `ちゃんと聞いてるよ`;
-  }
-
-  return {text:base, mood};
-}
-
-/* ===== 音声（感情対応） ===== */
-
-function speak(text, mood){
-
-  const uttr = new SpeechSynthesisUtterance(text);
-  uttr.lang = "ja-JP";
-
-  // 感情で変化
-  if(mood==="tired"){
-    uttr.rate = 0.9;
-    uttr.pitch = 1.0;
-  }
-
-  if(mood==="happy"){
-    uttr.rate = 1.1;
-    uttr.pitch = 1.3;
-  }
-
-  if(mood==="angry"){
-    uttr.rate = 1.2;
-    uttr.pitch = 0.9;
-  }
-
-  if(mood==="normal"){
-    uttr.rate = 1;
-    uttr.pitch = 1.2;
-  }
-
-  speechSynthesis.speak(uttr);
-}
-
-/* ===== 既読風 ===== */
-
-function showTyping(callback){
-
-  const div=document.createElement("div");
-  div.className="message bot";
-  div.textContent="入力中...";
-
-  chatBox.appendChild(div);
-
-  setTimeout(()=>{
-    div.remove();
-    callback();
-  },1200);
 }
 
 /* ===== 送信 ===== */
 
 function sendMessage(){
 
-  const text = userInput.value;
+  const text=userInput.value;
   if(!text) return;
 
   addMessage(text,"user");
-  memory.chat.push(text);
-
   userInput.value="";
 
-  showTyping(()=>{
+  setTimeout(()=>{
+    addMessage("ちゃんと聞いてるよ","bot");
+  },800);
+}
 
-    const res = getReply(text);
+/* ===== スタンプ ===== */
 
-    addMessage(res.text,"bot");
+const stamps=["😊","😢","😡","😴","😍","😭","😆"];
 
-    setTimeout(()=>{
-      speak(res.text, res.mood);
-    },300);
+function toggleStamp(){
 
+  const panel=document.getElementById("stampPanel");
+
+  panel.style.display = panel.style.display==="flex" ? "none" : "flex";
+
+  panel.innerHTML="";
+
+  stamps.forEach(s=>{
+    const btn=document.createElement("button");
+    btn.textContent=s;
+
+    btn.onclick=()=>{
+      addMessage(s,"user");
+      panel.style.display="none";
+    };
+
+    panel.appendChild(btn);
   });
-
-  localStorage.setItem("memory", JSON.stringify(memory));
 }
 
 /* ===== 音声入力 ===== */
@@ -276,21 +203,19 @@ function startVoice(){
 
   try{
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-
     const recog = new SpeechRecognition();
 
     recog.lang="ja-JP";
 
     recog.onresult=(e)=>{
-      const text = e.results[0][0].transcript;
-      userInput.value = text;
+      userInput.value = e.results[0][0].transcript;
       sendMessage();
     };
 
     recog.start();
 
-  }catch(e){
-    alert("音声入力非対応");
+  }catch{
+    alert("音声入力できません");
   }
 }
 
