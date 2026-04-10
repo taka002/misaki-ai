@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>美咲AI 完成版</title>
+<title>美咲AI 安定版</title>
 
 <style>
 html,body{
@@ -11,10 +11,11 @@ html,body{
   height:100%;
   overflow:hidden;
   font-family:sans-serif;
+  background:#08121f;
   color:white;
 }
 
-/* ===== 上画像 ===== */
+/* 上画像 */
 .top{
   position:fixed;
   top:0;
@@ -30,7 +31,7 @@ html,body{
   border-radius:20px;
 }
 
-/* ===== チャット ===== */
+/* チャット */
 #chatBox{
   position:fixed;
   top:28%;
@@ -40,13 +41,13 @@ html,body{
   padding:8px;
 }
 
-/* ===== メッセージ ===== */
+/* メッセージ */
 .message{
   max-width:75%;
   padding:10px;
   border-radius:14px;
   margin:6px;
-  font-size:13px;
+  font-size:14px;
 }
 .user{
   background:#ff4f8b;
@@ -56,7 +57,7 @@ html,body{
   background:#444;
 }
 
-/* ===== 入力 ===== */
+/* 入力 */
 .input{
   position:fixed;
   bottom:50px;
@@ -79,7 +80,7 @@ button{
   border-radius:10px;
 }
 
-/* ===== タブ ===== */
+/* タブ */
 .tabs{
   position:fixed;
   bottom:0;
@@ -100,7 +101,8 @@ button{
 <body>
 
 <div class="top">
-<img id="face" src="girl-normal.jpg">
+<img id="face" src="girl-normal.jpg"
+onerror="this.src='https://via.placeholder.com/300x200'">
 </div>
 
 <div id="chatBox"></div>
@@ -120,19 +122,15 @@ button{
 
 <script>
 
+/* ===== 初期化 ===== */
+const chatBox = document.getElementById("chatBox");
+const userInput = document.getElementById("userInput");
+
 /* ===== 名前 ===== */
 let userName = localStorage.getItem("userName") || "";
 if(!userName){
   userName = prompt("名前教えて？");
   localStorage.setItem("userName", userName);
-}
-
-/* ===== 親密度 ===== */
-let love = Number(localStorage.getItem("love")) || 0;
-
-function addLove(){
-  love++;
-  localStorage.setItem("love", love);
 }
 
 /* ===== 記憶 ===== */
@@ -144,14 +142,6 @@ function saveMemory(text){
   localStorage.setItem("memory", JSON.stringify(memory));
 }
 
-function getMemoryHint(){
-  const text = memory.join(" ");
-  if(text.includes("東京")) return "東京の話してたよね";
-  if(text.includes("仕事")) return "仕事のこと気になってる";
-  if(text.includes("疲")) return "さっき疲れてる感じだったよね";
-  return "";
-}
-
 /* ===== 表情 ===== */
 const faces={
 normal:"girl-normal.jpg",
@@ -161,7 +151,7 @@ worried:"girl-worried.png"
 };
 
 function setFace(type){
-  document.getElementById("face").src=faces[type]||faces.normal;
+  document.getElementById("face").src=faces[type] || faces.normal;
 }
 
 /* ===== 時間 ===== */
@@ -178,7 +168,7 @@ function addMessage(text,type){
 
   if(type==="user"){
     div.innerHTML = text +
-    `<div style="font-size:10px;color:#ddd;text-align:right">${time()} ✔✔</div>`;
+    `<div style="font-size:10px;color:#ddd;text-align:right">${time()}</div>`;
   }else{
     div.innerHTML =
     `<div style="font-size:11px;color:#aaa">美咲</div>`+
@@ -190,72 +180,45 @@ function addMessage(text,type){
   chatBox.scrollTop = chatBox.scrollHeight;
 }
 
-/* ===== 音声（修正版） ===== */
+/* ===== 音声（安全版） ===== */
 function speak(text){
-
   try{
+    if(!window.speechSynthesis) return;
+
     speechSynthesis.cancel();
 
     const msg = new SpeechSynthesisUtterance(text);
     msg.lang = "ja-JP";
 
-    msg.rate = 1.0;
-    msg.pitch = 1.2;
-
-    msg.onerror = (e)=>{
-      console.log("音声エラー", e);
-    };
-
     speechSynthesis.speak(msg);
 
   }catch(e){
-    console.log("音声失敗", e);
+    console.log("音声エラー", e);
   }
 }
 
-/* ===== AI ===== */
+/* ===== AI返信（安定版） ===== */
 function replyAI(text){
 
-  addLove();
+  let reply = "ちゃんと聞いてるよ。もう少し教えて？";
 
-  let mood="normal";
-
-  if(text.includes("疲")) mood="exhausted";
-  else if(text.includes("楽")) mood="happy";
-  else if(text.includes("不安")) mood="worried";
-
-  setFace(mood);
-
-  let empathy="ちゃんと聞いてるよ";
-  let expand="少し気になってる";
-  let question="どうだった？";
-
-  if(mood==="exhausted"){
-    empathy="そっか、ちょっと疲れてる感じあるね";
-    expand="頑張ってるからこそだよ";
-    question="少し休めそう？";
+  if(text.includes("疲")){
+    reply = "疲れてる感じするね。無理してない？";
+    setFace("exhausted");
+  }
+  else if(text.includes("楽")){
+    reply = "いいね、それ聞いてちょっと嬉しい";
+    setFace("happy");
+  }
+  else if(text.includes("不安")){
+    reply = "大丈夫？一人で抱えてない？";
+    setFace("worried");
+  }
+  else{
+    setFace("normal");
   }
 
-  if(mood==="happy"){
-    empathy="いいね、その感じ好き";
-    expand="こっちまで嬉しくなる";
-    question="何が一番よかった？";
-  }
-
-  if(mood==="worried"){
-    empathy="そっか、不安あるよね";
-    expand="一人で抱えなくていいよ";
-    question="少し話せる？";
-  }
-
-  let reply = empathy + "。" + expand + "。" + question;
-
-  let hint = getMemoryHint();
-  if(hint) reply = hint + "。" + reply;
-
-  if(love > 20){
-    reply = userName + "、" + reply + " そばにいるよ";
-  }else if(love > 5){
+  if(userName){
     reply = userName + "、" + reply;
   }
 
@@ -266,7 +229,8 @@ function replyAI(text){
 
   setTimeout(()=>{
     try{
-      typing.remove();
+      if(typing) typing.remove();
+
       addMessage(reply,"bot");
 
       setTimeout(()=>{
@@ -276,7 +240,6 @@ function replyAI(text){
     }catch(e){
       console.log("返信エラー", e);
     }
-
   },800);
 }
 
@@ -293,6 +256,7 @@ function sendMessage(){
 
 /* ===== 音声入力 ===== */
 function startVoice(){
+
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
   if(!SpeechRecognition){
@@ -318,11 +282,7 @@ function startVoice(){
 
 /* ===== 初回 ===== */
 window.onload=()=>{
-  let greet="おかえり";
-  if(love > 10) greet="おかえり、待ってた";
-
-  if(userName) greet=userName+"、"+greet;
-
+  let greet = userName ? userName+"、おかえり" : "おかえり";
   addMessage(greet,"bot");
 };
 
