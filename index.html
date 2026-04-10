@@ -3,28 +3,26 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>美咲AI 固定版</title>
+<title>美咲AI 進化版</title>
 
 <style>
 html,body{
   margin:0;
   height:100%;
-  overflow:hidden; /* ← これが超重要 */
+  overflow:hidden;
   background:#08121f;
   font-family:sans-serif;
 }
 
-/* ===== 全体固定 ===== */
 .app{
   height:100vh;
   display:flex;
   flex-direction:column;
 }
 
-/* ===== 画像（固定） ===== */
+/* ===== 画像 ===== */
 .top{
-  height:28%;
-  flex-shrink:0;
+  height:30%;
   display:flex;
   justify-content:center;
   align-items:center;
@@ -34,11 +32,12 @@ html,body{
   height:100%;
   object-fit:cover;
   border-radius:20px;
+  transition:0.3s;
 }
 
-/* ===== チャット（ここだけスクロール） ===== */
+/* ===== チャット ===== */
 #chatBox{
-  height:42%;
+  height:40%;
   overflow-y:auto;
   padding:8px;
 }
@@ -59,9 +58,9 @@ html,body{
   background:#444;
 }
 
-/* ===== 入力（固定） ===== */
+/* ===== 入力 ===== */
 .input{
-  height:12%;
+  height:14%;
   display:flex;
   align-items:center;
   padding:6px;
@@ -70,26 +69,18 @@ html,body{
 
 input{
   flex:1;
+  min-width:0;
   padding:10px;
   border-radius:10px;
   border:none;
-  font-size:13px;
 }
 
 button{
+  flex-shrink:0;
+  width:60px;
   margin-left:5px;
-  padding:10px;
   border:none;
   border-radius:10px;
-}
-
-/* ===== スタンプ ===== */
-#stampPanel{
-  display:none;
-  height:10%;
-  background:#222;
-  overflow-x:auto;
-  white-space:nowrap;
 }
 
 /* ===== タブ ===== */
@@ -98,7 +89,6 @@ button{
   display:flex;
   background:#222;
 }
-
 .tab{
   flex:1;
   text-align:center;
@@ -113,16 +103,12 @@ button{
 <div class="app">
 
 <div class="top">
-<img src="girl-normal.jpg">
+<img id="face" src="face_normal.jpg">
 </div>
 
 <div id="chatBox"></div>
 
-<div id="stampPanel"></div>
-
 <div class="input">
-<button onclick="toggleStamp()">😊</button>
-<button onclick="startVoice()">🎤</button>
 <input id="userInput" placeholder="話しかけて...">
 <button onclick="sendMessage()">送信</button>
 </div>
@@ -138,14 +124,86 @@ button{
 
 <script>
 
+/* ===== 設定 ===== */
+let userName = localStorage.getItem("name") || "あなた";
+let love = Number(localStorage.getItem("love") || 0);
+
+/* ===== 表情9枚 ===== */
+const faces = {
+  normal:"face_normal.jpg",
+  happy:"face_happy.jpg",
+  sad:"face_sad.jpg",
+  angry:"face_angry.jpg",
+  love:"face_love.jpg",
+  tired:"face_tired.jpg",
+  shy:"face_shy.jpg",
+  smile:"face_smile.jpg",
+  thinking:"face_thinking.jpg"
+};
+
+/* ===== 表情変更 ===== */
+function setFace(type){
+  document.getElementById("face").src = faces[type] || faces.normal;
+}
+
+/* ===== メッセージ追加 ===== */
 function addMessage(text,type){
   const div=document.createElement("div");
   div.className="message "+type;
-  div.textContent=text;
+  div.innerHTML = text;
   chatBox.appendChild(div);
   chatBox.scrollTop=chatBox.scrollHeight;
 }
 
+/* ===== AI返信 ===== */
+function aiReply(text){
+
+  let reply="";
+  let face="normal";
+
+  /* 感情判定 */
+  if(text.includes("疲")){
+    face="tired";
+    reply="無理してない？少し休も？";
+    love+=2;
+  }
+  else if(text.includes("楽")){
+    face="happy";
+    reply="いいね、それ聞くと嬉しいな";
+    love+=3;
+  }
+  else if(text.includes("怒")){
+    face="angry";
+    reply="そっか…それはちょっと嫌だね";
+    love+=1;
+  }
+  else{
+    face="smile";
+    reply="ちゃんと聞いてるよ。もう少し教えて？";
+    love+=1;
+  }
+
+  /* 親密度で変化 */
+  if(love > 20){
+    reply = userName + "、" + reply + " そばにいるよ";
+    face="love";
+  }
+
+  if(love > 50){
+    reply = userName + "、おかえり。待ってたよ";
+    face="love";
+  }
+
+  /* 保存 */
+  localStorage.setItem("love",love);
+
+  setTimeout(()=>{
+    setFace(face);
+    addMessage("<b>美咲</b><br>"+reply,"bot");
+  },700);
+}
+
+/* ===== 送信 ===== */
 function sendMessage(){
   const text=userInput.value;
   if(!text) return;
@@ -153,51 +211,13 @@ function sendMessage(){
   addMessage(text,"user");
   userInput.value="";
 
-  setTimeout(()=>{
-    addMessage("ちゃんと聞いてるよ","bot");
-  },700);
+  aiReply(text);
 }
 
-/* ===== スタンプ ===== */
-const stamps=["😊","😢","😡","😍","😆","😭"];
-
-function toggleStamp(){
-  const panel=document.getElementById("stampPanel");
-
-  panel.style.display = panel.style.display==="block" ? "none":"block";
-  panel.innerHTML="";
-
-  stamps.forEach(s=>{
-    const btn=document.createElement("button");
-    btn.textContent=s;
-
-    btn.onclick=()=>{
-      addMessage(s,"user");
-      panel.style.display="none";
-    };
-
-    panel.appendChild(btn);
-  });
-}
-
-/* ===== 音声 ===== */
-function startVoice(){
-  try{
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    const recog = new SpeechRecognition();
-
-    recog.lang="ja-JP";
-
-    recog.onresult=(e)=>{
-      userInput.value = e.results[0][0].transcript;
-      sendMessage();
-    };
-
-    recog.start();
-
-  }catch{
-    alert("音声使えない");
-  }
+/* ===== 初回メッセージ ===== */
+window.onload=()=>{
+  setFace("normal");
+  addMessage("<b>美咲</b><br>"+userName+"、おかえり","bot");
 }
 
 </script>
