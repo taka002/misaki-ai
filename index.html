@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>美咲AI 完成版</title>
+<title>美咲AI 完全安定版</title>
 
 <style>
 html,body{
@@ -100,6 +100,8 @@ button{
   top:10%;
   left:5%;
   width:90%;
+  max-height:80vh;
+  overflow-y:auto;
   background:#222;
   padding:15px;
   border-radius:10px;
@@ -186,21 +188,18 @@ function toggleSettings(){
 }
 
 function saveSettings(){
-
   localStorage.setItem("userName", userName.value);
   localStorage.setItem("aiMode", aiMode.value);
   localStorage.setItem("voiceMode", voiceMode.value);
   localStorage.setItem("personality", personality.value);
-
   localStorage.setItem("gptKey", gptKey.value);
   localStorage.setItem("geminiKey", geminiKey.value);
   localStorage.setItem("elevenKey", elevenKey.value);
   localStorage.setItem("voiceId", voiceId.value);
-
   alert("保存したよ");
 }
 
-/* ===== 読み込み ===== */
+/* ===== 初期 ===== */
 window.onload=()=>{
 
   userName.value = localStorage.getItem("userName") || "";
@@ -265,17 +264,14 @@ function speak(text){
 
   if(mode==="off") return;
 
-  if(mode==="eleven"){
-    playEleven(text);
-    return;
-  }
-
   try{
     speechSynthesis.cancel();
     const msg=new SpeechSynthesisUtterance(text);
     msg.lang="ja-JP";
     speechSynthesis.speak(msg);
-  }catch(e){}
+  }catch(e){
+    console.log("音声エラー", e);
+  }
 }
 
 /* ===== Eleven ===== */
@@ -303,30 +299,31 @@ async function playEleven(text){
 /* ===== AI ===== */
 async function replyAI(text){
 
-  const mode = localStorage.getItem("aiMode");
+  try{
 
-  if(mode==="gpt"){
-    callGPT(text);
-    return;
+    const mode = localStorage.getItem("aiMode");
+
+    if(mode==="gpt"){
+      await callGPT(text);
+      return;
+    }
+
+    if(mode==="gemini"){
+      await callGemini(text);
+      return;
+    }
+
+    let reply="ちゃんと聞いてるよ";
+
+    if(text.includes("疲")){
+      reply="疲れてるね…今日はどんな一日だった？";
+    }
+
+    showReply(reply);
+
+  }catch(e){
+    showReply("うまく話せなかった、ごめんね");
   }
-
-  if(mode==="gemini"){
-    callGemini(text);
-    return;
-  }
-
-  // ローカルAI
-  let reply="";
-
-  if(text.includes("疲")){
-    reply="疲れてるね…今日はどんな一日だった？";
-  }else if(text.includes("楽")){
-    reply="いいね、それもっと聞きたいな";
-  }else{
-    reply="ちゃんと聞いてるよ、続けて";
-  }
-
-  showReply(reply);
 }
 
 /* ===== GPT ===== */
@@ -393,16 +390,17 @@ async function callGemini(text){
   }
 }
 
-/* ===== 共通返信処理（バグ防止） */
+/* ===== 返信 ===== */
 function showReply(reply){
 
   const typing=document.createElement("div");
   typing.className="message bot";
   typing.textContent="…";
   chatBox.appendChild(typing);
+  chatBox.scrollTop = chatBox.scrollHeight;
 
   setTimeout(()=>{
-    if(typing) typing.remove();
+    if(typing && typing.parentNode) typing.remove();
 
     addMessage(reply,"bot");
 
@@ -410,7 +408,7 @@ function showReply(reply){
       speak(reply);
     },200);
 
-  },600);
+  },500);
 }
 
 /* ===== 送信 ===== */
