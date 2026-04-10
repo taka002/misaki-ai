@@ -15,7 +15,7 @@ html,body{
   color:white;
 }
 
-/* 上画像 */
+/* 上画像（表情） */
 .top{
   position:fixed;
   top:0;
@@ -114,18 +114,22 @@ textarea{
 
 <body>
 
+<!-- 表情 -->
 <div class="top">
-<img src="girl-normal.jpg">
+<img id="face" src="girl-normal.jpg">
 </div>
 
+<!-- チャット -->
 <div id="chatBox"></div>
 
+<!-- 入力 -->
 <div class="input">
 <button onclick="startVoice()">🎤</button>
 <input id="userInput" placeholder="話しかけて...">
 <button onclick="sendMessage()">送信</button>
 </div>
 
+<!-- タブ -->
 <div class="tabs">
 <div class="tab">会話</div>
 <div class="tab">分析</div>
@@ -133,19 +137,13 @@ textarea{
 <div class="tab" onclick="toggleSettings()">設定</div>
 </div>
 
+<!-- 設定 -->
 <div id="settingsPanel">
 
 <h3>設定</h3>
 
 名前<br>
 <input id="userName"><br><br>
-
-AI<br>
-<select id="aiMode">
-<option value="local">ローカル</option>
-<option value="gpt">ChatGPT</option>
-<option value="gemini">Gemini</option>
-</select><br><br>
 
 音声<br>
 <select id="voiceMode">
@@ -163,12 +161,43 @@ AI<br>
 
 <script>
 
+/* =====================
+  表情データ
+===================== */
+
+const faceImg = document.getElementById("face");
+
+const faces = {
+  normal:"girl-normal.jpg",
+  happy:"girl-happy.png",
+  healing:"girl-healing.png",
+  irritated:"girl-irritated.png",
+  sympathy:"girl-sympathy.png",
+  worried:"girl-worried.png",
+  troubled:"girl-troubled.png",
+  panic:"girl-panic.png",
+  exhausted:"girl-exhausted.png"
+};
+
+function changeFace(type){
+  if(faces[type]){
+    faceImg.src = faces[type];
+  }
+}
+
+/* =====================
+  基本
+===================== */
+
 const chatBox = document.getElementById("chatBox");
 const userInput = document.getElementById("userInput");
 
 let isSending = false;
 
-/* 設定 */
+/* =====================
+  設定
+===================== */
+
 function toggleSettings(){
   settingsPanel.style.display =
     settingsPanel.style.display==="none"?"block":"none";
@@ -176,30 +205,51 @@ function toggleSettings(){
 
 function saveSettings(){
   localStorage.setItem("userName", userName.value);
-  localStorage.setItem("aiMode", aiMode.value);
   localStorage.setItem("voiceMode", voiceMode.value);
   localStorage.setItem("personality", personality.value);
   alert("保存したよ");
 }
 
-/* 初期 */
-window.onload=()=>{
+/* =====================
+  起動処理（超重要）
+===================== */
+
+window.onload = ()=>{
 
   userName.value = localStorage.getItem("userName") || "";
-  aiMode.value = localStorage.getItem("aiMode") || "local";
   voiceMode.value = localStorage.getItem("voiceMode") || "native";
 
   const name = userName.value || "あなた";
   const hour = new Date().getHours();
 
-  let greet = hour<11?"おはよう":hour<18?"こんにちは":"おかえり";
+  let greet="";
+  let face="normal";
+
+  if(hour < 11){
+    greet="おはよう";
+    face="happy";
+  }else if(hour < 18){
+    greet="こんにちは";
+    face="normal";
+  }else{
+    greet="おかえり";
+    face="healing";
+  }
+
+  changeFace(face);
 
   const msg = `${name}、${greet}`;
   addMessage(msg,"bot");
-  speak(msg);
+
+  setTimeout(()=>{
+    speak(msg);
+  },500);
 };
 
-/* メッセージ */
+/* =====================
+  メッセージ表示
+===================== */
+
 function addMessage(text,type){
 
   const div=document.createElement("div");
@@ -218,36 +268,63 @@ function addMessage(text,type){
   chatBox.scrollTop = chatBox.scrollHeight;
 }
 
-/* 音声 */
+/* =====================
+  音声
+===================== */
+
 function speak(text){
 
   if(localStorage.getItem("voiceMode")==="off") return;
 
   try{
     speechSynthesis.cancel();
+
     const msg = new SpeechSynthesisUtterance(text);
     msg.lang="ja-JP";
+    msg.pitch=1.2;
+
     speechSynthesis.speak(msg);
   }catch(e){}
 }
 
-/* AI */
+/* =====================
+  AI（人格付き）
+===================== */
+
 function replyAI(text){
 
   let reply="";
+  let face="normal";
 
   if(text.includes("疲")){
-    reply="疲れてるね…無理してない？";
-  }else if(text.includes("こんにちは")){
-    reply="こんにちは、来てくれて嬉しい";
+    reply="無理してない？ちゃんと休めてる？";
+    face="exhausted";
+
+  }else if(text.includes("嬉") || text.includes("楽")){
+    reply="いいね、それ聞いて私も嬉しい";
+    face="happy";
+
+  }else if(text.includes("不安") || text.includes("心配")){
+    reply="そっか…それは不安になるよね";
+    face="worried";
+
+  }else if(text.includes("ムカ") || text.includes("イライラ")){
+    reply="それはちょっとイラっとするね";
+    face="irritated";
+
   }else{
     reply="ちゃんと聞いてるよ、続けて";
+    face="normal";
   }
 
+  changeFace(face);
   showReply(reply);
 }
 
-/* 返信 */
+/* =====================
+  返信表示
+===================== */
+
 function showReply(reply){
 
   const typing=document.createElement("div");
@@ -269,7 +346,10 @@ function showReply(reply){
   },500);
 }
 
-/* 送信 */
+/* =====================
+  送信
+===================== */
+
 function sendMessage(){
 
   if(isSending) return;
@@ -289,7 +369,10 @@ function sendMessage(){
   },500);
 }
 
-/* 音声入力 */
+/* =====================
+  音声入力
+===================== */
+
 function startVoice(){
 
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
