@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>美咲AI 最終版</title>
+<title>美咲AI 完成版</title>
 
 <style>
 html,body{
@@ -157,12 +157,7 @@ const faces={
 normal:"girl-normal.jpg",
 happy:"girl-happy.png",
 exhausted:"girl-exhausted.png",
-worried:"girl-worried.png",
-healing:"girl-healing.png",
-irritated:"girl-irritated.png",
-panic:"girl-panic.png",
-sympathy:"girl-sympathy.png",
-troubled:"girl-troubled.png"
+worried:"girl-worried.png"
 };
 
 function setFace(type){
@@ -195,29 +190,27 @@ function addMessage(text,type){
   chatBox.scrollTop = chatBox.scrollHeight;
 }
 
-/* ===== 夜モード ===== */
-function updateTheme(){
-  const hour = new Date().getHours();
-  if(hour < 18){
-    document.body.style.background="#08121f";
-  }else{
-    document.body.style.background="#050814";
-  }
-}
-setInterval(updateTheme,1000);
-
-/* ===== 音声 ===== */
+/* ===== 音声（修正版） ===== */
 function speak(text){
-  const msg=new SpeechSynthesisUtterance(text);
-  msg.lang="ja-JP";
 
-  if(love > 20){
-    msg.pitch=1.4;
-  }else{
-    msg.pitch=1.1;
+  try{
+    speechSynthesis.cancel();
+
+    const msg = new SpeechSynthesisUtterance(text);
+    msg.lang = "ja-JP";
+
+    msg.rate = 1.0;
+    msg.pitch = 1.2;
+
+    msg.onerror = (e)=>{
+      console.log("音声エラー", e);
+    };
+
+    speechSynthesis.speak(msg);
+
+  }catch(e){
+    console.log("音声失敗", e);
   }
-
-  speechSynthesis.speak(msg);
 }
 
 /* ===== AI ===== */
@@ -233,7 +226,6 @@ function replyAI(text){
 
   setFace(mood);
 
-  // GPT風
   let empathy="ちゃんと聞いてるよ";
   let expand="少し気になってる";
   let question="どうだった？";
@@ -258,34 +250,34 @@ function replyAI(text){
 
   let reply = empathy + "。" + expand + "。" + question;
 
-  // 記憶
   let hint = getMemoryHint();
   if(hint) reply = hint + "。" + reply;
 
-  // 親密度で変化
-  if(love > 30){
+  if(love > 20){
     reply = userName + "、" + reply + " そばにいるよ";
-  }else if(love > 10){
+  }else if(love > 5){
     reply = userName + "、" + reply;
   }
 
-  // 既読
-  const read=document.createElement("div");
-  read.style.fontSize="10px";
-  read.textContent="既読";
-  chatBox.appendChild(read);
-
-  // タイピング
   const typing=document.createElement("div");
   typing.className="message bot";
   typing.textContent="…";
   chatBox.appendChild(typing);
 
   setTimeout(()=>{
-    typing.remove();
-    addMessage(reply,"bot");
-    speak(reply);
-  },800 + Math.random()*1200);
+    try{
+      typing.remove();
+      addMessage(reply,"bot");
+
+      setTimeout(()=>{
+        speak(reply);
+      },200);
+
+    }catch(e){
+      console.log("返信エラー", e);
+    }
+
+  },800);
 }
 
 /* ===== 送信 ===== */
@@ -302,6 +294,7 @@ function sendMessage(){
 /* ===== 音声入力 ===== */
 function startVoice(){
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
   if(!SpeechRecognition){
     alert("Chromeで開いてね");
     return;
@@ -316,15 +309,17 @@ function startVoice(){
     sendMessage();
   };
 
+  r.onerror=(e)=>{
+    console.log("音声入力エラー", e);
+  };
+
   r.start();
 }
 
 /* ===== 初回 ===== */
 window.onload=()=>{
-  updateTheme();
-
   let greet="おかえり";
-  if(love > 20) greet="おかえり、待ってた";
+  if(love > 10) greet="おかえり、待ってた";
 
   if(userName) greet=userName+"、"+greet;
 
