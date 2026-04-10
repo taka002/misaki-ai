@@ -15,14 +15,11 @@ html,body{
   color:white;
 }
 
-.app{
-  height:100vh;
-  display:flex;
-  flex-direction:column;
-}
-
 /* ===== 画像 ===== */
 .top{
+  position:fixed;
+  top:0;
+  width:100%;
   height:28%;
   display:flex;
   justify-content:center;
@@ -33,12 +30,14 @@ html,body{
   height:100%;
   object-fit:cover;
   border-radius:20px;
-  background:#222;
 }
 
 /* ===== チャット ===== */
 #chatBox{
-  height:42%;
+  position:fixed;
+  top:28%;
+  bottom:110px;
+  width:100%;
   overflow-y:auto;
   padding:8px;
 }
@@ -59,9 +58,12 @@ html,body{
   background:#444;
 }
 
-/* ===== 入力 ===== */
+/* ===== 入力欄 ===== */
 .input{
-  height:14%;
+  position:fixed;
+  bottom:50px;
+  width:100%;
+  height:60px;
   display:flex;
   align-items:center;
   padding:6px;
@@ -70,32 +72,24 @@ html,body{
 
 input{
   flex:1;
-  min-width:0;
   padding:10px;
   border-radius:10px;
   border:none;
 }
 
 button{
-  flex-shrink:0;
-  width:55px;
+  width:50px;
   margin-left:5px;
   border:none;
   border-radius:10px;
 }
 
-/* ===== スタンプ ===== */
-#stampPanel{
-  display:none;
-  height:10%;
-  background:#222;
-  overflow-x:auto;
-  padding:5px;
-}
-
 /* ===== タブ ===== */
 .tabs{
-  height:8%;
+  position:fixed;
+  bottom:0;
+  width:100%;
+  height:50px;
   display:flex;
   background:#222;
 }
@@ -110,8 +104,6 @@ button{
 
 <body>
 
-<div class="app">
-
 <div class="top">
 <img id="face" src="girl-normal.jpg"
 onerror="this.src='https://via.placeholder.com/300x200'">
@@ -119,10 +111,7 @@ onerror="this.src='https://via.placeholder.com/300x200'">
 
 <div id="chatBox"></div>
 
-<div id="stampPanel"></div>
-
 <div class="input">
-<button onclick="toggleStamp()">😊</button>
 <button onclick="startVoice()">🎤</button>
 <input id="userInput" placeholder="話しかけて...">
 <button onclick="sendMessage()">送信</button>
@@ -135,29 +124,18 @@ onerror="this.src='https://via.placeholder.com/300x200'">
 <div class="tab">設定</div>
 </div>
 
-</div>
-
 <script>
 
-/* ===== 状態 ===== */
-let name = localStorage.getItem("name") || "あなた";
-let love = Number(localStorage.getItem("love") || 0);
-
 /* ===== 表情 ===== */
-const faces = {
-  normal:"girl-normal.jpg",
-  happy:"girl-happy.png",
-  exhausted:"girl-exhausted.png",
-  healing:"girl-healing.png",
-  irritated:"girl-irritated.png",
-  panic:"girl-panic.png",
-  sympathy:"girl-sympathy.png",
-  troubled:"girl-troubled.png",
-  worried:"girl-worried.png"
+const faces={
+normal:"girl-normal.jpg",
+happy:"girl-happy.png",
+exhausted:"girl-exhausted.png",
+worried:"girl-worried.png"
 };
 
 function setFace(type){
-  document.getElementById("face").src = faces[type] || faces.normal;
+  document.getElementById("face").src=faces[type]||faces.normal;
 }
 
 /* ===== 時間 ===== */
@@ -169,87 +147,48 @@ function time(){
 
 /* ===== メッセージ ===== */
 function addMessage(text,type){
-
   const div=document.createElement("div");
   div.className="message "+type;
 
   if(type==="user"){
-    div.innerHTML = `
-      ${text}
-      <div style="font-size:10px;color:#ddd;text-align:right">
-        ${time()} ✔✔
-      </div>`;
+    div.innerHTML=text+
+    `<div style="font-size:10px;color:#ddd;text-align:right">${time()} ✔✔</div>`;
   }else{
-    div.innerHTML = `
-      <div style="font-size:11px;color:#aaa">美咲</div>
-      ${text}
-      <div style="font-size:10px;color:#aaa">${time()}</div>`;
+    div.innerHTML=
+    `<div style="font-size:11px;color:#aaa">美咲</div>`+
+    text+
+    `<div style="font-size:10px;color:#aaa">${time()}</div>`;
   }
 
   chatBox.appendChild(div);
-  chatBox.scrollTop = chatBox.scrollHeight;
+  chatBox.scrollTop=chatBox.scrollHeight;
 }
 
-/* ===== 感情分析 ===== */
-function analyze(text){
+/* ===== AI ===== */
+function replyAI(text){
 
-  if(text.includes("疲") || text.includes("しんど")){
-    return {mood:"exhausted",
-    list:["無理してない？","今日は少し休も？","ちゃんと頑張ってるよ"]};
+  let reply="ちゃんと聞いてるよ";
+
+  if(text.includes("疲")){ 
+    reply="無理してない？少し休も？";
+    setFace("exhausted");
   }
-
-  if(text.includes("楽") || text.includes("嬉")){
-    return {mood:"happy",
-    list:["それいいね","聞いてて嬉しい","いい感じだね"]};
+  else if(text.includes("楽")){
+    reply="いいね、それ嬉しい";
+    setFace("happy");
   }
-
-  if(text.includes("不安") || text.includes("心配")){
-    return {mood:"worried",
-    list:["一人で抱えてない？","大丈夫？","話してくれてありがとう"]};
+  else if(text.includes("不安")){
+    reply="大丈夫？一人で抱えてない？";
+    setFace("worried");
   }
-
-  return {mood:"normal",
-  list:["ちゃんと聞いてるよ","もう少し教えて？","どうだった？"]};
-}
-
-/* ===== 親密度で変化 ===== */
-function makeReply(base){
-
-  let text = base;
-
-  if(love > 10){
-    text = name + "、" + text;
+  else{
+    setFace("normal");
   }
-
-  if(love > 30){
-    text += " そばにいるよ";
-  }
-
-  if(love > 60){
-    text = name + "、おかえり。待ってた";
-  }
-
-  return text;
-}
-
-/* ===== AI返信 ===== */
-function botReply(text){
-
-  const res = analyze(text);
-
-  setFace(res.mood);
-
-  love += 2;
-  localStorage.setItem("love",love);
-
-  const base = res.list[Math.floor(Math.random()*res.list.length)];
-  const reply = makeReply(base);
 
   // 既読
   const read=document.createElement("div");
   read.style.fontSize="10px";
   read.style.color="#aaa";
-  read.style.margin="3px";
   read.textContent="既読";
   chatBox.appendChild(read);
 
@@ -267,64 +206,48 @@ function botReply(text){
 
 /* ===== 送信 ===== */
 function sendMessage(){
-
   const text=userInput.value;
   if(!text) return;
 
   addMessage(text,"user");
   userInput.value="";
-
-  botReply(text);
-}
-
-/* ===== スタンプ ===== */
-const stamps=[
-  {e:"😊",m:"happy"},
-  {e:"😢",m:"sympathy"},
-  {e:"😡",m:"irritated"},
-  {e:"😴",m:"exhausted"},
-  {e:"😰",m:"panic"},
-  {e:"💛",m:"healing"},
-  {e:"😟",m:"worried"},
-  {e:"😞",m:"troubled"}
-];
-
-function toggleStamp(){
-  const p=document.getElementById("stampPanel");
-  p.style.display=p.style.display==="block"?"none":"block";
-  p.innerHTML="";
-
-  stamps.forEach(s=>{
-    const b=document.createElement("button");
-    b.textContent=s.e;
-    b.onclick=()=>{
-      addMessage(s.e,"user");
-      setFace(s.m);
-      p.style.display="none";
-    };
-    p.appendChild(b);
-  });
+  replyAI(text);
 }
 
 /* ===== 音声入力 ===== */
 function startVoice(){
-  try{
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    const r=new SpeechRecognition();
-    r.lang="ja-JP";
-    r.onresult=(e)=>{
-      userInput.value=e.results[0][0].transcript;
-      sendMessage();
-    };
-    r.start();
-  }catch{
-    alert("音声使えない");
+
+  // ⚠️ HTTPSでないと動かない
+  if(location.protocol !== "https:"){
+    alert("音声入力はHTTPSでのみ動きます（GitHub PagesならOK）");
+    return;
   }
+
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  if(!SpeechRecognition){
+    alert("このブラウザは音声入力非対応（Chrome推奨）");
+    return;
+  }
+
+  const r = new SpeechRecognition();
+  r.lang="ja-JP";
+
+  r.onstart=()=>{ console.log("音声開始"); };
+  r.onerror=(e)=>{ alert("音声エラー："+e.error); };
+
+  r.onresult=(e)=>{
+    const text=e.results[0][0].transcript;
+    userInput.value=text;
+    sendMessage();
+  };
+
+  r.start();
 }
 
-/* ===== 初回 ===== */
+/* 初期 */
 window.onload=()=>{
-  addMessage(name+"、おかえり","bot");
+  addMessage("おかえり","bot");
 };
 
 </script>
