@@ -150,3 +150,184 @@ function startVoice(){
 
 </body>
 </html>
+/* ===== 初期 ===== */
+window.onload=()=>{
+  if(!localStorage.getItem("memory")){
+    localStorage.setItem("memory", JSON.stringify([]));
+  }
+  if(!localStorage.getItem("love")){
+    localStorage.setItem("love", 0);
+  }
+};
+
+/* ===== メッセージ ===== */
+function addMsg(t, type){
+  const d=document.createElement("div");
+  d.className="msg "+type;
+  d.innerText=t;
+  chat.appendChild(d);
+  chat.scrollTop=chat.scrollHeight;
+}
+
+/* ===== 記憶 ===== */
+function saveMemory(role,text){
+  let mem = JSON.parse(localStorage.getItem("memory"));
+  mem.push({role:role,content:text});
+  if(mem.length > 10) mem.shift();
+  localStorage.setItem("memory", JSON.stringify(mem));
+}
+
+/* ===== 親密度 ===== */
+function addLove(val){
+  let love = parseInt(localStorage.getItem("love"));
+  love += val;
+  localStorage.setItem("love", love);
+}
+
+function getLove(){
+  return parseInt(localStorage.getItem("love"));
+}
+
+/* ===== 名前 ===== */
+function getName(){
+  return localStorage.getItem("name") || "あなた";
+}
+
+/* ===== 送信 ===== */
+async function send(){
+  const input = document.getElementById("text");
+  const text = input.value.trim();
+  if(!text) return;
+
+  addMsg(text,"user");
+  saveMemory("user",text);
+  addLove(1);
+
+  input.value="";
+
+  let reply;
+
+  try{
+    reply = await sendGPT(text);
+  }catch{
+    reply = localReply(text);
+  }
+
+  addMsg(reply,"ai");
+  saveMemory("assistant",reply);
+
+  speak(reply);
+  changeFace(reply);
+}
+
+/* ===== GPT（Vercel用） ===== */
+async function sendGPT(text){
+
+  let mem = JSON.parse(localStorage.getItem("memory"));
+
+  try{
+    const res = await fetch("/api/chat",{
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json"
+      },
+      body:JSON.stringify({
+        message:text,
+        memory:mem
+      })
+    });
+
+    const data = await res.json();
+    return applyPersonality(data.reply);
+
+  }catch(e){
+    return localReply(text);
+  }
+}
+
+/* ===== ローカルAI ===== */
+function localReply(text){
+
+  let love = getLove();
+  let name = getName();
+
+  if(love < 10){
+    return "うん…";
+  }
+
+  if(love < 30){
+    return "ちゃんと聞いてるよ";
+  }
+
+  if(love < 60){
+    return name + "、大丈夫？";
+  }
+
+  return name + "…そばにいるよ";
+}
+
+/* ===== 性格変化 ===== */
+function applyPersonality(reply){
+
+  let love = getLove();
+  let name = getName();
+
+  if(love > 50){
+    return name + "、" + reply + "…好き";
+  }
+
+  if(love > 20){
+    return name + "、" + reply;
+  }
+
+  return reply;
+}
+
+/* ===== 表情 ===== */
+function changeFace(text){
+  if(text.includes("好き")){
+    face.src="girl-happy.png";
+  }else if(text.includes("大丈夫")){
+    face.src="girl-worried.png";
+  }else{
+    face.src="girl-normal.jpg";
+  }
+}
+
+/* ===== 音声 ===== */
+function speak(text){
+  try{
+    speechSynthesis.cancel();
+    const uttr=new SpeechSynthesisUtterance(text);
+    uttr.lang="ja-JP";
+    speechSynthesis.speak(uttr);
+  }catch{}
+}
+
+/* ===== 音声入力 ===== */
+function startVoice(){
+  try{
+    const rec=new webkitSpeechRecognition();
+    rec.lang="ja-JP";
+
+    rec.onresult=e=>{
+      const result = e.results[0][0].transcript;
+      document.getElementById("text").value = result;
+      send();
+    };
+
+    rec.start();
+  }catch{
+    alert("音声未対応");
+  }
+}
+
+/* ===== Enter送信 ===== */
+document.addEventListener("DOMContentLoaded",()=>{
+  document.getElementById("text").addEventListener("keydown",(e)=>{
+    if(e.key==="Enter"){
+      e.preventDefault();
+      send();
+    }
+  });
+});
