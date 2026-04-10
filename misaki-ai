@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>美咲AI 人格強化版</title>
+<title>美咲AI 完成版</title>
 
 <style>
 body{
@@ -13,22 +13,28 @@ body{
   color:white;
 }
 
+/* ===== 全体 ===== */
 .app{
+  height:100vh;
   display:flex;
   flex-direction:column;
-  height:100dvh;
-  overflow:hidden;
 }
 
-/* ===== 画像 ===== */
+/* ===== 上（時間だけ裏で使うので非表示） ===== */
+
+/* ===== キャラ（ここが改善ポイント） ===== */
 .top{
-  height:120px;
+  height:90px; /* ← 小さく */
+  padding-top:12px; /* ← 下げる */
+  display:flex;
+  justify-content:center;
 }
+
 .top img{
-  width:100%;
+  width:90%;
   height:100%;
   object-fit:cover;
-  transform:translateY(12px);
+  border-radius:16px;
 }
 
 /* ===== メイン ===== */
@@ -39,38 +45,26 @@ body{
   min-height:0;
 }
 
-.panel{
-  display:none;
-  flex:1;
-  flex-direction:column;
-}
-.panel.active{
-  display:flex;
-}
-
 /* ===== チャット ===== */
-.chat-wrap{
-  display:flex;
-  flex-direction:column;
-  height:100%;
-}
-
 #chatBox{
   flex:1;
   overflow-y:auto;
   padding:10px;
 }
 
-.msg{
-  max-width:75%;
-  padding:10px;
-  border-radius:15px;
+/* ===== メッセージ ===== */
+.message{
+  max-width:80%;
+  padding:12px;
+  border-radius:16px;
   margin:6px 0;
+  position:relative;
+  line-height:1.6;
 }
 
 .user{
   background:#ff4f8b;
-  align-self:flex-end;
+  margin-left:auto;
 }
 
 .bot{
@@ -80,34 +74,55 @@ body{
 .time{
   font-size:10px;
   opacity:0.6;
+  margin-top:4px;
 }
 
 /* ===== 入力 ===== */
 .input{
   display:flex;
   gap:6px;
-  padding:6px;
+  padding:8px;
   background:#111;
 }
+
 input{
   flex:1;
-  min-width:0;
-  padding:10px;
+  padding:12px;
+  border-radius:10px;
+  border:none;
 }
+
 button{
-  padding:10px;
+  padding:12px;
+  border-radius:10px;
+  border:none;
 }
 
 /* ===== タブ ===== */
 .tabs{
-  height:50px;
   display:flex;
   background:#222;
 }
+
 .tab{
   flex:1;
   text-align:center;
-  line-height:50px;
+  padding:12px;
+}
+
+.panel{
+  display:none;
+  flex:1;
+}
+
+.panel.active{
+  display:flex;
+  flex-direction:column;
+}
+
+/* ===== 分析・未来 ===== */
+.card{
+  padding:15px;
 }
 </style>
 </head>
@@ -116,48 +131,41 @@ button{
 
 <div class="app">
 
+<!-- キャラ（下がってる） -->
 <div class="top">
-<img src="girl-normal.jpg">
+<img id="mainGirl" src="girl-normal.jpg">
 </div>
 
+<!-- メイン -->
 <div class="main">
 
 <!-- 会話 -->
 <div id="chatPanel" class="panel active">
-<div class="chat-wrap">
+  <div id="chatBox"></div>
 
-<div id="chatBox"></div>
-
-<div class="input">
-<input id="input">
-<button onclick="send()">送信</button>
+  <div class="input">
+    <input id="userInput">
+    <button onclick="sendMessage()">送信</button>
+  </div>
 </div>
 
-</div>
+<!-- 分析 -->
+<div id="analysisPanel" class="panel">
+  <div class="card" id="analysisContent">分析まだ</div>
 </div>
 
-<!-- 設定 -->
-<div id="settingsPanel" class="panel">
-<div style="padding:10px;">
-名前<input id="name"><br><br>
-
-性格
-<select id="personality">
-<option value="soft">優しい</option>
-<option value="cool">さっぱり</option>
-<option value="teasing">小悪魔</option>
-</select>
-
-<br><br>
-<button onclick="save()">保存</button>
-</div>
+<!-- 未来 -->
+<div id="futurePanel" class="panel">
+  <div class="card" id="futureContent">未来まだ</div>
 </div>
 
 </div>
 
+<!-- タブ -->
 <div class="tabs">
-<div class="tab" onclick="switchTab('chat')">会話</div>
-<div class="tab" onclick="switchTab('settings')">設定</div>
+  <div class="tab" onclick="switchTab('chat')">会話</div>
+  <div class="tab" onclick="switchTab('analysis')">分析</div>
+  <div class="tab" onclick="switchTab('future')">未来</div>
 </div>
 
 </div>
@@ -166,121 +174,129 @@ button{
 
 /* ===== 状態 ===== */
 let memory={
-  name:localStorage.getItem("name")||"美咲",
-  personality:localStorage.getItem("personality")||"soft",
-  history:JSON.parse(localStorage.getItem("history")||"[]"),
-  lastReply:"",
-  level:parseInt(localStorage.getItem("level")||"1")
+  chatHistory:[],
+  lastReply:""
 };
-
-name.value=memory.name;
-personality.value=memory.personality;
-
-/* ===== 保存 ===== */
-function save(){
-  memory.name=name.value;
-  memory.personality=personality.value;
-
-  localStorage.setItem("name",memory.name);
-  localStorage.setItem("personality",memory.personality);
-}
 
 /* ===== タブ ===== */
 function switchTab(tab){
   document.querySelectorAll(".panel").forEach(p=>p.classList.remove("active"));
+
   if(tab==="chat") chatPanel.classList.add("active");
-  if(tab==="settings") settingsPanel.classList.add("active");
+  if(tab==="analysis") analysisPanel.classList.add("active");
+  if(tab==="future") futurePanel.classList.add("active");
 }
 
-/* ===== 時刻 ===== */
-function now(){
-  let d=new Date();
+/* ===== 時間 ===== */
+function getTime(){
+  const d=new Date();
   return d.getHours()+":"+String(d.getMinutes()).padStart(2,"0");
 }
 
-/* ===== 表示 ===== */
-function add(text,type){
+/* ===== メッセージ追加 ===== */
+function addMessage(text,type){
+
   const div=document.createElement("div");
-  div.className="msg "+type;
-  div.innerHTML=text+`<div class="time">${now()}</div>`;
+  div.className="message "+type;
+
+  div.innerHTML=`
+    ${text}
+    <div class="time">${getTime()}</div>
+  `;
+
   chatBox.appendChild(div);
   chatBox.scrollTop=chatBox.scrollHeight;
 }
 
-/* ===== 名前呼び ===== */
-function maybeName(){
-  if(Math.random()<0.3 && name.value){
-    return name.value+"、";
-  }
-  return "";
-}
-
-/* ===== 性格トーン ===== */
-function tone(text){
-  if(memory.personality==="cool") return text.replace("ね","").replace("？","?");
-  if(memory.personality==="teasing") return text+"…ふふ"
-  return text;
-}
-
-/* ===== 関係性 ===== */
-function relation(){
-  if(memory.level<5) return "";
-  if(memory.level<15) return "ねぇ、";
-  return "ねぇさ、";
-}
-
-/* ===== 重複防止 ===== */
-function unique(r){
-  if(r===memory.lastReply){
-    return r+"…ちょっと違う言い方すると、";
-  }
-  memory.lastReply=r;
-  return r;
-}
-
-/* ===== AI ===== */
-function reply(t){
-
-  memory.level++;
-  localStorage.setItem("level",memory.level);
-
-  let intro = relation()+maybeName();
-
-  let r="";
-
-  if(t.includes("疲")){
-    r="無理してる感じあるね…少し休めそう？";
-  }
-  else if(t.includes("不安")){
-    r="それ気になるよね…どこが一番引っかかる？";
-  }
-  else if(t.includes("嬉")){
-    r="それいいね、どこが一番よかった？";
-  }
-  else{
-    r="もう少し聞かせてほしいな";
-  }
-
-  r=intro + tone(r);
-  r=unique(r);
-
-  return r;
-}
-
 /* ===== 送信 ===== */
-function send(){
-  let t=input.value;
-  if(!t) return;
+function sendMessage(){
+  const text=userInput.value;
+  if(!text) return;
 
-  add(t,"user");
+  addMessage(text,"user");
+  memory.chatHistory.push(text);
 
-  let r=reply(t);
-  add(memory.name+"："+r,"bot");
+  const reply=generateReply(text);
 
-  memory.history.push(t);
-  localStorage.setItem("history",JSON.stringify(memory.history));
+  setTimeout(()=>{
+    addMessage(reply,"bot");
+  },400);
 
-  input.value="";
+  userInput.value="";
+}
+
+/* ===== 表情 ===== */
+function setFace(type){
+  mainGirl.src="girl-"+type+".png";
+}
+
+/* ===== AI返信（人格強化） ===== */
+function generateReply(text){
+
+  const t=text.toLowerCase();
+
+  function contains(arr){
+    return arr.some(w=>t.includes(w));
+  }
+
+  let reply="";
+
+  if(contains(["疲れ","しんど","無理","限界"])){
+    setFace("exhausted");
+    reply="ちょっと無理してる感じあるね…今日は少し力抜けそう？";
+  }
+
+  else if(contains(["不安","怖い","心配"])){
+    setFace("worried");
+    reply="それ気になるよね…どこが一番引っかかってる？";
+  }
+
+  else if(contains(["寂しい","つらい"])){
+    setFace("sympathy");
+    reply="そっか…それはしんどいね。今ひとりで抱えてる感じ？";
+  }
+
+  else if(contains(["イライラ","むかつく"])){
+    setFace("irritated");
+    reply="それはイラッとするね…何が一番嫌だった？";
+  }
+
+  else if(contains(["楽しい","嬉しい"])){
+    setFace("happy");
+    reply="いいね、それ。どの瞬間が一番よかった？";
+  }
+
+  else{
+    setFace("normal");
+    reply="ちゃんと聞いてるよ。もう少し教えてくれる？";
+  }
+
+  /* 同じ返答防止 */
+  if(reply===memory.lastReply){
+    reply+=" 少し違う言い方すると、どう感じてる？";
+  }
+
+  memory.lastReply=reply;
+
+  return reply;
+}
+
+/* ===== 分析 ===== */
+function analyze(){
+  const text=memory.chatHistory.join("");
+
+  let fatigue = text.includes("疲") ? "高い" : "普通";
+
+  analysisContent.innerHTML="疲労："+fatigue;
+}
+
+/* ===== 未来 ===== */
+function future(){
+  futureContent.innerHTML=`
+    A：休む → 回復
+    <br>
+    B：続ける → 悪化
+  `;
 }
 
 </script>
