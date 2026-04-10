@@ -3,97 +3,57 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>美咲AI 安定版</title>
+<title>美咲AI 修復版</title>
 
 <style>
-html,body{
+body{
   margin:0;
-  height:100%;
-  overflow:hidden;
   font-family:sans-serif;
   background:#08121f;
   color:white;
 }
 
-/* 上画像 */
-.top{
-  position:fixed;
-  top:0;
-  width:100%;
-  height:28%;
-  display:flex;
-  justify-content:center;
-}
 .top img{
   width:90%;
-  height:100%;
-  object-fit:cover;
+  margin:10px;
   border-radius:20px;
 }
 
-/* チャット */
 #chatBox{
-  position:fixed;
-  top:28%;
-  bottom:110px;
-  width:100%;
-  overflow-y:auto;
-  padding:8px;
+  height:50vh;
+  overflow:auto;
+  padding:10px;
 }
 
-/* メッセージ */
 .message{
-  max-width:75%;
   padding:10px;
-  border-radius:14px;
-  margin:6px;
-  font-size:14px;
+  margin:5px;
+  border-radius:10px;
+  max-width:70%;
 }
+
 .user{
   background:#ff4f8b;
   margin-left:auto;
 }
+
 .bot{
   background:#444;
 }
 
-/* 入力 */
 .input{
-  position:fixed;
-  bottom:50px;
-  width:100%;
-  height:60px;
   display:flex;
-  padding:6px;
+  padding:10px;
   background:#111;
 }
+
 input{
   flex:1;
   padding:10px;
-  border-radius:10px;
-  border:none;
-}
-button{
-  width:50px;
-  margin-left:5px;
-  border:none;
-  border-radius:10px;
 }
 
-/* タブ */
-.tabs{
-  position:fixed;
-  bottom:0;
-  width:100%;
-  height:50px;
-  display:flex;
-  background:#222;
-}
-.tab{
-  flex:1;
-  text-align:center;
-  padding:8px;
-  font-size:12px;
+button{
+  width:60px;
 }
 </style>
 </head>
@@ -101,189 +61,69 @@ button{
 <body>
 
 <div class="top">
-<img id="face" src="girl-normal.jpg"
-onerror="this.src='https://via.placeholder.com/300x200'">
+<img src="girl-normal.jpg" onerror="this.src='https://via.placeholder.com/300'">
 </div>
 
 <div id="chatBox"></div>
 
 <div class="input">
-<button onclick="startVoice()">🎤</button>
-<input id="userInput" placeholder="話しかけて...">
+<input id="userInput">
 <button onclick="sendMessage()">送信</button>
-</div>
-
-<div class="tabs">
-<div class="tab">会話</div>
-<div class="tab">分析</div>
-<div class="tab">未来</div>
-<div class="tab">設定</div>
 </div>
 
 <script>
 
-/* ===== 初期化 ===== */
 const chatBox = document.getElementById("chatBox");
 const userInput = document.getElementById("userInput");
 
-/* ===== 名前 ===== */
-let userName = localStorage.getItem("userName") || "";
-if(!userName){
-  userName = prompt("名前教えて？");
-  localStorage.setItem("userName", userName);
-}
-
-/* ===== 記憶 ===== */
-let memory = JSON.parse(localStorage.getItem("memory")) || [];
-
-function saveMemory(text){
-  memory.push(text);
-  if(memory.length > 10) memory.shift();
-  localStorage.setItem("memory", JSON.stringify(memory));
-}
-
-/* ===== 表情 ===== */
-const faces={
-normal:"girl-normal.jpg",
-happy:"girl-happy.png",
-exhausted:"girl-exhausted.png",
-worried:"girl-worried.png"
-};
-
-function setFace(type){
-  document.getElementById("face").src=faces[type] || faces.normal;
-}
-
-/* ===== 時間 ===== */
-function time(){
-  const d=new Date();
-  return d.getHours().toString().padStart(2,"0")+":"+
-         d.getMinutes().toString().padStart(2,"0");
-}
-
-/* ===== メッセージ ===== */
 function addMessage(text,type){
   const div=document.createElement("div");
   div.className="message "+type;
-
-  if(type==="user"){
-    div.innerHTML = text +
-    `<div style="font-size:10px;color:#ddd;text-align:right">${time()}</div>`;
-  }else{
-    div.innerHTML =
-    `<div style="font-size:11px;color:#aaa">美咲</div>`+
-    text+
-    `<div style="font-size:10px;color:#aaa">${time()}</div>`;
-  }
-
+  div.textContent=text;
   chatBox.appendChild(div);
-  chatBox.scrollTop = chatBox.scrollHeight;
+  chatBox.scrollTop=chatBox.scrollHeight;
 }
 
-/* ===== 音声（安全版） ===== */
 function speak(text){
   try{
-    if(!window.speechSynthesis) return;
-
-    speechSynthesis.cancel();
-
-    const msg = new SpeechSynthesisUtterance(text);
-    msg.lang = "ja-JP";
-
+    const msg=new SpeechSynthesisUtterance(text);
+    msg.lang="ja-JP";
     speechSynthesis.speak(msg);
-
-  }catch(e){
-    console.log("音声エラー", e);
-  }
+  }catch(e){}
 }
 
-/* ===== AI返信（安定版） ===== */
 function replyAI(text){
 
-  let reply = "ちゃんと聞いてるよ。もう少し教えて？";
+  let reply="ちゃんと聞いてるよ";
 
-  if(text.includes("疲")){
-    reply = "疲れてる感じするね。無理してない？";
-    setFace("exhausted");
+  if(text.includes("こんにちは")){
+    reply="こんにちは、来てくれて嬉しい";
   }
-  else if(text.includes("楽")){
-    reply = "いいね、それ聞いてちょっと嬉しい";
-    setFace("happy");
-  }
-  else if(text.includes("不安")){
-    reply = "大丈夫？一人で抱えてない？";
-    setFace("worried");
-  }
-  else{
-    setFace("normal");
-  }
-
-  if(userName){
-    reply = userName + "、" + reply;
-  }
-
-  const typing=document.createElement("div");
-  typing.className="message bot";
-  typing.textContent="…";
-  chatBox.appendChild(typing);
 
   setTimeout(()=>{
-    try{
-      if(typing) typing.remove();
-
-      addMessage(reply,"bot");
-
-      setTimeout(()=>{
-        speak(reply);
-      },200);
-
-    }catch(e){
-      console.log("返信エラー", e);
-    }
-  },800);
+    addMessage(reply,"bot");
+    speak(reply);
+  },500);
 }
 
-/* ===== 送信 ===== */
 function sendMessage(){
-  const text=userInput.value;
-  if(!text) return;
 
-  addMessage(text,"user");
-  saveMemory(text);
-  userInput.value="";
-  replyAI(text);
-}
+  try{
+    const text=userInput.value;
+    if(!text) return;
 
-/* ===== 音声入力 ===== */
-function startVoice(){
+    addMessage(text,"user");
+    userInput.value="";
 
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    replyAI(text);
 
-  if(!SpeechRecognition){
-    alert("Chromeで開いてね");
-    return;
+  }catch(e){
+    alert("エラー出てる："+e);
   }
-
-  const r = new SpeechRecognition();
-  r.lang="ja-JP";
-
-  r.onresult=(e)=>{
-    const text=e.results[0][0].transcript;
-    userInput.value=text;
-    sendMessage();
-  };
-
-  r.onerror=(e)=>{
-    console.log("音声入力エラー", e);
-  };
-
-  r.start();
 }
 
-/* ===== 初回 ===== */
 window.onload=()=>{
-  let greet = userName ? userName+"、おかえり" : "おかえり";
-  addMessage(greet,"bot");
+  addMessage("おかえり","bot");
 };
 
 </script>
