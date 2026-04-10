@@ -3,94 +3,123 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>美咲AI 完全版</title>
+<title>美咲AI 最終進化版</title>
 
 <style>
 body{
   margin:0;
   font-family:sans-serif;
-  background:#09111f;
-  color:white;
+  transition:0.5s;
 }
 
+/* ===== 背景 ===== */
+.morning{background:#2c3e50;}
+.day{background:#09111f;}
+.night{background:#1a1a2e;}
+
+/* ===== ロック ===== */
+#lock{
+ position:fixed; inset:0;
+ display:flex; align-items:center; justify-content:center;
+ background:black; color:white; z-index:10;
+}
+
+/* ===== レイアウト ===== */
 .app{
-  display:flex;
-  flex-direction:column;
-  height:100dvh;
+ display:flex;
+ flex-direction:column;
+ height:100dvh;
 }
 
-/* ===== 画像 ===== */
-.top-character{
-  height:160px;
-  flex-shrink:0;
-  padding:6px;
+/* ===== キャラ ===== */
+.top{
+ height:140px;
+ flex-shrink:0;
 }
-.top-character img{
-  width:100%;
-  height:100%;
-  object-fit:cover;
-  border-radius:20px;
+.top img{
+ width:100%;
+ height:100%;
+ object-fit:cover;
+ border-radius:15px;
 }
 
 /* ===== チャット ===== */
 .chat-area{
-  flex:1;
-  display:flex;
-  flex-direction:column;
-  min-height:0;
+ flex:1;
+ display:flex;
+ flex-direction:column;
+ min-height:0;
 }
 
 #chatBox{
-  flex:1;
-  overflow-y:auto;
-  padding:10px;
-  display:flex;
-  flex-direction:column;
+ flex:1;
+ overflow-y:auto;
+ padding:10px;
+ display:flex;
+ flex-direction:column;
 }
 
-.message{
-  padding:12px;
-  border-radius:18px;
-  margin:6px 0;
-  max-width:75%;
+/* ===== 吹き出し ===== */
+.msg{
+ max-width:75%;
+ padding:10px;
+ border-radius:15px;
+ margin:6px 0;
 }
 
 .user{
-  background:#ff4f8b;
-  align-self:flex-end;
+ background:#ff4f8b;
+ align-self:flex-end;
 }
 
 .bot{
-  background:#444;
+ background:#444;
+}
+
+/* 時刻 */
+.time{
+ font-size:10px;
+ opacity:0.6;
+ margin-top:3px;
 }
 
 /* ===== 入力 ===== */
-.input-area{
-  display:flex;
-  padding:8px;
-  flex-shrink:0;
+.input{
+ display:flex;
 }
 input{
-  flex:1;
-  padding:12px;
-  border-radius:12px;
-  border:none;
+ flex:1;
+ padding:10px;
 }
 button{
-  padding:12px;
-  margin-left:6px;
+ padding:10px;
 }
 
 /* ===== タブ ===== */
 .tabs{
-  display:flex;
-  background:#222;
-  flex-shrink:0;
+ display:flex;
+ background:#222;
 }
 .tab{
-  flex:1;
-  padding:12px;
-  text-align:center;
+ flex:1;
+ padding:10px;
+ text-align:center;
+}
+
+/* ===== スタンプ ===== */
+#stampPanel{
+ position:fixed;
+ bottom:60px;
+ left:0;
+ right:0;
+ background:#222;
+ display:none;
+ padding:10px;
+}
+
+.stamp{
+ font-size:28px;
+ padding:6px;
 }
 
 /* ===== パネル ===== */
@@ -101,29 +130,42 @@ button{
 
 <body>
 
+<div id="lock" onclick="unlock()">タップで開始</div>
+
 <div class="app">
 
-<div class="top-character">
-<img id="mainGirl" src="girl-normal.jpg">
+<div class="top">
+<img id="girl" src="girl-normal.jpg">
 </div>
 
 <!-- 会話 -->
 <div id="chatPanel" class="panel active">
 <div class="chat-area">
+
 <div id="chatBox"></div>
 
-<div class="input-area">
-<input id="userInput">
-<button onclick="sendMessage()">送信</button>
+<div class="input">
+<input id="input">
+<button onclick="send()">送信</button>
+<button onclick="toggleStamp()">😊</button>
 </div>
+
 </div>
 </div>
 
 <!-- 設定 -->
 <div id="settingsPanel" class="panel">
 <div style="padding:10px;">
-AI名前：<input id="aiNameInput"><br><br>
-<button onclick="saveAIName()">保存</button>
+AI名前<input id="aiName"><br><br>
+
+性格
+<select id="personality">
+<option value="soft">優しい</option>
+<option value="cool">さっぱり</option>
+<option value="teasing">小悪魔</option>
+</select><br><br>
+
+<button onclick="save()">保存</button>
 </div>
 </div>
 
@@ -135,165 +177,133 @@ AI名前：<input id="aiNameInput"><br><br>
 
 </div>
 
+<!-- スタンプ -->
+<div id="stampPanel">
+<span class="stamp" onclick="sendStamp('😊')">😊</span>
+<span class="stamp" onclick="sendStamp('🥺')">🥺</span>
+<span class="stamp" onclick="sendStamp('💤')">💤</span>
+<span class="stamp" onclick="sendStamp('❤️')">❤️</span>
+</div>
+
 <script>
 
-/* =====================
-記憶
-===================== */
+/* ===== ロック ===== */
+function unlock(){
+ lock.style.display="none";
+}
 
-let memory = {
-  aiName: localStorage.getItem("aiName") || "美咲",
-  chatHistory: JSON.parse(localStorage.getItem("chatHistory") || "[]"),
-  emotionStats: JSON.parse(localStorage.getItem("emotionStats") || "{}"),
-  lastReplies:[]
+/* ===== 背景 ===== */
+function bg(){
+ let h=new Date().getHours();
+ document.body.className=
+ h<6?"night":h<12?"morning":h<18?"day":"night";
+}
+setInterval(bg,60000); bg();
+
+/* ===== 記憶 ===== */
+let mem={
+ aiName:localStorage.getItem("aiName")||"美咲",
+ personality:localStorage.getItem("personality")||"soft",
+ history:JSON.parse(localStorage.getItem("history")||"[]"),
+ level:parseInt(localStorage.getItem("level")||"1"),
+ context:{}
 };
 
-document.getElementById("aiNameInput").value = memory.aiName;
+aiName.value=mem.aiName;
+personality.value=mem.personality;
 
-/* =====================
-保存
-===================== */
-function saveMemory(){
-  localStorage.setItem("chatHistory", JSON.stringify(memory.chatHistory));
-  localStorage.setItem("emotionStats", JSON.stringify(memory.emotionStats));
+/* ===== 保存 ===== */
+function save(){
+ localStorage.setItem("aiName",aiName.value);
+ localStorage.setItem("personality",personality.value);
+ mem.aiName=aiName.value;
+ mem.personality=personality.value;
 }
 
-/* =====================
-表情
-===================== */
-const faces={
- normal:"girl-normal.jpg",
- happy:"girl-happy.jpg",
- worried:"girl-worried.png",
- sympathy:"girl-sympathy.png",
- troubled:"girl-troubled.png",
- healing:"girl-healing.png",
- irritated:"girl-irritated.png",
- panic:"girl-panic.png",
- exhausted:"girl-exhausted.png"
-};
-
-function setFace(f){
- document.getElementById("mainGirl").src = faces[f] || faces.normal;
+/* ===== タブ ===== */
+function switchTab(t){
+ document.querySelectorAll(".panel").forEach(p=>p.classList.remove("active"));
+ if(t==="chat") chatPanel.classList.add("active");
+ if(t==="settings") settingsPanel.classList.add("active");
 }
 
-/* =====================
-感情記録
-===================== */
-function recordEmotion(type){
- memory.emotionStats[type]=(memory.emotionStats[type]||0)+1;
+/* ===== 時刻 ===== */
+function now(){
+ let d=new Date();
+ return d.getHours()+":"+String(d.getMinutes()).padStart(2,"0");
 }
 
-/* =====================
-重複防止
-===================== */
-function pick(arr){
- const f=arr.filter(a=>!memory.lastReplies.includes(a));
- const c=f.length?f[Math.floor(Math.random()*f.length)]:arr[Math.floor(Math.random()*arr.length)];
- memory.lastReplies.push(c);
- if(memory.lastReplies.length>5) memory.lastReplies.shift();
- return c;
+/* ===== スタンプ ===== */
+function toggleStamp(){
+ stampPanel.style.display = stampPanel.style.display==="block"?"none":"block";
+}
+function sendStamp(s){
+ add(s,"user");
+ stampPanel.style.display="none";
 }
 
-/* =====================
-記憶活用
-===================== */
-function recallContext(){
- if(memory.chatHistory.length<3) return "";
+/* ===== 記憶分析 ===== */
+function analyze(t){
+ if(t.includes("疲")) mem.context="疲れ";
+ if(t.includes("不安")) mem.context="不安";
 
- const last = memory.chatHistory.slice(-3).join(" ");
-
- if(last.includes("疲")) return "さっきからちょっと無理してる感じ続いてるね…";
- if(last.includes("不安")) return "少し不安が続いてる感じあるね…";
-
- return "";
+ mem.level++;
+ localStorage.setItem("level",mem.level);
 }
 
-/* =====================
-AI会話
-===================== */
-function generateReply(text){
+/* ===== 関係性進化 ===== */
+function relationPrefix(){
+ if(mem.level<5) return "";
+ if(mem.level<15) return "ねぇ、";
+ return "ねぇさ、";
+}
 
- let intro = recallContext();
+/* ===== 返答 ===== */
+function reply(t){
 
- if(text.includes("疲")){
-  setFace("exhausted");
-  recordEmotion("fatigue");
+ analyze(t);
 
-  return intro + pick([
-   "ちょっと無理してる感じあるね…少し休めそう？",
-   "だいぶ頑張ってるね…今日は少し力抜ける？",
-   "疲れが溜まってる感じするね…ちゃんと休めてる？"
-  ]);
+ let intro = relationPrefix();
+
+ if(Math.random()<0.2) return "そっか…";
+
+ if(t.includes("疲")){
+  return intro + (mem.level>10
+   ? "無理してるでしょ…ちょっと心配なんだけど"
+   : "無理してる感じあるね…少し休めそう？");
  }
 
- if(text.includes("不安")||text.includes("怖")){
-  setFace("worried");
-  recordEmotion("anxiety");
-
-  return intro + pick([
-   "それ気になるよね…どこが一番引っかかる？",
-   "不安になるのも無理ないよ…整理してみる？",
-   "その感じ、落ち着かないよね…"
-  ]);
+ if(t.includes("不安")){
+  return intro + "それ気になるよね…どこが一番引っかかる？";
  }
 
- setFace("normal");
-
- return intro + pick([
-  "ちゃんと聞いてるよ、もう少し教えてくれる？",
-  "その話もう少し知りたいな",
-  "少し背景ありそうだね、どういう感じ？"
- ]);
+ return intro + "それ、もう少し教えてくれる？";
 }
 
-/* =====================
-表示
-===================== */
-function addMessage(text,type){
- const div=document.createElement("div");
- div.className="message "+type;
- div.innerHTML=text;
- chatBox.appendChild(div);
+/* ===== 表示 ===== */
+function add(text,type){
+ const d=document.createElement("div");
+ d.className="msg "+type;
+ d.innerHTML=text+`<div class="time">${now()}</div>`;
+ chatBox.appendChild(d);
  chatBox.scrollTop=chatBox.scrollHeight;
 }
 
-/* =====================
-送信
-===================== */
-function sendMessage(){
- const text=userInput.value;
- if(!text) return;
+/* ===== 送信 ===== */
+function send(){
+ let t=input.value;
+ if(!t) return;
 
- addMessage(text,"user");
+ add(t,"user");
 
- memory.chatHistory.push(text);
- saveMemory();
+ let r=reply(t);
 
- const reply=generateReply(text);
+ add(mem.aiName+"："+r,"bot");
 
- addMessage(memory.aiName+"："+reply,"bot");
+ mem.history.push(t);
+ localStorage.setItem("history",JSON.stringify(mem.history));
 
- userInput.value="";
-}
-
-/* =====================
-タブ
-===================== */
-function switchTab(tab){
- document.querySelectorAll(".panel").forEach(p=>p.classList.remove("active"));
- if(tab==='chat') chatPanel.classList.add("active");
- if(tab==='settings') settingsPanel.classList.add("active");
-}
-
-/* =====================
-名前保存
-===================== */
-function saveAIName(){
- const val=document.getElementById("aiNameInput").value;
- memory.aiName=val;
- localStorage.setItem("aiName",val);
- alert("保存したよ");
+ input.value="";
 }
 
 </script>
