@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>美咲AI 進化版</title>
+<title>美咲AI</title>
 
 <style>
 body{
@@ -13,59 +13,92 @@ body{
   color:white;
 }
 
+/* ===== ロック画面 ===== */
+#lockScreen{
+  position:fixed;
+  inset:0;
+  background:#000;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  z-index:999;
+}
+
+#lockScreen input{
+  padding:15px;
+  font-size:20px;
+  margin-top:10px;
+}
+
+#lockScreen button{
+  padding:10px;
+  margin-top:10px;
+}
+
+/* ===== 全体 ===== */
 .app{
   display:flex;
   flex-direction:column;
-  height:100vh;
+  height:100dvh;
 }
 
-/* キャラ */
+/* ===== 時間 ===== */
+.time-bar{
+  text-align:center;
+  font-size:14px;
+  padding:5px;
+  opacity:0.8;
+}
+
+/* ===== 画像 ===== */
 .top-character{
-  height:30vh;
+  flex:0 0 20vh;
   display:flex;
   justify-content:center;
   align-items:center;
 }
 .top-character img{
   width:90%;
+  height:100%;
+  object-fit:cover;
   border-radius:20px;
 }
 
-/* パネル */
+/* ===== パネル ===== */
 .panel{
   display:none;
   flex:1;
-  overflow:auto;
+  flex-direction:column;
 }
 .panel.active{
   display:flex;
-  flex-direction:column;
 }
 
-/* チャット */
+/* ===== メッセージ ===== */
 #chatBox{
   flex:1;
-  overflow:auto;
+  overflow-y:auto;
   padding:10px;
-  display:flex;
-  flex-direction:column;
 }
 
 .message{
-  padding:12px;
-  border-radius:16px;
-  margin:6px 0;
+  padding:10px;
+  border-radius:15px;
+  margin:5px 0;
   max-width:80%;
 }
+
 .user{
   background:#ff4f8b;
   align-self:flex-end;
 }
+
 .bot{
   background:#444;
 }
 
-/* 入力 */
+/* ===== 入力 ===== */
 .input-area{
   display:flex;
 }
@@ -77,29 +110,32 @@ button{
   padding:10px;
 }
 
-/* タブ */
+/* ===== タブ ===== */
 .tabs{
   display:flex;
+  background:#222;
 }
 .tab{
   flex:1;
   padding:10px;
-  background:#222;
   text-align:center;
-}
-
-/* 設定 */
-.setting{
-  padding:10px;
 }
 </style>
 </head>
 
 <body>
 
+<!-- 🔒 ロック画面 -->
+<div id="lockScreen">
+  <h2>ロック解除</h2>
+  <input type="password" id="passInput" placeholder="パスコード">
+  <button onclick="unlock()">解除</button>
+</div>
+
 <div class="app">
 
-<!-- キャラ -->
+<div class="time-bar" id="timeBar"></div>
+
 <div class="top-character">
 <img id="mainGirl" src="girl-normal.jpg">
 </div>
@@ -115,85 +151,52 @@ button{
 </div>
 
 <!-- 分析 -->
-<div id="analysisPanel" class="panel">
-<div id="analysisContent"></div>
-</div>
+<div id="analysisPanel" class="panel"></div>
 
 <!-- 未来 -->
-<div id="futurePanel" class="panel">
-<div id="futureContent"></div>
-</div>
-
-<!-- 設定 -->
-<div id="settingsPanel" class="panel">
-<div class="setting">
-名前<input id="userNameInput">
-キャラ<input id="aiNameInput">
-<button onclick="saveSettings()">保存</button>
-</div>
-</div>
+<div id="futurePanel" class="panel"></div>
 
 <!-- タブ -->
 <div class="tabs">
 <div class="tab" onclick="switchTab('chat')">会話</div>
 <div class="tab" onclick="switchTab('analysis')">分析</div>
 <div class="tab" onclick="switchTab('future')">未来</div>
-<div class="tab" onclick="switchTab('settings')">設定</div>
 </div>
 
 </div>
 
 <script>
 
-/* =====================
-記憶（人格の核）
-===================== */
+/* ===== ロック ===== */
+const PASS = "1234";
 
-let memory={
-  userName: localStorage.getItem("userName") || "",
-  aiName: localStorage.getItem("aiName") || "美咲",
-  relationship: parseInt(localStorage.getItem("relationship")||"1"),
-  chatHistory:[]
-};
+function unlock(){
+  const input = document.getElementById("passInput").value;
+  if(input === PASS){
+    document.getElementById("lockScreen").style.display="none";
+  }else{
+    alert("違う");
+  }
+}
 
-/* =====================
-初期化
-===================== */
+/* ===== 時間 ===== */
+function updateTime(){
+  const now = new Date();
+  const str = now.toLocaleString();
+  document.getElementById("timeBar").textContent = str;
+}
+setInterval(updateTime,1000);
+updateTime();
 
-window.onload=()=>{
-  userNameInput.value = memory.userName;
-  aiNameInput.value = memory.aiName;
-};
-
-/* =====================
-タブ
-===================== */
-
+/* ===== タブ ===== */
 function switchTab(tab){
   document.querySelectorAll(".panel").forEach(p=>p.classList.remove("active"));
-
   if(tab==='chat') chatPanel.classList.add("active");
   if(tab==='analysis') analysisPanel.classList.add("active");
   if(tab==='future') futurePanel.classList.add("active");
-  if(tab==='settings') settingsPanel.classList.add("active");
 }
 
-/* =====================
-保存
-===================== */
-
-function saveSettings(){
-  memory.userName = userNameInput.value;
-  memory.aiName = aiNameInput.value;
-
-  localStorage.setItem("userName", memory.userName);
-  localStorage.setItem("aiName", memory.aiName);
-}
-
-/* =====================
-メッセージ
-===================== */
-
+/* ===== 会話 ===== */
 function addMessage(text,type){
   const div=document.createElement("div");
   div.className="message "+type;
@@ -202,131 +205,18 @@ function addMessage(text,type){
   chatBox.scrollTop=chatBox.scrollHeight;
 }
 
-/* =====================
-送信
-===================== */
-
 function sendMessage(){
   const text=userInput.value;
   if(!text) return;
 
   addMessage(text,"user");
-  memory.chatHistory.push(text);
 
-  const reply=generateReply(text);
+  let reply="ちゃんと聞いてるよ";
+  if(text.includes("疲")) reply="無理してる感じあるね…";
+
   addMessage(reply,"bot");
 
   userInput.value="";
-}
-
-/* =====================
-人格AI（ここが核心）
-===================== */
-
-function generateReply(text){
-
-  const lower=text.toLowerCase();
-  const name = memory.userName ? memory.userName+"、" : "";
-
-  /* ===== 関係性進化 ===== */
-  memory.relationship++;
-
-  /* ===== 口調変化 ===== */
-  let tone = "polite";
-
-  if(memory.relationship > 15) tone="friendly";
-  if(memory.relationship > 30) tone="close";
-
-  function speak(polite, friendly, close){
-    if(tone==="close") return close;
-    if(tone==="friendly") return friendly;
-    return polite;
-  }
-
-  /* ===== 感情 ===== */
-
-  if(lower.includes("疲")||lower.includes("しんど")){
-    setFace("exhausted");
-
-    return name + speak(
-      "かなり無理してる感じありますね…少し休めそうですか？",
-      "結構無理してる感じあるね…少し力抜けそう？",
-      "無理しすぎ…ちょっと休も？"
-    );
-  }
-
-  if(lower.includes("不安")||lower.includes("怖")){
-    setFace("worried");
-
-    return name + speak(
-      "不安が強そうですね…何が一番気になりますか？",
-      "それ気になるよね…どこが一番引っかかる？",
-      "それ怖いよね…一番イヤなとこどこ？"
-    );
-  }
-
-  if(lower.includes("嬉")||lower.includes("楽しい")){
-    setFace("happy");
-
-    return name + speak(
-      "それは良かったですね😊",
-      "それいいね😊",
-      "よかったじゃん😊"
-    );
-  }
-
-  setFace("normal");
-
-  return name + speak(
-    "ちゃんと聞いています。もう少し教えてください。",
-    "ちゃんと聞いてるよ、もう少し教えて？",
-    "ちゃんと聞いてるよ、続き教えて"
-  );
-}
-
-/* =====================
-表情
-===================== */
-
-function setFace(type){
-  const map={
-    normal:"girl-normal.jpg",
-    happy:"girl-happy.png",
-    worried:"girl-worried.png",
-    exhausted:"girl-exhausted.png"
-  };
-
-  mainGirl.src = map[type] || map.normal;
-}
-
-/* =====================
-分析（簡易）
-===================== */
-
-function analyze(){
-  const text = memory.chatHistory.join("");
-
-  let fatigue = text.includes("疲") ? 80 : 20;
-
-  analysisContent.innerHTML=`
-  疲労:${fatigue}
-  `;
-}
-
-/* =====================
-未来（分岐AI）
-===================== */
-
-function openFuture(){
-
-  const text = memory.chatHistory.join("");
-
-  futureContent.innerHTML=`
-  <h3>未来予測</h3>
-  A：休む → 回復ルート
-  <br>
-  B：続ける → 悪化ルート
-  `;
 }
 
 </script>
