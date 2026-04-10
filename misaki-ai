@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>美咲AI 完成</title>
+<title>美咲AI 完成版</title>
 
 <style>
 html,body{
@@ -58,7 +58,7 @@ html,body{
   background:#444;
 }
 
-/* ===== 入力欄 ===== */
+/* ===== 入力 ===== */
 .input{
   position:fixed;
   bottom:50px;
@@ -151,25 +151,25 @@ function addMessage(text,type){
   div.className="message "+type;
 
   if(type==="user"){
-    div.innerHTML=text+
+    div.innerHTML = text +
     `<div style="font-size:10px;color:#ddd;text-align:right">${time()} ✔✔</div>`;
   }else{
-    div.innerHTML=
+    div.innerHTML =
     `<div style="font-size:11px;color:#aaa">美咲</div>`+
     text+
     `<div style="font-size:10px;color:#aaa">${time()}</div>`;
   }
 
   chatBox.appendChild(div);
-  chatBox.scrollTop=chatBox.scrollHeight;
+  chatBox.scrollTop = chatBox.scrollHeight;
 }
 
-/* ===== AI ===== */
+/* ===== AI返信 ===== */
 function replyAI(text){
 
   let reply="ちゃんと聞いてるよ";
 
-  if(text.includes("疲")){ 
+  if(text.includes("疲")){
     reply="無理してない？少し休も？";
     setFace("exhausted");
   }
@@ -180,8 +180,7 @@ function replyAI(text){
   else if(text.includes("不安")){
     reply="大丈夫？一人で抱えてない？";
     setFace("worried");
-  }
-  else{
+  }else{
     setFace("normal");
   }
 
@@ -201,6 +200,7 @@ function replyAI(text){
   setTimeout(()=>{
     typing.remove();
     addMessage(reply,"bot");
+    speak(reply); // ←しゃべる
   },1000);
 }
 
@@ -214,27 +214,18 @@ function sendMessage(){
   replyAI(text);
 }
 
-/* ===== 音声入力 ===== */
+/* ===== 音声入力（安定版） ===== */
 function startVoice(){
-
-  // ⚠️ HTTPSでないと動かない
-  if(location.protocol !== "https:"){
-    alert("音声入力はHTTPSでのみ動きます（GitHub PagesならOK）");
-    return;
-  }
 
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
   if(!SpeechRecognition){
-    alert("このブラウザは音声入力非対応（Chrome推奨）");
+    alert("Chromeで開くと使える");
     return;
   }
 
   const r = new SpeechRecognition();
   r.lang="ja-JP";
-
-  r.onstart=()=>{ console.log("音声開始"); };
-  r.onerror=(e)=>{ alert("音声エラー："+e.error); };
 
   r.onresult=(e)=>{
     const text=e.results[0][0].transcript;
@@ -242,10 +233,26 @@ function startVoice(){
     sendMessage();
   };
 
-  r.start();
+  r.onerror=(e)=>{
+    if(e.error==="aborted") return; // ←重要
+    console.log(e.error);
+  };
+
+  try{
+    r.start();
+  }catch(e){}
 }
 
-/* 初期 */
+/* ===== 音声出力 ===== */
+function speak(text){
+  const msg = new SpeechSynthesisUtterance(text);
+  msg.lang="ja-JP";
+  msg.rate=1.0;
+  msg.pitch=1.2;
+  speechSynthesis.speak(msg);
+}
+
+/* 初回 */
 window.onload=()=>{
   addMessage("おかえり","bot");
 };
