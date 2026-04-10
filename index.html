@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>美咲AI 完成版</title>
+<title>美咲AI 最終版</title>
 
 <style>
 body{
@@ -20,21 +20,22 @@ body{
   flex-direction:column;
 }
 
-/* ===== 上（時間だけ裏で使うので非表示） ===== */
-
-/* ===== キャラ（ここが改善ポイント） ===== */
+/* ===== キャラ ===== */
 .top{
-  height:90px; /* ← 小さく */
-  padding-top:12px; /* ← 下げる */
+  height:170px; /* ← 顔が全部見えるサイズ */
   display:flex;
   justify-content:center;
+  align-items:center;
+  padding-top:10px;
 }
 
 .top img{
-  width:90%;
+  width:92%;
   height:100%;
-  object-fit:cover;
+  object-fit:contain; /* ← 切れない */
+  object-position:top; /* ← 顔優先 */
   border-radius:16px;
+  background:#000;
 }
 
 /* ===== メイン ===== */
@@ -43,6 +44,17 @@ body{
   display:flex;
   flex-direction:column;
   min-height:0;
+}
+
+/* ===== パネル ===== */
+.panel{
+  display:none;
+  flex:1;
+}
+
+.panel.active{
+  display:flex;
+  flex-direction:column;
 }
 
 /* ===== チャット ===== */
@@ -58,7 +70,6 @@ body{
   padding:12px;
   border-radius:16px;
   margin:6px 0;
-  position:relative;
   line-height:1.6;
 }
 
@@ -110,16 +121,6 @@ button{
   padding:12px;
 }
 
-.panel{
-  display:none;
-  flex:1;
-}
-
-.panel.active{
-  display:flex;
-  flex-direction:column;
-}
-
 /* ===== 分析・未来 ===== */
 .card{
   padding:15px;
@@ -131,7 +132,7 @@ button{
 
 <div class="app">
 
-<!-- キャラ（下がってる） -->
+<!-- キャラ -->
 <div class="top">
 <img id="mainGirl" src="girl-normal.jpg">
 </div>
@@ -144,19 +145,19 @@ button{
   <div id="chatBox"></div>
 
   <div class="input">
-    <input id="userInput">
+    <input id="userInput" placeholder="話しかけて…">
     <button onclick="sendMessage()">送信</button>
   </div>
 </div>
 
 <!-- 分析 -->
 <div id="analysisPanel" class="panel">
-  <div class="card" id="analysisContent">分析まだ</div>
+  <div class="card" id="analysisContent">まだデータが少ないよ</div>
 </div>
 
 <!-- 未来 -->
 <div id="futurePanel" class="panel">
-  <div class="card" id="futureContent">未来まだ</div>
+  <div class="card" id="futureContent">会話すると未来が見えてくるよ</div>
 </div>
 
 </div>
@@ -175,7 +176,8 @@ button{
 /* ===== 状態 ===== */
 let memory={
   chatHistory:[],
-  lastReply:""
+  lastReply:"",
+  mood:"normal"
 };
 
 /* ===== タブ ===== */
@@ -183,8 +185,8 @@ function switchTab(tab){
   document.querySelectorAll(".panel").forEach(p=>p.classList.remove("active"));
 
   if(tab==="chat") chatPanel.classList.add("active");
-  if(tab==="analysis") analysisPanel.classList.add("active");
-  if(tab==="future") futurePanel.classList.add("active");
+  if(tab==="analysis") analyze();
+  if(tab==="future") future();
 }
 
 /* ===== 時間 ===== */
@@ -208,6 +210,11 @@ function addMessage(text,type){
   chatBox.scrollTop=chatBox.scrollHeight;
 }
 
+/* ===== 表情 ===== */
+function setFace(type){
+  mainGirl.src="girl-"+type+".png";
+}
+
 /* ===== 送信 ===== */
 function sendMessage(){
   const text=userInput.value;
@@ -220,48 +227,43 @@ function sendMessage(){
 
   setTimeout(()=>{
     addMessage(reply,"bot");
-  },400);
+  },300);
 
   userInput.value="";
 }
 
-/* ===== 表情 ===== */
-function setFace(type){
-  mainGirl.src="girl-"+type+".png";
-}
-
-/* ===== AI返信（人格強化） ===== */
+/* ===== AI人格（強化版） ===== */
 function generateReply(text){
 
   const t=text.toLowerCase();
 
-  function contains(arr){
-    return arr.some(w=>t.includes(w));
+  function has(words){
+    return words.some(w=>t.includes(w));
   }
 
   let reply="";
 
-  if(contains(["疲れ","しんど","無理","限界"])){
+  if(has(["疲れ","しんど","無理","限界"])){
     setFace("exhausted");
     reply="ちょっと無理してる感じあるね…今日は少し力抜けそう？";
   }
 
-  else if(contains(["不安","怖い","心配"])){
+  else if(has(["不安","怖い","心配"])){
     setFace("worried");
     reply="それ気になるよね…どこが一番引っかかってる？";
   }
 
-  else if(contains(["寂しい","つらい"])){
+  else if(has(["寂しい","つらい"])){
     setFace("sympathy");
     reply="そっか…それはしんどいね。今ひとりで抱えてる感じ？";
   }
 
-  else if(contains(["イライラ","むかつく"])){
+  else if(has(["イライラ","むかつく"])){
     setFace("irritated");
     reply="それはイラッとするね…何が一番嫌だった？";
   }
 
-  else if(contains(["楽しい","嬉しい"])){
+  else if(has(["嬉しい","楽しい"])){
     setFace("happy");
     reply="いいね、それ。どの瞬間が一番よかった？";
   }
@@ -273,7 +275,7 @@ function generateReply(text){
 
   /* 同じ返答防止 */
   if(reply===memory.lastReply){
-    reply+=" 少し違う言い方すると、どう感じてる？";
+    reply+=" 少し違う角度で聞くね、どんな感じ？";
   }
 
   memory.lastReply=reply;
@@ -286,17 +288,26 @@ function analyze(){
   const text=memory.chatHistory.join("");
 
   let fatigue = text.includes("疲") ? "高い" : "普通";
+  let anxiety = text.includes("不安") ? "あり" : "少なめ";
 
-  analysisContent.innerHTML="疲労："+fatigue;
+  analysisContent.innerHTML=`
+    疲労：${fatigue}<br>
+    不安：${anxiety}
+  `;
+
+  analysisPanel.classList.add("active");
 }
 
 /* ===== 未来 ===== */
 function future(){
+
   futureContent.innerHTML=`
-    A：休む → 回復
-    <br>
-    B：続ける → 悪化
+    このままだと少し消耗しそう<br><br>
+    A：休む → 回復ルート<br>
+    B：続ける → 負担増
   `;
+
+  futurePanel.classList.add("active");
 }
 
 </script>
