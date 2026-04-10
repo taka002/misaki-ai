@@ -13,29 +13,6 @@ body{
   color:white;
 }
 
-/* ===== ロック画面 ===== */
-#lockScreen{
-  position:fixed;
-  inset:0;
-  background:#000;
-  display:flex;
-  flex-direction:column;
-  justify-content:center;
-  align-items:center;
-  z-index:999;
-}
-
-#lockScreen input{
-  padding:15px;
-  font-size:20px;
-  margin-top:10px;
-}
-
-#lockScreen button{
-  padding:10px;
-  margin-top:10px;
-}
-
 /* ===== 全体 ===== */
 .app{
   display:flex;
@@ -43,23 +20,16 @@ body{
   height:100dvh;
 }
 
-/* ===== 時間 ===== */
-.time-bar{
-  text-align:center;
-  font-size:14px;
-  padding:5px;
-  opacity:0.8;
-}
-
-/* ===== 画像 ===== */
+/* ===== 画像（小さく固定） ===== */
 .top-character{
-  flex:0 0 20vh;
+  flex:0 0 22vh;
   display:flex;
   justify-content:center;
   align-items:center;
+  padding:5px;
 }
 .top-character img{
-  width:90%;
+  width:92%;
   height:100%;
   object-fit:cover;
   border-radius:20px;
@@ -75,18 +45,22 @@ body{
   display:flex;
 }
 
-/* ===== メッセージ ===== */
+/* ===== メッセージだけスクロール ===== */
 #chatBox{
   flex:1;
   overflow-y:auto;
   padding:10px;
+  display:flex;
+  flex-direction:column;
 }
 
+/* ===== 吹き出し ===== */
 .message{
-  padding:10px;
-  border-radius:15px;
-  margin:5px 0;
-  max-width:80%;
+  padding:12px;
+  border-radius:18px;
+  margin:6px 0;
+  max-width:78%;
+  font-size:16px;
 }
 
 .user{
@@ -98,44 +72,42 @@ body{
   background:#444;
 }
 
-/* ===== 入力 ===== */
+/* ===== 入力固定 ===== */
 .input-area{
   display:flex;
+  padding:8px;
+  background:#09111f;
 }
 input{
   flex:1;
-  padding:10px;
+  padding:12px;
+  border-radius:10px;
+  border:none;
 }
 button{
-  padding:10px;
+  padding:12px;
+  margin-left:6px;
 }
 
-/* ===== タブ ===== */
+/* ===== タブ固定 ===== */
 .tabs{
   display:flex;
   background:#222;
 }
 .tab{
   flex:1;
-  padding:10px;
+  padding:12px;
   text-align:center;
+  font-size:14px;
 }
 </style>
 </head>
 
 <body>
 
-<!-- 🔒 ロック画面 -->
-<div id="lockScreen">
-  <h2>ロック解除</h2>
-  <input type="password" id="passInput" placeholder="パスコード">
-  <button onclick="unlock()">解除</button>
-</div>
-
 <div class="app">
 
-<div class="time-bar" id="timeBar"></div>
-
+<!-- キャラ -->
 <div class="top-character">
 <img id="mainGirl" src="girl-normal.jpg">
 </div>
@@ -151,49 +123,52 @@ button{
 </div>
 
 <!-- 分析 -->
-<div id="analysisPanel" class="panel"></div>
+<div id="analysisPanel" class="panel">
+  <div style="padding:10px;">分析（これから強化）</div>
+</div>
 
 <!-- 未来 -->
-<div id="futurePanel" class="panel"></div>
+<div id="futurePanel" class="panel">
+  <div style="padding:10px;">未来（これから強化）</div>
+</div>
+
+<!-- 設定（復活） -->
+<div id="settingsPanel" class="panel">
+  <div style="padding:10px;">
+    名前：<input id="nameInput"><br><br>
+    <button onclick="saveName()">保存</button>
+  </div>
+</div>
 
 <!-- タブ -->
 <div class="tabs">
 <div class="tab" onclick="switchTab('chat')">会話</div>
 <div class="tab" onclick="switchTab('analysis')">分析</div>
 <div class="tab" onclick="switchTab('future')">未来</div>
+<div class="tab" onclick="switchTab('settings')">設定</div>
 </div>
 
 </div>
 
 <script>
 
-/* ===== ロック ===== */
-const PASS = "1234";
-
-function unlock(){
-  const input = document.getElementById("passInput").value;
-  if(input === PASS){
-    document.getElementById("lockScreen").style.display="none";
-  }else{
-    alert("違う");
-  }
-}
-
-/* ===== 時間 ===== */
-function updateTime(){
-  const now = new Date();
-  const str = now.toLocaleString();
-  document.getElementById("timeBar").textContent = str;
-}
-setInterval(updateTime,1000);
-updateTime();
-
 /* ===== タブ ===== */
 function switchTab(tab){
   document.querySelectorAll(".panel").forEach(p=>p.classList.remove("active"));
+
   if(tab==='chat') chatPanel.classList.add("active");
   if(tab==='analysis') analysisPanel.classList.add("active");
   if(tab==='future') futurePanel.classList.add("active");
+  if(tab==='settings') settingsPanel.classList.add("active");
+}
+
+/* ===== 名前保存 ===== */
+const nameInput = document.getElementById("nameInput");
+nameInput.value = localStorage.getItem("userName") || "";
+
+function saveName(){
+  localStorage.setItem("userName", nameInput.value);
+  alert("保存したよ");
 }
 
 /* ===== 会話 ===== */
@@ -211,8 +186,13 @@ function sendMessage(){
 
   addMessage(text,"user");
 
+  const name = localStorage.getItem("userName") || "";
+
   let reply="ちゃんと聞いてるよ";
-  if(text.includes("疲")) reply="無理してる感じあるね…";
+
+  if(text.includes("疲")){
+    reply = name ? name+"、ちょっと無理してる感じあるね…" : "ちょっと無理してる感じあるね…";
+  }
 
   addMessage(reply,"bot");
 
