@@ -3,126 +3,116 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>美咲AI 最終進化版</title>
+<title>美咲AI 安定版</title>
 
 <style>
 body{
   margin:0;
   font-family:sans-serif;
-  transition:0.5s;
+  background:#09111f;
+  color:white;
 }
 
-/* ===== 背景 ===== */
-.morning{background:#2c3e50;}
-.day{background:#09111f;}
-.night{background:#1a1a2e;}
-
-/* ===== ロック ===== */
-#lock{
- position:fixed; inset:0;
- display:flex; align-items:center; justify-content:center;
- background:black; color:white; z-index:10;
-}
-
-/* ===== レイアウト ===== */
+/* ===== 全体 ===== */
 .app{
- display:flex;
- flex-direction:column;
- height:100dvh;
+  display:flex;
+  flex-direction:column;
+  height:100dvh;
+  overflow:hidden;
 }
 
-/* ===== キャラ ===== */
+/* ===== 上：画像 ===== */
 .top{
- height:140px;
- flex-shrink:0;
+  height:120px;
+  flex-shrink:0;
 }
 .top img{
- width:100%;
- height:100%;
- object-fit:cover;
- border-radius:15px;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  border-radius:15px;
 }
 
-/* ===== チャット ===== */
+/* ===== 中央 ===== */
 .chat-area{
- flex:1;
- display:flex;
- flex-direction:column;
- min-height:0;
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  min-height:0;
 }
 
+/* スクロールはここだけ */
 #chatBox{
- flex:1;
- overflow-y:auto;
- padding:10px;
- display:flex;
- flex-direction:column;
+  flex:1;
+  overflow-y:auto;
+  padding:10px;
+  display:flex;
+  flex-direction:column;
 }
 
 /* ===== 吹き出し ===== */
 .msg{
- max-width:75%;
- padding:10px;
- border-radius:15px;
- margin:6px 0;
+  max-width:75%;
+  padding:10px;
+  border-radius:15px;
+  margin:6px 0;
 }
 
 .user{
- background:#ff4f8b;
- align-self:flex-end;
+  background:#ff4f8b;
+  align-self:flex-end;
 }
 
 .bot{
- background:#444;
+  background:#444;
 }
 
 /* 時刻 */
 .time{
- font-size:10px;
- opacity:0.6;
- margin-top:3px;
+  font-size:10px;
+  opacity:0.6;
+  margin-top:3px;
 }
 
 /* ===== 入力 ===== */
 .input{
- display:flex;
+  flex-shrink:0;
+  display:flex;
+  gap:6px;
+  padding:6px;
+  background:#111;
 }
+
 input{
- flex:1;
- padding:10px;
+  flex:1;
+  min-width:0;
+  padding:10px;
+  border-radius:10px;
+  border:none;
 }
+
 button{
- padding:10px;
+  flex-shrink:0;
+  padding:10px;
+  border:none;
+  border-radius:10px;
 }
 
 /* ===== タブ ===== */
 .tabs{
- display:flex;
- background:#222;
+  flex-shrink:0;
+  display:flex;
+  height:50px;
+  background:#222;
 }
+
 .tab{
- flex:1;
- padding:10px;
- text-align:center;
+  flex:1;
+  text-align:center;
+  line-height:50px;
 }
 
-/* ===== スタンプ ===== */
-#stampPanel{
- position:fixed;
- bottom:60px;
- left:0;
- right:0;
- background:#222;
- display:none;
- padding:10px;
-}
-
-.stamp{
- font-size:28px;
- padding:6px;
-}
-
-/* ===== パネル ===== */
+/* ===== 設定 ===== */
 .panel{display:none;}
 .panel.active{display:block;}
 </style>
@@ -130,12 +120,11 @@ button{
 
 <body>
 
-<div id="lock" onclick="unlock()">タップで開始</div>
-
 <div class="app">
 
+<!-- 画像 -->
 <div class="top">
-<img id="girl" src="girl-normal.jpg">
+<img src="girl-normal.jpg">
 </div>
 
 <!-- 会話 -->
@@ -147,7 +136,6 @@ button{
 <div class="input">
 <input id="input">
 <button onclick="send()">送信</button>
-<button onclick="toggleStamp()">😊</button>
 </div>
 
 </div>
@@ -156,15 +144,7 @@ button{
 <!-- 設定 -->
 <div id="settingsPanel" class="panel">
 <div style="padding:10px;">
-AI名前<input id="aiName"><br><br>
-
-性格
-<select id="personality">
-<option value="soft">優しい</option>
-<option value="cool">さっぱり</option>
-<option value="teasing">小悪魔</option>
-</select><br><br>
-
+名前<input id="name"><br><br>
 <button onclick="save()">保存</button>
 </div>
 </div>
@@ -177,133 +157,72 @@ AI名前<input id="aiName"><br><br>
 
 </div>
 
-<!-- スタンプ -->
-<div id="stampPanel">
-<span class="stamp" onclick="sendStamp('😊')">😊</span>
-<span class="stamp" onclick="sendStamp('🥺')">🥺</span>
-<span class="stamp" onclick="sendStamp('💤')">💤</span>
-<span class="stamp" onclick="sendStamp('❤️')">❤️</span>
-</div>
-
 <script>
 
-/* ===== ロック ===== */
-function unlock(){
- lock.style.display="none";
-}
-
-/* ===== 背景 ===== */
-function bg(){
- let h=new Date().getHours();
- document.body.className=
- h<6?"night":h<12?"morning":h<18?"day":"night";
-}
-setInterval(bg,60000); bg();
-
-/* ===== 記憶 ===== */
-let mem={
- aiName:localStorage.getItem("aiName")||"美咲",
- personality:localStorage.getItem("personality")||"soft",
- history:JSON.parse(localStorage.getItem("history")||"[]"),
- level:parseInt(localStorage.getItem("level")||"1"),
- context:{}
+/* ===== 状態 ===== */
+let memory={
+  name:localStorage.getItem("name")||"美咲",
+  history:JSON.parse(localStorage.getItem("history")||"[]")
 };
 
-aiName.value=mem.aiName;
-personality.value=mem.personality;
+name.value=memory.name;
+
+/* ===== タブ ===== */
+function switchTab(tab){
+  document.querySelectorAll(".panel").forEach(p=>p.classList.remove("active"));
+  if(tab==="chat") chatPanel.classList.add("active");
+  if(tab==="settings") settingsPanel.classList.add("active");
+}
 
 /* ===== 保存 ===== */
 function save(){
- localStorage.setItem("aiName",aiName.value);
- localStorage.setItem("personality",personality.value);
- mem.aiName=aiName.value;
- mem.personality=personality.value;
-}
-
-/* ===== タブ ===== */
-function switchTab(t){
- document.querySelectorAll(".panel").forEach(p=>p.classList.remove("active"));
- if(t==="chat") chatPanel.classList.add("active");
- if(t==="settings") settingsPanel.classList.add("active");
+  memory.name=name.value;
+  localStorage.setItem("name",memory.name);
 }
 
 /* ===== 時刻 ===== */
 function now(){
- let d=new Date();
- return d.getHours()+":"+String(d.getMinutes()).padStart(2,"0");
-}
-
-/* ===== スタンプ ===== */
-function toggleStamp(){
- stampPanel.style.display = stampPanel.style.display==="block"?"none":"block";
-}
-function sendStamp(s){
- add(s,"user");
- stampPanel.style.display="none";
-}
-
-/* ===== 記憶分析 ===== */
-function analyze(t){
- if(t.includes("疲")) mem.context="疲れ";
- if(t.includes("不安")) mem.context="不安";
-
- mem.level++;
- localStorage.setItem("level",mem.level);
-}
-
-/* ===== 関係性進化 ===== */
-function relationPrefix(){
- if(mem.level<5) return "";
- if(mem.level<15) return "ねぇ、";
- return "ねぇさ、";
-}
-
-/* ===== 返答 ===== */
-function reply(t){
-
- analyze(t);
-
- let intro = relationPrefix();
-
- if(Math.random()<0.2) return "そっか…";
-
- if(t.includes("疲")){
-  return intro + (mem.level>10
-   ? "無理してるでしょ…ちょっと心配なんだけど"
-   : "無理してる感じあるね…少し休めそう？");
- }
-
- if(t.includes("不安")){
-  return intro + "それ気になるよね…どこが一番引っかかる？";
- }
-
- return intro + "それ、もう少し教えてくれる？";
+  let d=new Date();
+  return d.getHours()+":"+String(d.getMinutes()).padStart(2,"0");
 }
 
 /* ===== 表示 ===== */
 function add(text,type){
- const d=document.createElement("div");
- d.className="msg "+type;
- d.innerHTML=text+`<div class="time">${now()}</div>`;
- chatBox.appendChild(d);
- chatBox.scrollTop=chatBox.scrollHeight;
+  const div=document.createElement("div");
+  div.className="msg "+type;
+  div.innerHTML=text+`<div class="time">${now()}</div>`;
+  chatBox.appendChild(div);
+  chatBox.scrollTop=chatBox.scrollHeight;
+}
+
+/* ===== AI ===== */
+function reply(t){
+
+  if(t.includes("疲")){
+    return "ちょっと無理してる感じあるね…少し休めそう？";
+  }
+
+  if(t.includes("不安")){
+    return "それ気になるよね…どこが一番引っかかる？";
+  }
+
+  return "ちゃんと聞いてるよ、もう少し教えて？";
 }
 
 /* ===== 送信 ===== */
 function send(){
- let t=input.value;
- if(!t) return;
+  let t=input.value;
+  if(!t) return;
 
- add(t,"user");
+  add(t,"user");
 
- let r=reply(t);
+  let r=reply(t);
+  add(memory.name+"："+r,"bot");
 
- add(mem.aiName+"："+r,"bot");
+  memory.history.push(t);
+  localStorage.setItem("history",JSON.stringify(memory.history));
 
- mem.history.push(t);
- localStorage.setItem("history",JSON.stringify(mem.history));
-
- input.value="";
+  input.value="";
 }
 
 </script>
