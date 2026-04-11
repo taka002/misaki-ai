@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ピピAI 安定版</title>
+<title>ピピAI Live2D風 完成版</title>
 
 <style>
 *{ box-sizing:border-box; }
@@ -26,7 +26,7 @@ html,body{
 
 /* ===== 上（画像） ===== */
 .top{
-  height:35vh; /* ← 固定で崩れ防止 */
+  height:35vh;
   display:flex;
   justify-content:center;
   align-items:center;
@@ -38,8 +38,43 @@ html,body{
   width:auto;
   max-width:100%;
   border-radius:20px;
-  transition:0.3s;
 }
+
+/* ===== Live2D風 ===== */
+
+/* ゆらゆら */
+.live2d{
+  animation: float 4s ease-in-out infinite;
+}
+@keyframes float{
+  0%{ transform:translateY(0);}
+  50%{ transform:translateY(-8px);}
+  100%{ transform:translateY(0);}
+}
+
+/* 目パチ */
+.blink{
+  animation: blink 4s infinite;
+}
+@keyframes blink{
+  0%,90%,100%{ transform:scaleY(1);}
+  95%{ transform:scaleY(0.1);}
+}
+
+/* しゃべる */
+.talking{
+  animation: talk 0.2s infinite;
+}
+@keyframes talk{
+  0%{ transform:scale(1);}
+  50%{ transform:scale(1.03);}
+  100%{ transform:scale(1);}
+}
+
+/* 感情 */
+.happy{ filter:brightness(1.1) saturate(1.2); }
+.sad{ filter:brightness(0.8); }
+.angry{ filter:hue-rotate(-20deg); }
 
 /* ===== チャット ===== */
 #chatBox{
@@ -85,7 +120,7 @@ html,body{
 
 #userInput{
   flex:1;
-  min-width:0; /* ← 超重要（はみ出し防止） */
+  min-width:0;
   padding:14px;
   border:none;
   border-radius:10px;
@@ -109,7 +144,7 @@ html,body{
 
   <!-- 画像 -->
   <div class="top">
-    <img id="girl" src="girl-normal.jpg">
+    <img id="girl" class="live2d blink" src="girl-normal.jpg">
   </div>
 
   <!-- チャット -->
@@ -130,7 +165,7 @@ html,body{
 const chatBox=document.getElementById("chatBox");
 const girl=document.getElementById("girl");
 
-// ===== 表情 =====
+// ===== 表情画像 =====
 const faceImages={
   normal:"girl-normal.jpg",
   happy:"girl-happy.png",
@@ -139,8 +174,18 @@ const faceImages={
   thinking:"girl-thinking.png"
 };
 
+// ===== 表情変更 =====
 function setFace(type){
   girl.src=faceImages[type]||faceImages.normal;
+}
+
+// ===== 感情エフェクト =====
+function setEmotion(type){
+  girl.classList.remove("happy","sad","angry");
+
+  if(type==="happy") girl.classList.add("happy");
+  if(type==="sad") girl.classList.add("sad");
+  if(type==="angry") girl.classList.add("angry");
 }
 
 // ===== 感情判定 =====
@@ -148,7 +193,6 @@ function detectEmotion(text){
   if(/嬉しい|楽しい|最高|好き/.test(text)) return "happy";
   if(/疲れ|しんど|悲しい|つらい/.test(text)) return "sad";
   if(/怒|イライラ/.test(text)) return "angry";
-  if(/どうしよう|悩/.test(text)) return "thinking";
   return "normal";
 }
 
@@ -167,7 +211,15 @@ function addMessage(text,type){
   chatBox.scrollTop=chatBox.scrollHeight;
 }
 
-// ===== 🔊 音声 =====
+// ===== 口パク =====
+function startTalking(){
+  girl.classList.add("talking");
+}
+function stopTalking(){
+  girl.classList.remove("talking");
+}
+
+// ===== 音声 =====
 function speak(text){
 
   if(!("speechSynthesis" in window)) return;
@@ -177,9 +229,11 @@ function speak(text){
   const u=new SpeechSynthesisUtterance(text);
   u.lang="ja-JP";
 
-  const voices=speechSynthesis.getVoices();
-  const ja=voices.find(v=>v.lang==="ja-JP");
-  if(ja) u.voice=ja;
+  startTalking();
+
+  u.onend=()=>{
+    stopTalking();
+  };
 
   speechSynthesis.speak(u);
 }
@@ -213,16 +267,18 @@ function sendMessage(){
   addMessage(text,"user");
   userInput.value="";
 
-  // 表情（ユーザー）
-  setFace(detectEmotion(text));
+  const emotionUser=detectEmotion(text);
+  setFace(emotionUser);
+  setEmotion(emotionUser);
 
   const reply=localReply(text);
 
   setTimeout(()=>{
     addMessage(reply,"bot");
 
-    // 表情（AI）
-    setFace(detectEmotion(reply));
+    const emotionBot=detectEmotion(reply);
+    setFace(emotionBot);
+    setEmotion(emotionBot);
 
     speak(reply);
 
