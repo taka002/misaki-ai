@@ -1,143 +1,191 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ピピAI 完全版</title>
+
+<style>
+body{
+  margin:0;
+  font-family:sans-serif;
+  background:#111;
+  color:white;
+}
+#chatBox{
+  height:70vh;
+  overflow:auto;
+  padding:10px;
+}
+.input-area{
+  display:flex;
+}
+input{
+  flex:1;
+  padding:10px;
+}
+button{
+  width:80px;
+}
+</style>
+</head>
+
+<body>
+
+<img id="girl" style="width:100%;height:30vh;object-fit:cover">
+
+<div id="chatBox"></div>
+
+<div class="input-area">
+  <input id="userInput">
+  <button onclick="sendMessage()">送信</button>
+</div>
+
 <script>
 
-// ===== 🔥 最強音アンロック =====
-let audioUnlocked = false;
+// ===== 初期化 =====
+let chatBox=document.getElementById("chatBox");
+let userInput=document.getElementById("userInput");
+let girl=document.getElementById("girl");
 
-async function unlockAudio() {
-  try {
-    const AudioContext = window.AudioContext || window.webkitAudioContext;
-    const ctx = new AudioContext();
+girl.src="https://cdn.pixabay.com/photo/2017/01/31/13/14/animal-2023924_1280.png";
 
-    if (ctx.state === "suspended") {
-      await ctx.resume();
-    }
+let settings={
+  apiKey:"",
+  elevenApiKey:"",
+  voiceId:""
+};
 
-    const buffer = ctx.createBuffer(1, 1, 22050);
-    const source = ctx.createBufferSource();
-    source.buffer = buffer;
-    source.connect(ctx.destination);
-    source.start(0);
+// ===== 音声アンロック（超重要）=====
+let unlocked=false;
+document.body.addEventListener("click",()=>{
+  if(unlocked) return;
+  const a=new Audio();
+  a.muted=true;
+  a.play().catch(()=>{});
+  unlocked=true;
+  console.log("音声アンロックOK");
+});
 
-    audioUnlocked = true;
-    console.log("音アンロック成功");
-  } catch (e) {
-    console.log("アンロック失敗");
-  }
+// ===== 表示 =====
+function addMessage(text,type){
+  const div=document.createElement("div");
+  div.textContent=(type==="user"?"👤 ":"🤖 ")+text;
+  chatBox.appendChild(div);
+  chatBox.scrollTop=chatBox.scrollHeight;
 }
 
-// ===== クリックで必ず解除 =====
-document.addEventListener("click", unlockAudio);
-document.addEventListener("touchstart", unlockAudio);
+// ===== 音声（最強安定版）=====
+async function speak(text){
 
+  if(!text) return;
 
-// ===== 送信 =====
-async function sendMessage() {
-
-  // 🔥 毎回ここで確実に解除
-  await unlockAudio();
-
-  const text = userInput.value.trim();
-  if (!text) return;
-
-  if (window.speechSynthesis) {
-    window.speechSynthesis.cancel();
-  }
-
-  addMessage(text, "user");
-  userInput.value = "";
-
-  const typing = addMessage("…入力中", "bot");
-
-  let reply = "";
-
-  try {
-    reply = generateLocalReply(text); // GPT無しでもOK
-  } catch (e) {
-    reply = "エラー";
-  }
-
-  typing.remove();
-
-  addMessage(reply, "bot");
-
-  // 🔥 即再生（遅延なし）
-  await speakText(reply);
-}
-
-
-// ===== 🔥 音声再生（完全版）=====
-async function speakText(text) {
-
-  if (!text) return;
-
-  const clean = text
-    .replace(/\n/g, "。")
-    .replace(/[😊✨😌😢🥺💦]/g, "")
-    .trim();
-
-  try {
+  try{
 
     // ===== Eleven =====
-    if (sessionSecrets?.elevenApiKey && sessionSecrets?.voiceId) {
+    if(settings.elevenApiKey && settings.voiceId){
 
-      const res = await fetch(
-        `https://api.elevenlabs.io/v1/text-to-speech/${sessionSecrets.voiceId}`,
+      const res=await fetch(
+        `https://api.elevenlabs.io/v1/text-to-speech/${settings.voiceId}`,
         {
-          method: "POST",
-          headers: {
-            "xi-api-key": sessionSecrets.elevenApiKey,
-            "Content-Type": "application/json"
+          method:"POST",
+          headers:{
+            "xi-api-key":settings.elevenApiKey,
+            "Content-Type":"application/json",
+            "Accept":"audio/mpeg"
           },
-          body: JSON.stringify({
-            text: clean,
-            model_id: "eleven_multilingual_v2"
+          body:JSON.stringify({
+            text:text,
+            model_id:"eleven_multilingual_v2"
           })
         }
       );
 
-      if (res.ok) {
-        const blob = await res.blob();
-        const url = URL.createObjectURL(blob);
-
-        const audio = new Audio(url);
-
-        audio.volume = 1;
-        audio.muted = false;
+      if(res.ok){
+        const blob=await res.blob();
+        const url=URL.createObjectURL(blob);
+        const audio=new Audio(url);
 
         await audio.play();
-
         return;
       }
     }
 
-  } catch (e) {
+  }catch(e){
     console.log("Eleven失敗");
   }
 
-  // ===== fallback（これが本命）=====
-  if ("speechSynthesis" in window) {
-
-    const synth = window.speechSynthesis;
-    synth.cancel();
-
-    const u = new SpeechSynthesisUtterance(clean);
-    u.lang = "ja-JP";
-    u.volume = 1;
-
-    u.onstart = () => {
-      setStatus("話してるよ…");
-    };
-
-    u.onend = () => {
-      setStatus("準備OK");
-    };
-
-    u.onerror = () => {
-      setStatus("音声再生できませんでした");
-    };
-
-    synth.speak(u);
+  // ===== fallback =====
+  try{
+    const u=new SpeechSynthesisUtterance(text);
+    u.lang="ja-JP";
+    speechSynthesis.speak(u);
+  }catch(e){
+    console.log("音声失敗");
   }
 }
 
+// ===== AI =====
+async function aiReply(text){
+
+  if(!settings.apiKey) return "APIキー未設定";
+
+  try{
+    const res=await fetch("https://api.openai.com/v1/chat/completions",{
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json",
+        "Authorization":"Bearer "+settings.apiKey
+      },
+      body:JSON.stringify({
+        model:"gpt-4o-mini",
+        messages:[{role:"user",content:text}]
+      })
+    });
+
+    const data=await res.json();
+    return data.choices?.[0]?.message?.content || "エラー";
+
+  }catch(e){
+    return "通信エラー";
+  }
+}
+
+// ===== 送信 =====
+async function sendMessage(){
+
+  try{
+
+    // 🔥 音許可（これが効く）
+    const unlock=new Audio();
+    unlock.src="data:audio/mp3;base64,//uQxAAAAAAAAAAAA";
+    unlock.play().catch(()=>{});
+
+    const text=userInput.value.trim();
+    if(!text) return;
+
+    addMessage(text,"user");
+    userInput.value="";
+
+    const reply=await aiReply(text);
+
+    addMessage(reply,"bot");
+
+    // 🔥 遅延なし再生
+    await speak(reply);
+
+  }catch(e){
+    console.log("sendエラー",e);
+    alert("エラー発生");
+  }
+}
+
+// Enter送信
+userInput.addEventListener("keypress",e=>{
+  if(e.key==="Enter") sendMessage();
+});
+
 </script>
+
+</body>
+</html>
