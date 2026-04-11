@@ -1,6 +1,6 @@
 <style>
 
-/* 全体安定化（超重要） */
+/* 全体 */
 *{
   box-sizing:border-box;
 }
@@ -19,20 +19,20 @@ body{
   height:100vh;
 }
 
-/* 画像 */
+/* ===== 画像 ===== */
 .top{
-  height:30vh;
+  height:45vh;
   display:flex;
   justify-content:center;
   align-items:center;
 }
 .top img{
-  width:90%;
-  max-width:400px;
+  width:95%;
+  max-width:500px;
   border-radius:20px;
 }
 
-/* チャット */
+/* ===== チャット ===== */
 #chatBox{
   flex:1;
   overflow:auto;
@@ -41,9 +41,10 @@ body{
 
 .message{
   margin:8px;
-  padding:12px;
-  border-radius:12px;
-  max-width:75%;
+  padding:14px;
+  border-radius:14px;
+  max-width:80%;
+  font-size:16px;
   word-break:break-word;
 }
 
@@ -56,38 +57,36 @@ body{
   background:#444;
 }
 
-/* ===== 入力エリア（完全修正版） ===== */
+/* ===== 入力 ===== */
 .input-area{
   display:flex;
-  gap:6px;
-  padding:6px;
+  gap:8px;
+  padding:8px;
 }
 
 #userInput{
   flex:1;
-  min-width:0; /* ← これ超重要 */
-  padding:12px;
-  font-size:16px;
+  min-width:0;
+  padding:16px;
+  font-size:18px;
   border:none;
-  border-radius:8px;
+  border-radius:10px;
 }
 
-/* ボタン */
 .input-area button{
   flex:0 0 auto;
-  width:60px;
-  padding:10px;
-  font-size:14px;
+  width:70px;
+  height:60px;
+  font-size:18px;
   border:none;
-  border-radius:8px;
+  border-radius:10px;
 }
 
-/* マイク */
 .mic{
   background:#5f9bff;
 }
 
-/* モーダル */
+/* ===== モーダル ===== */
 .modal{
   position:fixed;
   inset:0;
@@ -95,6 +94,7 @@ body{
   display:none;
   justify-content:center;
   align-items:center;
+  z-index:9999;
 }
 
 .modal.show{
@@ -119,8 +119,7 @@ textarea{
 </style>
 
 
-<!-- ===== HTML（ここはstyleの外！） ===== -->
-
+<!-- 🔥 HTML（必須） -->
 <div class="app">
 
   <div class="top">
@@ -137,3 +136,28 @@ textarea{
   </div>
 
 </div>
+
+<!-- モーダル -->
+<div class="modal" id="modal">
+  <div class="box">
+    設定画面<br><br>
+    <button onclick="closeSettings()">閉じる</button>
+  </div>
+</div>
+
+
+<!-- 🔥 scriptは最後に置く -->
+<script>
+
+// DOM読み込み後に取得（これが重要）
+const modal = document.getElementById("modal");
+
+function openSettings(){
+  modal.classList.add("show");
+}
+
+function closeSettings(){
+  modal.classList.remove("show");
+}
+
+</script>
