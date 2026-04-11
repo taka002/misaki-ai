@@ -26,18 +26,26 @@ body{
   margin:8px;
   padding:12px;
   border-radius:12px;
+  max-width:80%;
 }
-.user{background:#ff4f8b;}
-.bot{background:#444;}
+.user{
+  background:#ff4f8b;
+  margin-left:auto;
+}
+.bot{
+  background:#444;
+}
 .input-area{
   display:flex;
 }
 input{
   flex:1;
   padding:10px;
+  font-size:16px;
 }
 button{
   padding:10px;
+  font-size:16px;
 }
 .modal{
   position:fixed;
@@ -51,14 +59,13 @@ button{
 .box{
   background:#222;
   padding:20px;
-  border-radius:12px;
-  width:90%;
-  max-width:400px;
+  border-radius:10px;
 }
 </style>
 </head>
 
 <body>
+
 <div class="app">
 
 <div id="chatBox"></div>
@@ -92,38 +99,25 @@ VoiceID<br>
 
 <script>
 
-// =============================
-// 🔥 APIキー保存（完全版）
-// =============================
+// ===== 保存データ =====
 let sessionSecrets = {
   apiKey: localStorage.getItem("apiKey") || "",
   elevenApiKey: localStorage.getItem("elevenApiKey") || "",
   voiceId: localStorage.getItem("voiceId") || ""
 };
 
-// =============================
-// UI取得
-// =============================
-const chatBox = document.getElementById("chatBox");
-const userInput = document.getElementById("userInput");
-const modal = document.getElementById("modal");
-
-const apiKeyInput = document.getElementById("apiKeyInput");
-const elevenApiKeyInput = document.getElementById("elevenApiKeyInput");
-const voiceIdInput = document.getElementById("voiceIdInput");
+// 会話履歴（超重要）
+let chatHistory = JSON.parse(localStorage.getItem("chatHistory") || "[]");
 
 // 初期反映
 apiKeyInput.value = sessionSecrets.apiKey;
 elevenApiKeyInput.value = sessionSecrets.elevenApiKey;
 voiceIdInput.value = sessionSecrets.voiceId;
 
-// =============================
-// 設定UI
-// =============================
+// ===== UI =====
 function openSettings(){
   modal.classList.add("show");
 
-  // 保存済みを表示
   apiKeyInput.value = sessionSecrets.apiKey;
   elevenApiKeyInput.value = sessionSecrets.elevenApiKey;
   voiceIdInput.value = sessionSecrets.voiceId;
@@ -133,28 +127,21 @@ function closeSettings(){
   modal.classList.remove("show");
 }
 
-// =============================
-// 保存処理（完全対応）
-// =============================
+// ===== 保存 =====
 function saveSettings(){
-
   sessionSecrets.apiKey = apiKeyInput.value.trim();
   sessionSecrets.elevenApiKey = elevenApiKeyInput.value.trim();
   sessionSecrets.voiceId = voiceIdInput.value.trim();
 
-  // 🔥 localStorage保存
   localStorage.setItem("apiKey", sessionSecrets.apiKey);
   localStorage.setItem("elevenApiKey", sessionSecrets.elevenApiKey);
   localStorage.setItem("voiceId", sessionSecrets.voiceId);
 
-  addMessage("設定を保存したよ😊","bot");
-
+  alert("保存OK🔥");
   closeSettings();
 }
 
-// =============================
-// メッセージ表示
-// =============================
+// ===== メッセージ表示 =====
 function addMessage(text,type){
   const div=document.createElement("div");
   div.className="message "+type;
@@ -163,9 +150,7 @@ function addMessage(text,type){
   chatBox.scrollTop=chatBox.scrollHeight;
 }
 
-// =============================
-// GPT通信
-// =============================
+// ===== GPT =====
 async function sendMessage(){
 
   const text=userInput.value.trim();
@@ -174,11 +159,13 @@ async function sendMessage(){
   addMessage(text,"user");
   userInput.value="";
 
-  // APIキー未入力
   if(!sessionSecrets.apiKey){
     addMessage("⚠ APIキーを設定してね","bot");
     return;
   }
+
+  // 履歴追加
+  chatHistory.push({role:"user",content:text});
 
   try{
     const res=await fetch("https://api.openai.com/v1/chat/completions",{
@@ -190,23 +177,27 @@ async function sendMessage(){
       body:JSON.stringify({
         model:"gpt-4o-mini",
         messages:[
-          {role:"system",content:"優しい会話をするAI"},
-          {role:"user",content:text}
+          {
+            role:"system",
+            content:"あなたはピピという優しい女性AI。自然で人間らしい会話をする"
+          },
+          ...chatHistory
         ]
       })
     });
 
     const data=await res.json();
-
-    const reply =
-      data.choices?.[0]?.message?.content ||
-      "うまく返せなかった…";
+    const reply=data.choices?.[0]?.message?.content || "エラー";
 
     addMessage(reply,"bot");
+
+    // 履歴保存
+    chatHistory.push({role:"assistant",content:reply});
+    localStorage.setItem("chatHistory",JSON.stringify(chatHistory));
+
     speak(reply);
 
   }catch(e){
-    console.error(e);
     addMessage("通信エラー","bot");
   }
 }
@@ -216,9 +207,7 @@ userInput.addEventListener("keypress",e=>{
   if(e.key==="Enter")sendMessage();
 });
 
-// =============================
-// 音声
-// =============================
+// ===== 音声 =====
 function speak(text){
   if(!("speechSynthesis" in window))return;
 
@@ -228,5 +217,6 @@ function speak(text){
 }
 
 </script>
+
 </body>
 </html>
