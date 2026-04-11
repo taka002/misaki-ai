@@ -171,7 +171,6 @@ window.addEventListener("DOMContentLoaded",()=>{
 
   girl.src=settings.image || "https://cdn.pixabay.com/photo/2017/01/31/13/14/animal-2023924_1280.png";
 
-  // 🔊 音声初期化（追加）
   document.body.addEventListener("click",()=>{
     if("speechSynthesis" in window){
       speechSynthesis.getVoices();
@@ -206,7 +205,7 @@ function addMessage(text,type,isImage=false){
   if(isImage){
     const img=document.createElement("img");
     img.src=text;
-    img.style.width="150px";
+    img.style.width="160px";
     img.style.borderRadius="12px";
     bubble.appendChild(img);
   }else{
@@ -218,10 +217,20 @@ function addMessage(text,type,isImage=false){
   chatBox.scrollTop=chatBox.scrollHeight;
 }
 
+// ===== 動物ズバリ =====
+function getAnimalLine(){
+  const list=[
+    {img:"https://cdn.pixabay.com/photo/2016/02/19/11/19/rabbit-1209761_1280.jpg",msg:"ちょっと考えすぎかも🐰"},
+    {img:"https://cdn.pixabay.com/photo/2017/01/06/19/15/tiger-1951581_1280.jpg",msg:"感情が強く出てるね🐯"},
+    {img:"https://cdn.pixabay.com/photo/2016/11/29/03/53/cat-1866475_1280.jpg",msg:"今は休むタイミング🐱"},
+    {img:"https://cdn.pixabay.com/photo/2016/11/29/05/08/animal-1867125_1280.jpg",msg:"ちょっと心が疲れてるね🐶"}
+  ];
+  return list[Math.floor(Math.random()*list.length)];
+}
+
 // ===== 音声 =====
 function speak(text){
   if(!("speechSynthesis" in window)) return;
-
   const u=new SpeechSynthesisUtterance(text);
   u.lang="ja-JP";
   speechSynthesis.speak(u);
@@ -251,7 +260,6 @@ async function aiReply(text){
 
     const data=await res.json();
 
-    // 🔥 エラー対策（追加）
     if(!data.choices){
       console.log(data);
       return "AIエラー：" + (data.error?.message || "不明");
@@ -281,7 +289,7 @@ async function sendMessage(){
   speak(reply);
 }
 
-// ===== 分析 =====
+// ===== 分析（ズバリ→CBT）=====
 async function analyze(){
 
   if(chatLog.length===0){
@@ -289,8 +297,15 @@ async function analyze(){
     return;
   }
 
-  addMessage("分析中…","bot");
+  addMessage("🧠 分析中…","bot");
 
+  // 👉 動物ズバリ
+  const animal=getAnimalLine();
+  addMessage(animal.img,"bot",true);
+  addMessage("🐾 "+animal.msg,"bot");
+  speak(animal.msg);
+
+  // 👉 CBT分析
   try{
     const res=await fetch("https://api.openai.com/v1/chat/completions",{
       method:"POST",
@@ -301,7 +316,16 @@ async function analyze(){
       body:JSON.stringify({
         model:"gpt-4o-mini",
         messages:[
-          {role:"system",content:`①出来事②感情③思考④歪み⑤改善⑥行動`},
+          {
+            role:"system",
+            content:`認知行動療法で5カラム形式で優しく説明：
+①出来事
+②思考
+③感情
+④歪み
+⑤新しい考え
+⑥行動`
+          },
           ...chatLog.slice(-20)
         ]
       })
@@ -310,7 +334,6 @@ async function analyze(){
     const data=await res.json();
 
     if(!data.choices){
-      console.log(data);
       addMessage("分析エラー","bot");
       return;
     }
