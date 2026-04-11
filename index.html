@@ -12,38 +12,17 @@ body{
   background:linear-gradient(#2b314d,#09111f);
   color:white;
 }
-.app{
-  display:flex;
-  flex-direction:column;
-  height:100vh;
-}
-.top{
-  height:35vh;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-}
-.top img{
-  width:90%;
-  max-width:400px;
-  border-radius:20px;
-}
-#chatBox{
-  flex:1;
-  overflow:auto;
-  padding:10px;
-}
-.message{
-  margin:8px;
-  padding:12px;
-  border-radius:12px;
-  max-width:80%;
-}
+.app{display:flex;flex-direction:column;height:100vh;}
+.top{height:35vh;display:flex;justify-content:center;align-items:center;}
+.top img{width:90%;max-width:400px;border-radius:20px;}
+#chatBox{flex:1;overflow:auto;padding:10px;}
+.message{margin:8px;padding:12px;border-radius:12px;max-width:80%;}
 .user{background:#ff4f8b;margin-left:auto;}
 .bot{background:#444;}
 .input-area{display:flex;}
 input{flex:1;padding:10px;}
 button{padding:10px;}
+
 .modal{
   position:fixed;
   inset:0;
@@ -53,9 +32,20 @@ button{padding:10px;}
   justify-content:center;
 }
 .modal.show{display:flex;}
+
 .box{
   background:#222;
   padding:20px;
+  border-radius:10px;
+  width:90%;
+  max-width:400px;
+  max-height:80vh;
+  overflow:auto;
+}
+
+textarea{
+  width:100%;
+  height:120px;
 }
 </style>
 </head>
@@ -78,17 +68,27 @@ button{padding:10px;}
 
 </div>
 
+<!-- 設定 -->
 <div class="modal" id="modal">
 <div class="box">
 
 あなたの名前<br>
 <input id="userNameInput"><br><br>
 
-キャラの名前<br>
+キャラ名<br>
 <input id="aiNameInput"><br><br>
 
 OpenAI APIKey<br>
 <input id="apiKeyInput"><br><br>
+
+Eleven APIKey<br>
+<input id="elevenApiKeyInput"><br><br>
+
+VoiceID<br>
+<input id="voiceIdInput"><br><br>
+
+プロンプト（人格設定）<br>
+<textarea id="promptInput"></textarea><br><br>
 
 <button onclick="saveSettings()">保存</button>
 <button onclick="closeSettings()">閉じる</button>
@@ -98,13 +98,7 @@ OpenAI APIKey<br>
 
 <script>
 
-// ===== 名前保存 =====
-let memory={
-  userName:localStorage.getItem("userName")||"",
-  aiName:localStorage.getItem("aiName")||"ピピ"
-};
-
-// ===== 画像 =====
+// ===== 表情 =====
 const faceImages={
   normal:"girl-normal.jpg",
   happy:"girl-happy.png",
@@ -117,36 +111,64 @@ function setFace(type){
   girl.src=faceImages[type]||faceImages.normal;
 }
 
-// ===== API =====
-let sessionSecrets={
-  apiKey:localStorage.getItem("apiKey")||""
+// ===== 保存 =====
+let memory={
+  userName:localStorage.getItem("userName")||"",
+  aiName:localStorage.getItem("aiName")||"ピピ",
+  prompt:localStorage.getItem("customPrompt")||"あなたは優しい女性AI。自然に会話する"
 };
 
-// 履歴
+let sessionSecrets={
+  apiKey:localStorage.getItem("apiKey")||"",
+  elevenApiKey:localStorage.getItem("elevenApiKey")||"",
+  voiceId:localStorage.getItem("voiceId")||""
+};
+
 let chatHistory=JSON.parse(localStorage.getItem("chatHistory")||"[]");
 
-// 初期
+// 初期表示
 userNameInput.value=memory.userName;
 aiNameInput.value=memory.aiName;
 apiKeyInput.value=sessionSecrets.apiKey;
+elevenApiKeyInput.value=sessionSecrets.elevenApiKey;
+voiceIdInput.value=sessionSecrets.voiceId;
+promptInput.value=memory.prompt;
 
 // ===== UI =====
 function openSettings(){
   modal.classList.add("show");
+
+  // 再反映（重要）
+  userNameInput.value=memory.userName;
+  aiNameInput.value=memory.aiName;
+  apiKeyInput.value=sessionSecrets.apiKey;
+  elevenApiKeyInput.value=sessionSecrets.elevenApiKey;
+  voiceIdInput.value=sessionSecrets.voiceId;
+  promptInput.value=memory.prompt;
 }
+
 function closeSettings(){
   modal.classList.remove("show");
 }
 
+// ===== 保存 =====
 function saveSettings(){
+
   memory.userName=userNameInput.value.trim();
   memory.aiName=aiNameInput.value.trim()||"ピピ";
+  memory.prompt=promptInput.value.trim();
 
   sessionSecrets.apiKey=apiKeyInput.value.trim();
+  sessionSecrets.elevenApiKey=elevenApiKeyInput.value.trim();
+  sessionSecrets.voiceId=voiceIdInput.value.trim();
 
   localStorage.setItem("userName",memory.userName);
   localStorage.setItem("aiName",memory.aiName);
+  localStorage.setItem("customPrompt",memory.prompt);
+
   localStorage.setItem("apiKey",sessionSecrets.apiKey);
+  localStorage.setItem("elevenApiKey",sessionSecrets.elevenApiKey);
+  localStorage.setItem("voiceId",sessionSecrets.voiceId);
 
   alert("保存OK🔥");
   closeSettings();
@@ -193,16 +215,15 @@ async function sendMessage(){
           {
             role:"system",
             content:`
-あなたは「${aiName}」という優しい女性です。
+${memory.prompt}
 
-ルール:
-・自然な会話
-・AIっぽくしない
-・やさしい
-・時々 ${userName} を呼ぶ
-・一言で終わらない
-・会話を続ける
-・感情タグを最初につける
+あなたの名前: ${aiName}
+相手: ${userName}
+
+・自然に会話
+・人間っぽく
+・時々名前呼ぶ
+・最初に感情タグ付ける
 
 タグ:
 [happy][sympathy][worried][exhausted][normal]
@@ -216,7 +237,7 @@ async function sendMessage(){
     const data=await res.json();
     let reply=data.choices?.[0]?.message?.content||"エラー";
 
-    // 感情タグ処理
+    // 表情タグ
     let mood="normal";
     const match=reply.match(/^\[(.*?)\]/);
     if(match){
@@ -238,18 +259,18 @@ async function sendMessage(){
   }
 }
 
-// ===== Enter =====
-userInput.addEventListener("keypress",e=>{
-  if(e.key==="Enter")sendMessage();
-});
-
-// ===== 音声 =====
+// ===== 音声（簡易） =====
 function speak(text){
   if(!("speechSynthesis" in window))return;
   const u=new SpeechSynthesisUtterance(text);
   u.lang="ja-JP";
   speechSynthesis.speak(u);
 }
+
+// Enter
+userInput.addEventListener("keypress",e=>{
+  if(e.key==="Enter")sendMessage();
+});
 
 </script>
 
