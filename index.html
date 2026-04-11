@@ -21,6 +21,7 @@ body{
   height:100vh;
 }
 
+/* 画像 */
 .top{
   height:45vh;
   display:flex;
@@ -33,6 +34,7 @@ body{
   border-radius:20px;
 }
 
+/* チャット */
 #chatBox{
   flex:1;
   overflow:auto;
@@ -51,6 +53,7 @@ body{
 .user{ background:#ff4f8b; margin-left:auto; }
 .bot{ background:#444; }
 
+/* 入力 */
 .input-area{
   display:flex;
   gap:8px;
@@ -76,6 +79,7 @@ body{
 
 .mic{ background:#5f9bff; }
 
+/* モーダル */
 .modal{
   position:fixed;
   inset:0;
@@ -177,8 +181,8 @@ function setFace(type){
 }
 
 function detectEmotion(text){
-  if(/嬉しい|楽しい|最高|好き/.test(text)) return "happy";
-  if(/悲しい|つらい|泣/.test(text)) return "sad";
+  if(/嬉しい|楽しい|好き/.test(text)) return "happy";
+  if(/悲しい|つらい/.test(text)) return "sad";
   if(/怒|イライラ/.test(text)) return "angry";
   if(/びっくり|えっ/.test(text)) return "surprised";
   if(/疲れた|眠い/.test(text)) return "tired";
@@ -194,7 +198,9 @@ let memory={
 };
 
 let sessionSecrets={
-  apiKey:localStorage.getItem("apiKey")||""
+  apiKey:localStorage.getItem("apiKey")||"",
+  elevenApiKey:localStorage.getItem("elevenApiKey")||"",
+  voiceId:localStorage.getItem("voiceId")||""
 };
 
 let chatHistory=JSON.parse(localStorage.getItem("chatHistory")||"[]");
@@ -204,6 +210,8 @@ window.onload=()=>{
   userNameInput.value=memory.userName;
   aiNameInput.value=memory.aiName;
   apiKeyInput.value=sessionSecrets.apiKey;
+  elevenApiKeyInput.value=sessionSecrets.elevenApiKey;
+  voiceIdInput.value=sessionSecrets.voiceId;
   promptInput.value=memory.prompt;
 };
 
@@ -213,15 +221,22 @@ function closeSettings(){ modal.classList.remove("show"); }
 
 // ===== 保存 =====
 function saveSettings(){
+
   memory.userName=userNameInput.value.trim();
   memory.aiName=aiNameInput.value.trim()||"ピピ";
   memory.prompt=promptInput.value.trim();
+
   sessionSecrets.apiKey=apiKeyInput.value.trim();
+  sessionSecrets.elevenApiKey=elevenApiKeyInput.value.trim();
+  sessionSecrets.voiceId=voiceIdInput.value.trim();
 
   localStorage.setItem("userName",memory.userName);
   localStorage.setItem("aiName",memory.aiName);
   localStorage.setItem("customPrompt",memory.prompt);
+
   localStorage.setItem("apiKey",sessionSecrets.apiKey);
+  localStorage.setItem("elevenApiKey",sessionSecrets.elevenApiKey);
+  localStorage.setItem("voiceId",sessionSecrets.voiceId);
 
   alert("保存OK🔥");
   closeSettings();
@@ -234,6 +249,40 @@ function addMessage(text,type){
   div.textContent=text;
   chatBox.appendChild(div);
   chatBox.scrollTop=chatBox.scrollHeight;
+}
+
+// ===== 音声 =====
+async function speak(text){
+
+  if(sessionSecrets.elevenApiKey && sessionSecrets.voiceId){
+    try{
+      const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${sessionSecrets.voiceId}`,{
+        method:"POST",
+        headers:{
+          "xi-api-key":sessionSecrets.elevenApiKey,
+          "Content-Type":"application/json"
+        },
+        body:JSON.stringify({
+          text:text,
+          model_id:"eleven_multilingual_v2"
+        })
+      });
+
+      const blob = await res.blob();
+      const audio = new Audio(URL.createObjectURL(blob));
+      audio.play();
+      return;
+
+    }catch(e){
+      console.log("Eleven失敗");
+    }
+  }
+
+  if("speechSynthesis" in window){
+    const u=new SpeechSynthesisUtterance(text);
+    u.lang="ja-JP";
+    speechSynthesis.speak(u);
+  }
 }
 
 // ===== GPT =====
@@ -273,7 +322,6 @@ async function sendMessage(){
     const data=await res.json();
     let reply=data.choices?.[0]?.message?.content||"エラー";
 
-    // 表情タグ解析
     let mood="normal";
     const match=reply.match(/^\[(.*?)\]/);
     if(match){
@@ -283,6 +331,7 @@ async function sendMessage(){
 
     setFace(mood);
     addMessage(reply,"bot");
+    speak(reply);
 
     chatHistory.push({role:"assistant",content:reply});
     localStorage.setItem("chatHistory",JSON.stringify(chatHistory));
