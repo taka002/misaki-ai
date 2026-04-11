@@ -45,7 +45,7 @@ body{
   margin:8px;
   padding:14px;
   border-radius:14px;
-  max-width:80%;
+  max-width:75%;
   font-size:16px;
   word-break:break-word;
 }
@@ -56,23 +56,24 @@ body{
 /* 入力 */
 .input-area{
   display:flex;
-  gap:8px;
-  padding:8px;
+  gap:6px;
+  padding:6px;
 }
 
 #userInput{
   flex:1;
   min-width:0;
-  padding:16px;
-  font-size:18px;
+  padding:14px;
+  font-size:16px;
   border:none;
   border-radius:10px;
 }
 
 .input-area button{
-  width:70px;
-  height:60px;
-  font-size:18px;
+  flex:0 0 auto;
+  width:60px;
+  height:55px;
+  font-size:16px;
   border:none;
   border-radius:10px;
 }
@@ -132,9 +133,6 @@ textarea{
 <div class="modal" id="modal">
   <div class="box">
 
-    あなたの名前<br>
-    <input id="userNameInput"><br><br>
-
     キャラ名<br>
     <input id="aiNameInput"><br><br>
 
@@ -168,31 +166,15 @@ const faceImages={
   normal:"girl-normal.jpg",
   happy:"girl-happy.png",
   sad:"girl-sad.png",
-  angry:"girl-angry.png",
-  surprised:"girl-surprised.png",
-  tired:"girl-tired.png",
-  love:"girl-love.png",
-  thinking:"girl-thinking.png",
-  confused:"girl-confused.png"
+  angry:"girl-angry.png"
 };
 
 function setFace(type){
   girl.src = faceImages[type] || faceImages.normal;
 }
 
-function detectEmotion(text){
-  if(/嬉しい|楽しい|好き/.test(text)) return "happy";
-  if(/悲しい|つらい/.test(text)) return "sad";
-  if(/怒|イライラ/.test(text)) return "angry";
-  if(/びっくり|えっ/.test(text)) return "surprised";
-  if(/疲れた|眠い/.test(text)) return "tired";
-  if(/悩|どうしよう/.test(text)) return "thinking";
-  return "normal";
-}
-
 // ===== データ =====
 let memory={
-  userName:localStorage.getItem("userName")||"",
   aiName:localStorage.getItem("aiName")||"ピピ",
   prompt:localStorage.getItem("customPrompt")||"優しい女性AI"
 };
@@ -203,11 +185,10 @@ let sessionSecrets={
   voiceId:localStorage.getItem("voiceId")||""
 };
 
-let chatHistory=JSON.parse(localStorage.getItem("chatHistory")||"[]");
+let chatHistory=[];
 
 // ===== 初期 =====
 window.onload=()=>{
-  userNameInput.value=memory.userName;
   aiNameInput.value=memory.aiName;
   apiKeyInput.value=sessionSecrets.apiKey;
   elevenApiKeyInput.value=sessionSecrets.elevenApiKey;
@@ -222,18 +203,15 @@ function closeSettings(){ modal.classList.remove("show"); }
 // ===== 保存 =====
 function saveSettings(){
 
-  memory.userName=userNameInput.value.trim();
-  memory.aiName=aiNameInput.value.trim()||"ピピ";
+  memory.aiName=aiNameInput.value.trim();
   memory.prompt=promptInput.value.trim();
 
   sessionSecrets.apiKey=apiKeyInput.value.trim();
   sessionSecrets.elevenApiKey=elevenApiKeyInput.value.trim();
   sessionSecrets.voiceId=voiceIdInput.value.trim();
 
-  localStorage.setItem("userName",memory.userName);
   localStorage.setItem("aiName",memory.aiName);
   localStorage.setItem("customPrompt",memory.prompt);
-
   localStorage.setItem("apiKey",sessionSecrets.apiKey);
   localStorage.setItem("elevenApiKey",sessionSecrets.elevenApiKey);
   localStorage.setItem("voiceId",sessionSecrets.voiceId);
@@ -254,6 +232,7 @@ function addMessage(text,type){
 // ===== 音声 =====
 async function speak(text){
 
+  // Eleven優先
   if(sessionSecrets.elevenApiKey && sessionSecrets.voiceId){
     try{
       const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${sessionSecrets.voiceId}`,{
@@ -263,26 +242,35 @@ async function speak(text){
           "Content-Type":"application/json"
         },
         body:JSON.stringify({
-          text:text,
-          model_id:"eleven_multilingual_v2"
+          text:text
         })
       });
 
-      const blob = await res.blob();
-      const audio = new Audio(URL.createObjectURL(blob));
-      audio.play();
-      return;
+      if(res.ok){
+        const blob = await res.blob();
+        new Audio(URL.createObjectURL(blob)).play();
+        return;
+      }
 
     }catch(e){
       console.log("Eleven失敗");
     }
   }
 
-  if("speechSynthesis" in window){
-    const u=new SpeechSynthesisUtterance(text);
-    u.lang="ja-JP";
-    speechSynthesis.speak(u);
-  }
+  // fallback（必ず喋る）
+  const u=new SpeechSynthesisUtterance(text);
+  u.lang="ja-JP";
+  speechSynthesis.speak(u);
+}
+
+// ===== ローカルAI（超重要） =====
+function localReply(text){
+
+  if(/疲れ|しんど/.test(text)) return "大丈夫？無理しないでね";
+  if(/こんにちは/.test(text)) return "こんにちは😊";
+  if(/ありがとう/.test(text)) return "どういたしまして";
+  
+  return "うん、聞いてるよ";
 }
 
 // ===== GPT =====
@@ -293,9 +281,14 @@ async function sendMessage(){
 
   addMessage(text,"user");
   userInput.value="";
-  setFace(detectEmotion(text));
 
-  chatHistory.push({role:"user",content:text});
+  // APIない → ローカル返答
+  if(!sessionSecrets.apiKey){
+    const reply=localReply(text);
+    addMessage(reply,"bot");
+    speak(reply);
+    return;
+  }
 
   try{
     const res=await fetch("https://api.openai.com/v1/chat/completions",{
@@ -307,37 +300,23 @@ async function sendMessage(){
       body:JSON.stringify({
         model:"gpt-4o-mini",
         messages:[
-          {
-            role:"system",
-            content:`${memory.prompt}
-必ず最初に[happy]など感情タグを付ける。
-あなたの名前は${memory.aiName}。
-相手は${memory.userName||"ユーザー"}。`
-          },
-          ...chatHistory
+          {role:"system",content:memory.prompt},
+          {role:"user",content:text}
         ]
       })
     });
 
     const data=await res.json();
-    let reply=data.choices?.[0]?.message?.content||"エラー";
+    const reply=data.choices?.[0]?.message?.content || localReply(text);
 
-    let mood="normal";
-    const match=reply.match(/^\[(.*?)\]/);
-    if(match){
-      mood=match[1];
-      reply=reply.replace(/^\[.*?\]/,"");
-    }
-
-    setFace(mood);
     addMessage(reply,"bot");
     speak(reply);
 
-    chatHistory.push({role:"assistant",content:reply});
-    localStorage.setItem("chatHistory",JSON.stringify(chatHistory));
-
   }catch(e){
-    addMessage("通信エラー","bot");
+    // 通信失敗 → ローカル
+    const reply=localReply(text);
+    addMessage(reply,"bot");
+    speak(reply);
   }
 }
 
