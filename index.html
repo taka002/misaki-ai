@@ -15,7 +15,6 @@ body{
   color:white;
 }
 
-/* アプリ */
 .app{
   display:flex;
   flex-direction:column;
@@ -45,32 +44,21 @@ body{
   flex-direction:column;
 }
 
-/* 行 */
 .row{
   display:flex;
   margin:6px 0;
 }
 
-/* 左（AI） */
-.row.bot{
-  justify-content:flex-start;
-}
+.row.bot{ justify-content:flex-start; }
+.row.user{ justify-content:flex-end; }
 
-/* 右（ユーザー） */
-.row.user{
-  justify-content:flex-end;
-}
-
-/* 吹き出し */
 .bubble{
   padding:12px 16px;
   border-radius:16px;
   max-width:75%;
   word-break:break-word;
-  font-size:15px;
 }
 
-/* 色 */
 .user .bubble{
   background:#ff4f8b;
   border-bottom-right-radius:4px;
@@ -81,7 +69,7 @@ body{
   border-bottom-left-radius:4px;
 }
 
-/* ===== 入力（固定） ===== */
+/* ===== 入力 ===== */
 .input-area{
   display:flex;
   gap:6px;
@@ -91,27 +79,20 @@ body{
   bottom:0;
 }
 
-/* 入力欄 */
 #userInput{
   flex:1;
-  min-width:0;
   padding:14px;
-  font-size:16px;
   border:none;
   border-radius:10px;
 }
 
-/* ボタン */
 .input-area button{
-  flex:0 0 auto;
   width:60px;
   height:55px;
-  font-size:16px;
   border:none;
   border-radius:10px;
 }
 
-/* マイク */
 .mic{ background:#5f9bff; }
 
 /* ===== モーダル ===== */
@@ -130,8 +111,6 @@ body{
 .box{
   width:90%;
   max-width:400px;
-  max-height:85vh;
-  overflow-y:auto;
   background:#222;
   padding:20px;
   border-radius:12px;
@@ -149,7 +128,7 @@ textarea{
 <div class="app">
 
   <div class="top">
-    <img id="girl" src="girl-normal.jpg">
+    <img src="girl-normal.jpg">
   </div>
 
   <div id="chatBox"></div>
@@ -170,17 +149,11 @@ textarea{
     キャラ名<br>
     <input id="aiNameInput"><br><br>
 
-    OpenAI APIKey<br>
-    <input id="apiKeyInput"><br><br>
-
     Eleven APIKey<br>
     <input id="elevenApiKeyInput"><br><br>
 
     VoiceID<br>
     <input id="voiceIdInput"><br><br>
-
-    プロンプト<br>
-    <textarea id="promptInput"></textarea><br><br>
 
     <button onclick="saveSettings()">保存</button>
     <button onclick="closeSettings()">閉じる</button>
@@ -194,13 +167,40 @@ textarea{
 const modal = document.getElementById("modal");
 const chatBox = document.getElementById("chatBox");
 
+// ===== データ =====
+let settings={
+  aiName:localStorage.getItem("aiName")||"ピピ",
+  elevenApiKey:localStorage.getItem("elevenApiKey")||"",
+  voiceId:localStorage.getItem("voiceId")||""
+};
+
+// ===== 初期 =====
+window.onload=()=>{
+  aiNameInput.value=settings.aiName;
+  elevenApiKeyInput.value=settings.elevenApiKey;
+  voiceIdInput.value=settings.voiceId;
+};
+
+// ===== 保存 =====
+function saveSettings(){
+  settings.aiName=aiNameInput.value;
+  settings.elevenApiKey=elevenApiKeyInput.value;
+  settings.voiceId=voiceIdInput.value;
+
+  localStorage.setItem("aiName",settings.aiName);
+  localStorage.setItem("elevenApiKey",settings.elevenApiKey);
+  localStorage.setItem("voiceId",settings.voiceId);
+
+  alert("保存OK🔥");
+  closeSettings();
+}
+
 // ===== UI =====
 function openSettings(){ modal.classList.add("show"); }
 function closeSettings(){ modal.classList.remove("show"); }
 
-// ===== 表示（LINE風） =====
+// ===== 表示 =====
 function addMessage(text,type){
-
   const row=document.createElement("div");
   row.className="row "+type;
 
@@ -214,7 +214,36 @@ function addMessage(text,type){
   chatBox.scrollTop=chatBox.scrollHeight;
 }
 
-// ===== ローカル返答 =====
+// ===== 🔥 音声（重要） =====
+async function speak(text){
+
+  // ElevenLabs
+  if(settings.elevenApiKey && settings.voiceId){
+    try{
+      const res=await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${settings.voiceId}`,{
+        method:"POST",
+        headers:{
+          "xi-api-key":settings.elevenApiKey,
+          "Content-Type":"application/json"
+        },
+        body:JSON.stringify({ text })
+      });
+
+      if(res.ok){
+        const blob=await res.blob();
+        new Audio(URL.createObjectURL(blob)).play();
+        return;
+      }
+    }catch(e){}
+  }
+
+  // fallback（必ず喋る）
+  const u=new SpeechSynthesisUtterance(text);
+  u.lang="ja-JP";
+  speechSynthesis.speak(u);
+}
+
+// ===== ローカルAI =====
 function localReply(text){
   if(/疲れ|しんど/.test(text)) return "大丈夫？無理しないでね";
   if(/こんにちは/.test(text)) return "こんにちは😊";
@@ -234,6 +263,7 @@ function sendMessage(){
 
   setTimeout(()=>{
     addMessage(reply,"bot");
+    speak(reply); // 🔥ここ重要
   },500);
 }
 
@@ -246,7 +276,7 @@ function startVoice(){
     return;
   }
 
-  const recog = new SpeechRecognition();
+  const recog=new SpeechRecognition();
   recog.lang="ja-JP";
 
   recog.onresult=(e)=>{
