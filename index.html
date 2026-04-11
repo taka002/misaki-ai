@@ -20,11 +20,15 @@ html,body{
   display:flex;
   flex-direction:column;
   height:100vh;
+  overflow:hidden;
 }
 
 .top{
   height:35vh;
+  width:100%;
+  overflow:hidden;
 }
+
 .top img{
   width:100%;
   height:100%;
@@ -67,11 +71,42 @@ html,body{
   border-radius:10px;
 }
 
-button{
+.input-area button{
   width:60px;
   height:55px;
   border:none;
   border-radius:10px;
+}
+
+.mic{ background:#5f9bff; }
+
+.modal{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.6);
+  display:none;
+  justify-content:center;
+  align-items:center;
+}
+
+.modal.show{ display:flex; }
+
+.box{
+  width:90%;
+  max-width:420px;
+  max-height:85vh;
+  overflow:auto;
+  background:#222;
+  padding:20px;
+  border-radius:12px;
+}
+
+input,textarea{
+  width:100%;
+  margin-bottom:10px;
+  padding:10px;
+  border:none;
+  border-radius:8px;
 }
 </style>
 </head>
@@ -89,7 +124,8 @@ button{
   <div class="input-area">
     <input id="userInput" placeholder="話してみて">
     <button onclick="sendMessage()">送信</button>
-    <button onclick="startVoice()">🎤</button>
+    <button class="mic" onclick="startVoice()">🎤</button>
+    <button onclick="analyze()">🧠</button>
     <button onclick="openSettings()">⚙</button>
   </div>
 
@@ -97,71 +133,108 @@ button{
 
 <div class="modal" id="modal">
   <div class="box">
+    キャラ名<input id="nameInput">
+    画像URL<input id="imageInput">
+    画像選択<input type="file" id="imageFile" accept="image/*">
+
     OpenAI APIKey<input id="apiKeyInput">
+
+    <!-- 🔥 追加（ここだけ） -->
     Eleven APIKey<input id="elevenApiKeyInput">
     VoiceID<input id="voiceIdInput">
+
+    プロンプト<textarea id="promptInput"></textarea>
     <button onclick="saveSettings()">保存</button>
+    <button onclick="closeSettings()">閉じる</button>
   </div>
 </div>
 
 <script>
-
-// ===== 🔥① 音声アンロック =====
-let unlocked=false;
-document.body.addEventListener("click",()=>{
-  if(unlocked) return;
-  const a=new Audio();
-  a.muted=true;
-  a.play().catch(()=>{});
-  unlocked=true;
-  console.log("音声アンロックOK");
-});
-
-// ===== 変数 =====
-let chatBox,userInput,girl;
-
-let settings={
-  apiKey:localStorage.getItem("apiKey")||"",
-  elevenApiKey:localStorage.getItem("elevenApiKey")||"",
-  voiceId:localStorage.getItem("voiceId")||""
-};
+let chatBox, girl, modal, userInput;
+let nameInput, imageInput, apiKeyInput, promptInput, imageFile;
+let elevenApiKeyInput, voiceIdInput;
 
 let chatLog=[];
 
-// ===== 初期化 =====
-window.onload=()=>{
-  chatBox=document.getElementById("chatBox");
-  userInput=document.getElementById("userInput");
-  girl=document.getElementById("girl");
-
-  girl.src="https://cdn.pixabay.com/photo/2017/01/31/13/14/animal-2023924_1280.png";
+let settings={
+  name:localStorage.getItem("name")||"ピピ",
+  image:localStorage.getItem("image")||"",
+  apiKey:localStorage.getItem("apiKey")||"",
+  elevenApiKey:localStorage.getItem("elevenApiKey")||"",
+  voiceId:localStorage.getItem("voiceId")||"",
+  prompt:localStorage.getItem("prompt")||"優しく話す"
 };
 
+window.addEventListener("DOMContentLoaded",()=>{
+
+  chatBox=document.getElementById("chatBox");
+  girl=document.getElementById("girl");
+  modal=document.getElementById("modal");
+  userInput=document.getElementById("userInput");
+
+  nameInput=document.getElementById("nameInput");
+  imageInput=document.getElementById("imageInput");
+  apiKeyInput=document.getElementById("apiKeyInput");
+  promptInput=document.getElementById("promptInput");
+  imageFile=document.getElementById("imageFile");
+
+  elevenApiKeyInput=document.getElementById("elevenApiKeyInput");
+  voiceIdInput=document.getElementById("voiceIdInput");
+
+  girl.src=settings.image || "https://cdn.pixabay.com/photo/2017/01/31/13/14/animal-2023924_1280.png";
+
+  document.body.addEventListener("click",()=>{
+    if("speechSynthesis" in window){
+      speechSynthesis.getVoices();
+    }
+  },{once:true});
+
+  imageFile.addEventListener("change",()=>{
+    const file=imageFile.files[0];
+    const reader=new FileReader();
+    reader.onload=e=>{
+      settings.image=e.target.result;
+      girl.src=settings.image;
+    };
+    reader.readAsDataURL(file);
+  });
+
+  userInput.addEventListener("keypress",e=>{
+    if(e.key==="Enter") sendMessage();
+  });
+
+});
+
 // ===== 表示 =====
-function addMessage(text,type){
+function addMessage(text,type,isImage=false){
   const row=document.createElement("div");
   row.className="row "+type;
 
   const bubble=document.createElement("div");
   bubble.className="bubble";
-  bubble.textContent=text;
+
+  if(isImage){
+    const img=document.createElement("img");
+    img.src=text;
+    img.style.width="160px";
+    img.style.borderRadius="12px";
+    bubble.appendChild(img);
+  }else{
+    bubble.textContent=text;
+  }
 
   row.appendChild(bubble);
   chatBox.appendChild(row);
   chatBox.scrollTop=chatBox.scrollHeight;
 }
 
-// ===== 🔥③ 音声（完全版）=====
+// ===== 音声（🔥ここが進化）=====
 async function speak(text){
 
   if(!text) return;
 
-  const useEleven =
-    settings.elevenApiKey &&
-    settings.voiceId &&
-    settings.elevenApiKey.length > 10;
-
-  if(useEleven){
+  // ElevenLabs優先
+  if(settings.elevenApiKey && settings.voiceId){
     try{
       const res = await fetch(
         `https://api.elevenlabs.io/v1/text-to-speech/${settings.voiceId}`,
@@ -184,19 +257,19 @@ async function speak(text){
         const url=URL.createObjectURL(blob);
 
         const audio=new Audio(url);
-        audio.volume=1;
+        audio.play();
 
-        await audio.play();
+        audio.onended=()=>URL.revokeObjectURL(url);
         return;
       }
 
     }catch(e){
-      console.log("Eleven失敗");
+      console.log("Eleven失敗→fallback");
     }
   }
 
   // fallback
-  speechSynthesis.cancel();
+  if(!("speechSynthesis" in window)) return;
   const u=new SpeechSynthesisUtterance(text);
   u.lang="ja-JP";
   speechSynthesis.speak(u);
@@ -207,61 +280,128 @@ async function aiReply(text){
 
   if(!settings.apiKey) return "APIキー未設定";
 
-  const res=await fetch("https://api.openai.com/v1/chat/completions",{
-    method:"POST",
-    headers:{
-      "Content-Type":"application/json",
-      "Authorization":"Bearer "+settings.apiKey
-    },
-    body:JSON.stringify({
-      model:"gpt-4o-mini",
-      messages:[{role:"user",content:text}]
-    })
-  });
+  try{
+    const res=await fetch("https://api.openai.com/v1/chat/completions",{
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json",
+        "Authorization":"Bearer "+settings.apiKey
+      },
+      body:JSON.stringify({
+        model:"gpt-4o-mini",
+        messages:[
+          {role:"system",content:`あなたは${settings.name}。${settings.prompt}`},
+          ...chatLog.slice(-20),
+          {role:"user",content:text}
+        ]
+      })
+    });
 
-  const data=await res.json();
-  return data.choices?.[0]?.message?.content || "エラー";
+    const data=await res.json();
+
+    if(!data.choices){
+      console.log(data);
+      return "AIエラー：" + (data.error?.message || "不明");
+    }
+
+    return data.choices[0].message.content;
+
+  }catch(e){
+    return "通信エラー";
+  }
 }
 
-// ===== 🔥② 送信（音対応）=====
+// ===== 送信 =====
 async function sendMessage(){
 
   const text=userInput.value.trim();
   if(!text) return;
 
-  // 🔥 音許可
-  const unlock=new Audio();
-  unlock.src="data:audio/mp3;base64,//uQxAAAAAAAAAAAA";
-  unlock.play().catch(()=>{});
-
+  chatLog.push({role:"user",content:text});
   addMessage(text,"user");
   userInput.value="";
 
   const reply=await aiReply(text);
 
+  chatLog.push({role:"assistant",content:reply});
   addMessage(reply,"bot");
+  speak(reply);
+}
 
-  setTimeout(()=>{
-    speak(reply);
-  },150);
+// ===== 分析 =====
+async function analyze(){
+
+  if(chatLog.length===0){
+    alert("会話がないよ");
+    return;
+  }
+
+  addMessage("🧠 分析中…","bot");
+
+  try{
+    const res=await fetch("https://api.openai.com/v1/chat/completions",{
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json",
+        "Authorization":"Bearer "+settings.apiKey
+      },
+      body:JSON.stringify({
+        model:"gpt-4o-mini",
+        messages:[
+          {
+            role:"system",
+            content:`認知行動療法で5カラム形式：
+①出来事②思考③感情④歪み⑤新しい考え⑥行動`
+          },
+          ...chatLog.slice(-20)
+        ]
+      })
+    });
+
+    const data=await res.json();
+
+    if(!data.choices){
+      addMessage("分析エラー","bot");
+      return;
+    }
+
+    const text=data.choices[0].message.content;
+    addMessage(text,"bot");
+    speak(text);
+
+  }catch(e){
+    addMessage("通信エラー","bot");
+  }
 }
 
 // ===== 設定 =====
 function saveSettings(){
-  settings.apiKey=document.getElementById("apiKeyInput").value;
-  settings.elevenApiKey=document.getElementById("elevenApiKeyInput").value;
-  settings.voiceId=document.getElementById("voiceIdInput").value;
 
+  settings.name=nameInput.value;
+  settings.apiKey=apiKeyInput.value;
+  settings.prompt=promptInput.value;
+
+  settings.elevenApiKey=elevenApiKeyInput.value;
+  settings.voiceId=voiceIdInput.value;
+
+  if(imageInput.value.trim()){
+    settings.image=imageInput.value.trim();
+  }
+
+  localStorage.setItem("name",settings.name);
   localStorage.setItem("apiKey",settings.apiKey);
+  localStorage.setItem("prompt",settings.prompt);
+  localStorage.setItem("image",settings.image);
+
   localStorage.setItem("elevenApiKey",settings.elevenApiKey);
   localStorage.setItem("voiceId",settings.voiceId);
 
-  alert("保存OK");
+  girl.src=settings.image;
+  closeSettings();
 }
 
-function openSettings(){
-  document.getElementById("modal").style.display="block";
-}
+function openSettings(){ modal.classList.add("show"); }
+function closeSettings(){ modal.classList.remove("show"); }
 
 // ===== 音声入力 =====
 function startVoice(){
