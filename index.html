@@ -1,9 +1,9 @@
 <script>
 
-// ===== DOM取得（ここ重要）=====
+// ===== DOM =====
 let chatBox, girl, modal, userInput, nameInput, imageInput, apiKeyInput, promptInput;
 
-// ===== 会話ログ =====
+// ===== ログ =====
 let chatLog=[];
 
 // ===== 設定 =====
@@ -14,7 +14,7 @@ let settings={
   prompt:localStorage.getItem("prompt")||"優しく話す"
 };
 
-// ===== 初期化（全部ここでやる）=====
+// ===== 初期化 =====
 window.addEventListener("DOMContentLoaded",()=>{
 
   chatBox=document.getElementById("chatBox");
@@ -27,6 +27,12 @@ window.addEventListener("DOMContentLoaded",()=>{
   apiKeyInput=document.getElementById("apiKeyInput");
   promptInput=document.getElementById("promptInput");
 
+  // 👇 nullチェック（超重要）
+  if(!chatBox || !girl || !userInput){
+    alert("HTMLのidが不足してる");
+    return;
+  }
+
   girl.src=settings.image;
 
   // 音声有効化
@@ -36,7 +42,7 @@ window.addEventListener("DOMContentLoaded",()=>{
     }
   },{once:true});
 
-  // Enter送信
+  // Enter送信（←ここに入れる）
   userInput.addEventListener("keypress",e=>{
     if(e.key==="Enter") sendMessage();
   });
@@ -177,8 +183,7 @@ async function analyze(){
         messages:[
           {
             role:"system",
-            content:`
-①会話まとめ
+            content:`①会話まとめ
 ②感情分析
 ③認知の歪み
 ④5カラム
