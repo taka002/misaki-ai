@@ -152,7 +152,7 @@ input,textarea{
 
 </div>
 
-<!-- ✅ フル設定（これだけ使う） -->
+<!-- 設定 -->
 <div class="modal" id="modal">
   <div class="box">
 
@@ -231,7 +231,6 @@ function saveSettings(){
   closeSettings();
 }
 
-// ===== UI =====
 function openSettings(){ modal.classList.add("show"); }
 function closeSettings(){ modal.classList.remove("show"); }
 
@@ -253,7 +252,6 @@ function addMessage(text,type){
 // ===== 音声 =====
 function speak(text){
 
-  // Eleven優先
   if(settings.elevenApiKey && settings.voiceId){
     fetch(`https://api.elevenlabs.io/v1/text-to-speech/${settings.voiceId}`,{
       method:"POST",
@@ -276,7 +274,47 @@ function fallbackSpeak(text){
   speechSynthesis.speak(u);
 }
 
-// ===== ローカルAI =====
+// ===== ⭐ 会話AI（プロンプト反映） =====
+async function aiReply(userText){
+
+  // APIない場合はローカル
+  if(!settings.apiKey){
+    return localReply(userText);
+  }
+
+  try{
+    const res=await fetch("https://api.openai.com/v1/chat/completions",{
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json",
+        "Authorization":"Bearer "+settings.apiKey
+      },
+      body:JSON.stringify({
+        model:"gpt-4o-mini",
+        messages:[
+          {
+            role:"system",
+            content:`あなたは${settings.name}です。
+性格: ${settings.prompt}
+自然な会話をしてください。短すぎず、人間っぽく。`
+          },
+          {
+            role:"user",
+            content:userText
+          }
+        ]
+      })
+    });
+
+    const data=await res.json();
+    return data.choices[0].message.content;
+
+  }catch(e){
+    return "ちょっと調子悪いかも…もう一回話して？";
+  }
+}
+
+// ===== ローカル fallback =====
 function localReply(text){
   if(/疲れ/.test(text)) return "大丈夫？無理しないでね";
   if(/こんにちは|こんばんは/.test(text)) return "こんにちは😊";
@@ -284,7 +322,7 @@ function localReply(text){
 }
 
 // ===== 送信 =====
-function sendMessage(){
+async function sendMessage(){
 
   const text=userInput.value.trim();
   if(!text) return;
@@ -292,12 +330,10 @@ function sendMessage(){
   addMessage(text,"user");
   userInput.value="";
 
-  const reply=localReply(text);
+  const reply=await aiReply(text);
 
-  setTimeout(()=>{
-    addMessage(reply,"bot");
-    speak(reply);
-  },400);
+  addMessage(reply,"bot");
+  speak(reply);
 }
 
 // ===== 音声入力 =====
