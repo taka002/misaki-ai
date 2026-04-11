@@ -1,78 +1,156 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ピピAI 安定版</title>
+
+<style>
+*{ box-sizing:border-box; }
+
+html,body{
+  height:100%;
+  margin:0;
+  font-family:sans-serif;
+  background:linear-gradient(#2b314d,#09111f);
+  color:white;
+}
+
+/* ===== 全体 ===== */
+.app{
+  display:flex;
+  flex-direction:column;
+  height:100%;
+}
+
+/* ===== 上（画像） ===== */
+.top{
+  flex:0 0 auto;
+  padding:10px;
+  display:flex;
+  justify-content:center;
+}
+
+.top img{
+  width:90%;
+  max-width:420px;
+  border-radius:20px;
+  transition:0.3s;
+}
+
+/* ===== チャット ===== */
+#chatBox{
+  flex:1;
+  overflow-y:auto;
+  padding:10px;
+  display:flex;
+  flex-direction:column;
+}
+
+.row{
+  display:flex;
+  margin:6px 0;
+}
+
+.row.user{ justify-content:flex-end; }
+.row.bot{ justify-content:flex-start; }
+
+.bubble{
+  padding:12px 16px;
+  border-radius:16px;
+  max-width:75%;
+  word-break:break-word;
+}
+
+.user .bubble{
+  background:#ff4f8b;
+  border-bottom-right-radius:4px;
+}
+
+.bot .bubble{
+  background:#444;
+  border-bottom-left-radius:4px;
+}
+
+/* ===== 入力 ===== */
+.input-area{
+  flex:0 0 auto;
+  display:flex;
+  gap:6px;
+  padding:8px;
+  background:#111;
+}
+
+#userInput{
+  flex:1;
+  padding:14px;
+  border:none;
+  border-radius:10px;
+  font-size:16px;
+}
+
+.input-area button{
+  width:60px;
+  height:55px;
+  border:none;
+  border-radius:10px;
+}
+
+.mic{ background:#5f9bff; }
+</style>
+</head>
+
+<body>
+
+<div class="app">
+
+  <!-- 画像 -->
+  <div class="top">
+    <img id="girl" src="girl-normal.jpg">
+  </div>
+
+  <!-- チャット -->
+  <div id="chatBox"></div>
+
+  <!-- 入力 -->
+  <div class="input-area">
+    <input id="userInput" placeholder="話してみて">
+    <button onclick="sendMessage()">送信</button>
+    <button class="mic" onclick="startVoice()">🎤</button>
+  </div>
+
+</div>
+
 <script>
 
 // ===== DOM =====
-let chatBox, girl, modal, userInput, nameInput, imageInput, apiKeyInput, promptInput;
+const chatBox=document.getElementById("chatBox");
+const girl=document.getElementById("girl");
 
-// ===== ログ =====
-let chatLog=[];
-
-// ===== 設定 =====
-let settings={
-  name:localStorage.getItem("name")||"ピピ",
-  image:localStorage.getItem("image")||"girl-normal.jpg",
-  apiKey:localStorage.getItem("apiKey")||"",
-  prompt:localStorage.getItem("prompt")||"優しく話す"
+// ===== 表情 =====
+const faceImages={
+  normal:"girl-normal.jpg",
+  happy:"girl-happy.png",
+  sad:"girl-sad.png",
+  angry:"girl-angry.png",
+  thinking:"girl-thinking.png"
 };
 
-// ===== 初期化 =====
-window.addEventListener("DOMContentLoaded",()=>{
-
-  chatBox=document.getElementById("chatBox");
-  girl=document.getElementById("girl");
-  modal=document.getElementById("modal");
-  userInput=document.getElementById("userInput");
-
-  nameInput=document.getElementById("nameInput");
-  imageInput=document.getElementById("imageInput");
-  apiKeyInput=document.getElementById("apiKeyInput");
-  promptInput=document.getElementById("promptInput");
-
-  // 👇 nullチェック（超重要）
-  if(!chatBox || !girl || !userInput){
-    alert("HTMLのidが不足してる");
-    return;
-  }
-
-  girl.src=settings.image;
-
-  // 音声有効化
-  document.body.addEventListener("click",()=>{
-    if("speechSynthesis" in window){
-      speechSynthesis.getVoices();
-    }
-  },{once:true});
-
-  // Enter送信（←ここに入れる）
-  userInput.addEventListener("keypress",e=>{
-    if(e.key==="Enter") sendMessage();
-  });
-
-});
-
-// ===== 保存 =====
-function saveSettings(){
-  settings.name=nameInput.value;
-  settings.image=imageInput.value;
-  settings.apiKey=apiKeyInput.value;
-  settings.prompt=promptInput.value;
-
-  localStorage.setItem("name",settings.name);
-  localStorage.setItem("image",settings.image);
-  localStorage.setItem("apiKey",settings.apiKey);
-  localStorage.setItem("prompt",settings.prompt);
-
-  girl.src=settings.image;
-  closeSettings();
+function setFace(type){
+  girl.src=faceImages[type]||faceImages.normal;
 }
 
-function openSettings(){ modal.classList.add("show"); }
-function closeSettings(){ modal.classList.remove("show"); }
+// ===== 感情判定 =====
+function detectEmotion(text){
+  if(/嬉しい|楽しい|最高|好き/.test(text)) return "happy";
+  if(/疲れ|しんど|悲しい|つらい/.test(text)) return "sad";
+  if(/怒|イライラ/.test(text)) return "angry";
+  if(/どうしよう|悩/.test(text)) return "thinking";
+  return "normal";
+}
 
 // ===== 表示 =====
 function addMessage(text,type){
-
-  chatLog.push({role:type==="user"?"user":"assistant",content:text});
-
   const row=document.createElement("div");
   row.className="row "+type;
 
@@ -86,8 +164,9 @@ function addMessage(text,type){
   chatBox.scrollTop=chatBox.scrollHeight;
 }
 
-// ===== 音声 =====
+// ===== 🔊 音声（完全安定） =====
 function speak(text){
+
   if(!("speechSynthesis" in window)) return;
 
   speechSynthesis.cancel();
@@ -95,54 +174,35 @@ function speak(text){
   const u=new SpeechSynthesisUtterance(text);
   u.lang="ja-JP";
 
+  const voices=speechSynthesis.getVoices();
+  const ja=voices.find(v=>v.lang==="ja-JP");
+  if(ja) u.voice=ja;
+
   speechSynthesis.speak(u);
 }
 
-// ===== AI =====
-async function aiReply(text){
+// 初回タップで音声有効
+document.body.addEventListener("click",()=>{
+  speechSynthesis.getVoices();
+},{once:true});
 
-  if(!settings.apiKey){
-    return "APIキー未設定です";
-  }
+// ===== ローカルAI =====
+function localReply(text){
 
-  try{
-    const res=await fetch("https://api.openai.com/v1/chat/completions",{
-      method:"POST",
-      headers:{
-        "Content-Type":"application/json",
-        "Authorization":"Bearer "+settings.apiKey
-      },
-      body:JSON.stringify({
-        model:"gpt-4o-mini",
-        messages:[
-          {
-            role:"system",
-            content:`あなたは${settings.name}です。
-性格:${settings.prompt}
-自然に会話してください`
-          },
-          ...chatLog.slice(-20),
-          {role:"user",content:text}
-        ]
-      })
-    });
+  if(/疲れ|しんど/.test(text))
+    return "大丈夫？無理しないでね";
 
-    const data=await res.json();
+  if(/こんにちは/.test(text))
+    return "こんにちは😊";
 
-    if(!data.choices){
-      console.log(data);
-      return "APIエラー：" + (data.error?.message || "不明");
-    }
+  if(/ありがとう/.test(text))
+    return "どういたしまして";
 
-    return data.choices[0].message.content;
-
-  }catch(e){
-    return "通信エラー";
-  }
+  return "うん、聞いてるよ";
 }
 
 // ===== 送信 =====
-async function sendMessage(){
+function sendMessage(){
 
   const text=userInput.value.trim();
   if(!text) return;
@@ -150,68 +210,25 @@ async function sendMessage(){
   addMessage(text,"user");
   userInput.value="";
 
-  const reply=await aiReply(text);
+  // 表情（ユーザー）
+  setFace(detectEmotion(text));
 
-  addMessage(reply,"bot");
-  speak(reply);
-}
+  const reply=localReply(text);
 
-// ===== 分析 =====
-async function analyze(){
+  setTimeout(()=>{
+    addMessage(reply,"bot");
 
-  if(!settings.apiKey){
-    alert("APIキー入れてください");
-    return;
-  }
+    // 表情（AI）
+    setFace(detectEmotion(reply));
 
-  if(chatLog.length===0){
-    alert("会話がないよ");
-    return;
-  }
+    speak(reply);
 
-  addMessage("分析中…","bot");
-
-  try{
-    const res=await fetch("https://api.openai.com/v1/chat/completions",{
-      method:"POST",
-      headers:{
-        "Content-Type":"application/json",
-        "Authorization":"Bearer "+settings.apiKey
-      },
-      body:JSON.stringify({
-        model:"gpt-4o-mini",
-        messages:[
-          {
-            role:"system",
-            content:`①会話まとめ
-②感情分析
-③認知の歪み
-④5カラム
-⑤具体的行動
-⑥今日の一言`
-          },
-          ...chatLog.slice(-20)
-        ]
-      })
-    });
-
-    const data=await res.json();
-
-    if(!data.choices){
-      console.log(data);
-      addMessage("分析エラー","bot");
-      return;
-    }
-
-    addMessage(data.choices[0].message.content,"bot");
-
-  }catch(e){
-    addMessage("通信エラー","bot");
-  }
+  },400);
 }
 
 // ===== 音声入力 =====
 function startVoice(){
+
   const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
 
   if(!SpeechRecognition){
@@ -230,4 +247,12 @@ function startVoice(){
   recog.start();
 }
 
+// Enter送信
+userInput.addEventListener("keypress",e=>{
+  if(e.key==="Enter") sendMessage();
+});
+
 </script>
+
+</body>
+</html>
