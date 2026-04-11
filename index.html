@@ -12,40 +12,92 @@ body{
   background:linear-gradient(#2b314d,#09111f);
   color:white;
 }
-.app{display:flex;flex-direction:column;height:100vh;}
-.top{height:35vh;display:flex;justify-content:center;align-items:center;}
-.top img{width:90%;max-width:400px;border-radius:20px;}
-#chatBox{flex:1;overflow:auto;padding:10px;}
-.message{margin:8px;padding:12px;border-radius:12px;max-width:80%;}
-.user{background:#ff4f8b;margin-left:auto;}
-.bot{background:#444;}
-.input-area{display:flex;}
-input{flex:1;padding:10px;}
-button{padding:10px;}
 
+.app{
+  display:flex;
+  flex-direction:column;
+  height:100vh;
+}
+
+/* 画像 */
+.top{
+  height:30vh;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+}
+.top img{
+  width:90%;
+  max-width:400px;
+  border-radius:20px;
+}
+
+/* チャット */
+#chatBox{
+  flex:1;
+  overflow:auto;
+  padding:10px;
+}
+.message{
+  margin:8px;
+  padding:12px;
+  border-radius:12px;
+  max-width:80%;
+}
+.user{
+  background:#ff4f8b;
+  margin-left:auto;
+}
+.bot{
+  background:#444;
+}
+
+/* 入力 */
+.input-area{
+  display:flex;
+}
+input{
+  flex:1;
+  padding:12px;
+  font-size:16px;
+}
+button{
+  padding:12px;
+  font-size:16px;
+}
+
+/* モーダル（完全修正） */
 .modal{
   position:fixed;
   inset:0;
-  background:#0008;
+  background:rgba(0,0,0,0.6);
   display:none;
-  align-items:center;
   justify-content:center;
+  align-items:center;
 }
-.modal.show{display:flex;}
+
+.modal.show{
+  display:flex;
+}
 
 .box{
-  background:#222;
-  padding:20px;
-  border-radius:10px;
   width:90%;
   max-width:400px;
-  max-height:80vh;
-  overflow:auto;
+  max-height:85vh;
+  overflow-y:auto;
+  background:#222;
+  padding:20px;
+  border-radius:12px;
 }
 
 textarea{
   width:100%;
   height:120px;
+}
+
+/* マイクボタン */
+.mic{
+  background:#5f9bff;
 }
 </style>
 </head>
@@ -63,6 +115,7 @@ textarea{
 <div class="input-area">
 <input id="userInput" placeholder="話してみて">
 <button onclick="sendMessage()">送信</button>
+<button class="mic" onclick="startVoice()">🎤</button>
 <button onclick="openSettings()">⚙</button>
 </div>
 
@@ -87,7 +140,7 @@ Eleven APIKey<br>
 VoiceID<br>
 <input id="voiceIdInput"><br><br>
 
-プロンプト（人格設定）<br>
+プロンプト<br>
 <textarea id="promptInput"></textarea><br><br>
 
 <button onclick="saveSettings()">保存</button>
@@ -115,7 +168,7 @@ function setFace(type){
 let memory={
   userName:localStorage.getItem("userName")||"",
   aiName:localStorage.getItem("aiName")||"ピピ",
-  prompt:localStorage.getItem("customPrompt")||"あなたは優しい女性AI。自然に会話する"
+  prompt:localStorage.getItem("customPrompt")||"優しい女性AI"
 };
 
 let sessionSecrets={
@@ -126,7 +179,7 @@ let sessionSecrets={
 
 let chatHistory=JSON.parse(localStorage.getItem("chatHistory")||"[]");
 
-// 初期表示
+// 初期
 userNameInput.value=memory.userName;
 aiNameInput.value=memory.aiName;
 apiKeyInput.value=sessionSecrets.apiKey;
@@ -134,24 +187,11 @@ elevenApiKeyInput.value=sessionSecrets.elevenApiKey;
 voiceIdInput.value=sessionSecrets.voiceId;
 promptInput.value=memory.prompt;
 
-// ===== UI =====
-function openSettings(){
-  modal.classList.add("show");
+// UI
+function openSettings(){ modal.classList.add("show"); }
+function closeSettings(){ modal.classList.remove("show"); }
 
-  // 再反映（重要）
-  userNameInput.value=memory.userName;
-  aiNameInput.value=memory.aiName;
-  apiKeyInput.value=sessionSecrets.apiKey;
-  elevenApiKeyInput.value=sessionSecrets.elevenApiKey;
-  voiceIdInput.value=sessionSecrets.voiceId;
-  promptInput.value=memory.prompt;
-}
-
-function closeSettings(){
-  modal.classList.remove("show");
-}
-
-// ===== 保存 =====
+// 保存
 function saveSettings(){
 
   memory.userName=userNameInput.value.trim();
@@ -174,7 +214,7 @@ function saveSettings(){
   closeSettings();
 }
 
-// ===== 表示 =====
+// 表示
 function addMessage(text,type){
   const div=document.createElement("div");
   div.className="message "+type;
@@ -199,9 +239,6 @@ async function sendMessage(){
 
   chatHistory.push({role:"user",content:text});
 
-  const userName=memory.userName?memory.userName+"さん":"";
-  const aiName=memory.aiName;
-
   try{
     const res=await fetch("https://api.openai.com/v1/chat/completions",{
       method:"POST",
@@ -214,20 +251,7 @@ async function sendMessage(){
         messages:[
           {
             role:"system",
-            content:`
-${memory.prompt}
-
-あなたの名前: ${aiName}
-相手: ${userName}
-
-・自然に会話
-・人間っぽく
-・時々名前呼ぶ
-・最初に感情タグ付ける
-
-タグ:
-[happy][sympathy][worried][exhausted][normal]
-`
+            content:memory.prompt
           },
           ...chatHistory
         ]
@@ -236,16 +260,6 @@ ${memory.prompt}
 
     const data=await res.json();
     let reply=data.choices?.[0]?.message?.content||"エラー";
-
-    // 表情タグ
-    let mood="normal";
-    const match=reply.match(/^\[(.*?)\]/);
-    if(match){
-      mood=match[1];
-      reply=reply.replace(/^\[.*?\]/,"");
-    }
-
-    setFace(mood);
 
     addMessage(reply,"bot");
 
@@ -259,12 +273,34 @@ ${memory.prompt}
   }
 }
 
-// ===== 音声（簡易） =====
+// ===== 音声出力 =====
 function speak(text){
   if(!("speechSynthesis" in window))return;
   const u=new SpeechSynthesisUtterance(text);
   u.lang="ja-JP";
   speechSynthesis.speak(u);
+}
+
+// ===== 🎤 音声入力 =====
+function startVoice(){
+
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  if(!SpeechRecognition){
+    alert("このブラウザは音声入力非対応");
+    return;
+  }
+
+  const recog = new SpeechRecognition();
+  recog.lang="ja-JP";
+
+  recog.onresult = function(e){
+    const text=e.results[0][0].transcript;
+    userInput.value=text;
+    sendMessage();
+  };
+
+  recog.start();
 }
 
 // Enter
