@@ -20,20 +20,23 @@ html,body{
 .app{
   display:flex;
   flex-direction:column;
-  height:100%;
+  height:100vh;
+  overflow:hidden;
 }
 
 /* ===== 上（画像） ===== */
 .top{
-  flex:0 0 auto;
-  padding:10px;
+  height:35vh; /* ← 固定で崩れ防止 */
   display:flex;
   justify-content:center;
+  align-items:center;
+  padding:10px;
 }
 
 .top img{
-  width:90%;
-  max-width:420px;
+  max-height:100%;
+  width:auto;
+  max-width:100%;
   border-radius:20px;
   transition:0.3s;
 }
@@ -74,7 +77,6 @@ html,body{
 
 /* ===== 入力 ===== */
 .input-area{
-  flex:0 0 auto;
   display:flex;
   gap:6px;
   padding:8px;
@@ -83,6 +85,7 @@ html,body{
 
 #userInput{
   flex:1;
+  min-width:0; /* ← 超重要（はみ出し防止） */
   padding:14px;
   border:none;
   border-radius:10px;
@@ -164,7 +167,7 @@ function addMessage(text,type){
   chatBox.scrollTop=chatBox.scrollHeight;
 }
 
-// ===== 🔊 音声（完全安定） =====
+// ===== 🔊 音声 =====
 function speak(text){
 
   if(!("speechSynthesis" in window)) return;
