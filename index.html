@@ -136,13 +136,7 @@ input,textarea{
     キャラ名<input id="nameInput">
     画像URL<input id="imageInput">
     画像選択<input type="file" id="imageFile" accept="image/*">
-
     OpenAI APIKey<input id="apiKeyInput">
-
-    <!-- 🔥 追加（ここだけ） -->
-    Eleven APIKey<input id="elevenApiKeyInput">
-    VoiceID<input id="voiceIdInput">
-
     プロンプト<textarea id="promptInput"></textarea>
     <button onclick="saveSettings()">保存</button>
     <button onclick="closeSettings()">閉じる</button>
@@ -152,7 +146,6 @@ input,textarea{
 <script>
 let chatBox, girl, modal, userInput;
 let nameInput, imageInput, apiKeyInput, promptInput, imageFile;
-let elevenApiKeyInput, voiceIdInput;
 
 let chatLog=[];
 
@@ -160,8 +153,6 @@ let settings={
   name:localStorage.getItem("name")||"ピピ",
   image:localStorage.getItem("image")||"",
   apiKey:localStorage.getItem("apiKey")||"",
-  elevenApiKey:localStorage.getItem("elevenApiKey")||"",
-  voiceId:localStorage.getItem("voiceId")||"",
   prompt:localStorage.getItem("prompt")||"優しく話す"
 };
 
@@ -177,9 +168,6 @@ window.addEventListener("DOMContentLoaded",()=>{
   apiKeyInput=document.getElementById("apiKeyInput");
   promptInput=document.getElementById("promptInput");
   imageFile=document.getElementById("imageFile");
-
-  elevenApiKeyInput=document.getElementById("elevenApiKeyInput");
-  voiceIdInput=document.getElementById("voiceIdInput");
 
   girl.src=settings.image || "https://cdn.pixabay.com/photo/2017/01/31/13/14/animal-2023924_1280.png";
 
@@ -207,6 +195,7 @@ window.addEventListener("DOMContentLoaded",()=>{
 
 // ===== 表示 =====
 function addMessage(text,type,isImage=false){
+
   const row=document.createElement("div");
   row.className="row "+type;
 
@@ -228,47 +217,19 @@ function addMessage(text,type,isImage=false){
   chatBox.scrollTop=chatBox.scrollHeight;
 }
 
-// ===== 音声（🔥ここが進化）=====
-async function speak(text){
+// ===== 動物ズバリ =====
+function getAnimalLine(){
+  const list=[
+    {img:"https://cdn.pixabay.com/photo/2016/02/19/11/19/rabbit-1209761_1280.jpg",msg:"ちょっと考えすぎかも🐰"},
+    {img:"https://cdn.pixabay.com/photo/2017/01/06/19/15/tiger-1951581_1280.jpg",msg:"感情が強く出てるね🐯"},
+    {img:"https://cdn.pixabay.com/photo/2016/11/29/03/53/cat-1866475_1280.jpg",msg:"今は休むタイミング🐱"},
+    {img:"https://cdn.pixabay.com/photo/2016/11/29/05/08/animal-1867125_1280.jpg",msg:"ちょっと心が疲れてるね🐶"}
+  ];
+  return list[Math.floor(Math.random()*list.length)];
+}
 
-  if(!text) return;
-
-  // ElevenLabs優先
-  if(settings.elevenApiKey && settings.voiceId){
-    try{
-      const res = await fetch(
-        `https://api.elevenlabs.io/v1/text-to-speech/${settings.voiceId}`,
-        {
-          method:"POST",
-          headers:{
-            "xi-api-key":settings.elevenApiKey,
-            "Content-Type":"application/json",
-            "Accept":"audio/mpeg"
-          },
-          body:JSON.stringify({
-            text:text,
-            model_id:"eleven_multilingual_v2"
-          })
-        }
-      );
-
-      if(res.ok){
-        const blob=await res.blob();
-        const url=URL.createObjectURL(blob);
-
-        const audio=new Audio(url);
-        audio.play();
-
-        audio.onended=()=>URL.revokeObjectURL(url);
-        return;
-      }
-
-    }catch(e){
-      console.log("Eleven失敗→fallback");
-    }
-  }
-
-  // fallback
+// ===== 音声 =====
+function speak(text){
   if(!("speechSynthesis" in window)) return;
   const u=new SpeechSynthesisUtterance(text);
   u.lang="ja-JP";
@@ -328,7 +289,7 @@ async function sendMessage(){
   speak(reply);
 }
 
-// ===== 分析 =====
+// ===== 分析（ズバリ→CBT）=====
 async function analyze(){
 
   if(chatLog.length===0){
@@ -338,6 +299,13 @@ async function analyze(){
 
   addMessage("🧠 分析中…","bot");
 
+  // 👉 動物ズバリ
+  const animal=getAnimalLine();
+  addMessage(animal.img,"bot",true);
+  addMessage("🐾 "+animal.msg,"bot");
+  speak(animal.msg);
+
+  // 👉 CBT分析
   try{
     const res=await fetch("https://api.openai.com/v1/chat/completions",{
       method:"POST",
@@ -350,8 +318,13 @@ async function analyze(){
         messages:[
           {
             role:"system",
-            content:`認知行動療法で5カラム形式：
-①出来事②思考③感情④歪み⑤新しい考え⑥行動`
+            content:`認知行動療法で5カラム形式で優しく説明：
+①出来事
+②思考
+③感情
+④歪み
+⑤新しい考え
+⑥行動`
           },
           ...chatLog.slice(-20)
         ]
@@ -365,43 +338,12 @@ async function analyze(){
       return;
     }
 
-    const text=data.choices[0].message.content;
-    addMessage(text,"bot");
-    speak(text);
+    addMessage(data.choices[0].message.content,"bot");
 
   }catch(e){
     addMessage("通信エラー","bot");
   }
 }
-
-// ===== 設定 =====
-function saveSettings(){
-
-  settings.name=nameInput.value;
-  settings.apiKey=apiKeyInput.value;
-  settings.prompt=promptInput.value;
-
-  settings.elevenApiKey=elevenApiKeyInput.value;
-  settings.voiceId=voiceIdInput.value;
-
-  if(imageInput.value.trim()){
-    settings.image=imageInput.value.trim();
-  }
-
-  localStorage.setItem("name",settings.name);
-  localStorage.setItem("apiKey",settings.apiKey);
-  localStorage.setItem("prompt",settings.prompt);
-  localStorage.setItem("image",settings.image);
-
-  localStorage.setItem("elevenApiKey",settings.elevenApiKey);
-  localStorage.setItem("voiceId",settings.voiceId);
-
-  girl.src=settings.image;
-  closeSettings();
-}
-
-function openSettings(){ modal.classList.add("show"); }
-function closeSettings(){ modal.classList.remove("show"); }
 
 // ===== 音声入力 =====
 function startVoice(){
@@ -418,6 +360,28 @@ function startVoice(){
 
   recog.start();
 }
+
+// ===== 設定 =====
+function saveSettings(){
+  settings.name=nameInput.value;
+  settings.apiKey=apiKeyInput.value;
+  settings.prompt=promptInput.value;
+
+  if(imageInput.value.trim()){
+    settings.image=imageInput.value.trim();
+  }
+
+  localStorage.setItem("name",settings.name);
+  localStorage.setItem("apiKey",settings.apiKey);
+  localStorage.setItem("prompt",settings.prompt);
+  localStorage.setItem("image",settings.image);
+
+  girl.src=settings.image;
+  closeSettings();
+}
+
+function openSettings(){ modal.classList.add("show"); }
+function closeSettings(){ modal.classList.remove("show"); }
 
 </script>
 
