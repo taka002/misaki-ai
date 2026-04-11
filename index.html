@@ -20,13 +20,10 @@ html,body{
   display:flex;
   flex-direction:column;
   height:100vh;
-  overflow:hidden;
 }
 
 .top{
   height:35vh;
-  width:100%;
-  overflow:hidden;
 }
 
 .top img{
@@ -48,7 +45,7 @@ html,body{
 .row.bot{ justify-content:flex-start; }
 
 .bubble{
-  padding:12px 16px;
+  padding:12px;
   border-radius:16px;
   max-width:75%;
   white-space:pre-wrap;
@@ -66,47 +63,15 @@ html,body{
 
 #userInput{
   flex:1;
-  padding:14px;
+  padding:12px;
   border:none;
   border-radius:10px;
 }
 
-.input-area button{
+button{
   width:60px;
-  height:55px;
   border:none;
   border-radius:10px;
-}
-
-.mic{ background:#5f9bff; }
-
-.modal{
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,0.6);
-  display:none;
-  justify-content:center;
-  align-items:center;
-}
-
-.modal.show{ display:flex; }
-
-.box{
-  width:90%;
-  max-width:420px;
-  max-height:85vh;
-  overflow:auto;
-  background:#222;
-  padding:20px;
-  border-radius:12px;
-}
-
-input,textarea{
-  width:100%;
-  margin-bottom:10px;
-  padding:10px;
-  border:none;
-  border-radius:8px;
 }
 </style>
 </head>
@@ -124,81 +89,34 @@ input,textarea{
   <div class="input-area">
     <input id="userInput" placeholder="話してみて">
     <button onclick="sendMessage()">送信</button>
-    <button class="mic" onclick="startVoice()">🎤</button>
-    <button onclick="analyze()">🧠</button>
-    <button onclick="openSettings()">⚙</button>
+    <button onclick="startVoice()">🎤</button>
   </div>
 
-</div>
-
-<div class="modal" id="modal">
-  <div class="box">
-    キャラ名<input id="nameInput">
-    画像URL<input id="imageInput">
-    画像選択<input type="file" id="imageFile" accept="image/*">
-    OpenAI APIKey<input id="apiKeyInput">
-    Eleven APIKey<input id="elevenApiKeyInput">
-    VoiceID<input id="voiceIdInput">
-    プロンプト<textarea id="promptInput"></textarea>
-    <button onclick="saveSettings()">保存</button>
-    <button onclick="closeSettings()">閉じる</button>
-  </div>
 </div>
 
 <script>
 
-// ===== 音声アンロック =====
-let unlocked=false;
-document.addEventListener("click",()=>{
-  if(!unlocked){
-    const a=new Audio();
-    a.muted=true;
-    a.play().catch(()=>{});
-    unlocked=true;
-    console.log("音声アンロックOK");
-  }
-},{once:true});
-
-// ===== 変数 =====
-let chatBox, girl, modal, userInput;
-let nameInput, imageInput, apiKeyInput, promptInput, imageFile;
-let elevenApiKeyInput, voiceIdInput;
-
+let chatBox,userInput,girl;
 let chatLog=[];
 
 let settings={
-  name:localStorage.getItem("name")||"ピピ",
-  image:localStorage.getItem("image")||"",
-  apiKey:localStorage.getItem("apiKey")||"",
-  elevenApiKey:localStorage.getItem("elevenApiKey")||"",
-  voiceId:localStorage.getItem("voiceId")||"",
-  prompt:localStorage.getItem("prompt")||"優しく話す"
+  apiKey:"",
+  elevenApiKey:"",
+  voiceId:""
 };
 
 // ===== 初期化 =====
-window.addEventListener("DOMContentLoaded",()=>{
-
+window.onload=()=>{
   chatBox=document.getElementById("chatBox");
-  girl=document.getElementById("girl");
-  modal=document.getElementById("modal");
   userInput=document.getElementById("userInput");
+  girl=document.getElementById("girl");
 
-  nameInput=document.getElementById("nameInput");
-  imageInput=document.getElementById("imageInput");
-  apiKeyInput=document.getElementById("apiKeyInput");
-  promptInput=document.getElementById("promptInput");
-  imageFile=document.getElementById("imageFile");
-
-  elevenApiKeyInput=document.getElementById("elevenApiKeyInput");
-  voiceIdInput=document.getElementById("voiceIdInput");
-
-  girl.src=settings.image || "https://cdn.pixabay.com/photo/2017/01/31/13/14/animal-2023924_1280.png";
+  girl.src="https://cdn.pixabay.com/photo/2017/01/31/13/14/animal-2023924_1280.png";
 
   userInput.addEventListener("keypress",e=>{
     if(e.key==="Enter") sendMessage();
   });
-
-});
+};
 
 // ===== 表示 =====
 function addMessage(text,type){
@@ -214,17 +132,15 @@ function addMessage(text,type){
   chatBox.scrollTop=chatBox.scrollHeight;
 }
 
-// ===== 🔥 音声（完全安定版）=====
+// ===== 音声 =====
 async function speak(text){
 
   if(!text) return;
 
-  const audio = new Audio();
-
   try{
     if(settings.elevenApiKey && settings.voiceId){
 
-      const res = await fetch(
+      const res=await fetch(
         `https://api.elevenlabs.io/v1/text-to-speech/${settings.voiceId}`,
         {
           method:"POST",
@@ -242,9 +158,13 @@ async function speak(text){
 
       if(res.ok){
         const blob=await res.blob();
-        audio.src = URL.createObjectURL(blob);
+        const audio=new Audio(URL.createObjectURL(blob));
 
+        audio.volume=1;
+
+        // 🔥 ここ重要（失敗しても止まらない）
         await audio.play().catch(()=>{ throw new Error(); });
+
         return;
       }
     }
@@ -276,11 +196,7 @@ async function aiReply(text){
       },
       body:JSON.stringify({
         model:"gpt-4o-mini",
-        messages:[
-          {role:"system",content:`あなたは${settings.name}。${settings.prompt}`},
-          ...chatLog.slice(-20),
-          {role:"user",content:text}
-        ]
+        messages:[{role:"user",content:text}]
       })
     });
 
@@ -292,82 +208,32 @@ async function aiReply(text){
   }
 }
 
-// ===== 送信 =====
+// ===== 送信（完全修正版）=====
 async function sendMessage(){
-
-  document.body.click(); // 🔥これ重要
 
   const text=userInput.value.trim();
   if(!text) return;
 
-  chatLog.push({role:"user",content:text});
+  // 🔥 音ロック解除（最重要）
+  const unlock=new Audio();
+  unlock.src="data:audio/mp3;base64,//uQxAAAAAAAAAAAA";
+  await unlock.play().catch(()=>{});
+
   addMessage(text,"user");
   userInput.value="";
 
   const reply=await aiReply(text);
 
-  chatLog.push({role:"assistant",content:reply});
   addMessage(reply,"bot");
-  speak(reply);
-}
 
-// ===== 分析 =====
-async function analyze(){
-
-  if(chatLog.length===0){
-    alert("会話がないよ");
-    return;
-  }
-
-  addMessage("🧠 分析中…","bot");
-
-  const reply=await aiReply("会話を分析して");
-  addMessage(reply,"bot");
-  speak(reply);
+  // 🔥 遅延なし（ここ超重要）
+  await speak(reply);
 }
 
 // ===== 音声入力 =====
 function startVoice(){
-  const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
-  if(!SpeechRecognition) return;
-
-  const recog=new SpeechRecognition();
-  recog.lang="ja-JP";
-
-  recog.onresult=(e)=>{
-    userInput.value=e.results[0][0].transcript;
-    sendMessage();
-  };
-
-  recog.start();
+  alert("音声入力は未対応");
 }
-
-// ===== 設定 =====
-function saveSettings(){
-
-  settings.name=nameInput.value;
-  settings.apiKey=apiKeyInput.value;
-  settings.prompt=promptInput.value;
-  settings.elevenApiKey=elevenApiKeyInput.value;
-  settings.voiceId=voiceIdInput.value;
-
-  if(imageInput.value.trim()){
-    settings.image=imageInput.value.trim();
-  }
-
-  localStorage.setItem("name",settings.name);
-  localStorage.setItem("apiKey",settings.apiKey);
-  localStorage.setItem("prompt",settings.prompt);
-  localStorage.setItem("image",settings.image);
-  localStorage.setItem("elevenApiKey",settings.elevenApiKey);
-  localStorage.setItem("voiceId",settings.voiceId);
-
-  girl.src=settings.image;
-  closeSettings();
-}
-
-function openSettings(){ modal.classList.add("show"); }
-function closeSettings(){ modal.classList.remove("show"); }
 
 </script>
 
