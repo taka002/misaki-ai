@@ -147,7 +147,7 @@ input,textarea{
 
 <script>
 
-// ===== 🔥 音声ロック解除（超重要）=====
+// ===== 音声アンロック =====
 let unlocked=false;
 document.addEventListener("click",()=>{
   if(!unlocked){
@@ -214,21 +214,16 @@ function addMessage(text,type){
   chatBox.scrollTop=chatBox.scrollHeight;
 }
 
-// ===== 🔥 音声 完全版 =====
+// ===== 🔥 音声（完全安定版）=====
 async function speak(text){
 
   if(!text) return;
 
-  // 念押しアンロック
-  try{
-    const a=new Audio();
-    a.muted=true;
-    await a.play().catch(()=>{});
-  }catch(e){}
+  const audio = new Audio();
 
-  // ===== Eleven =====
-  if(settings.elevenApiKey && settings.voiceId){
-    try{
+  try{
+    if(settings.elevenApiKey && settings.voiceId){
+
       const res = await fetch(
         `https://api.elevenlabs.io/v1/text-to-speech/${settings.voiceId}`,
         {
@@ -247,38 +242,24 @@ async function speak(text){
 
       if(res.ok){
         const blob=await res.blob();
-        const url=URL.createObjectURL(blob);
+        audio.src = URL.createObjectURL(blob);
 
-        const audio=new Audio(url);
-
-        audio.play().catch(()=>{
-          fallbackSpeak(text);
-        });
-
+        await audio.play().catch(()=>{ throw new Error(); });
         return;
       }
-
-    }catch(e){
-      console.log("Eleven失敗");
     }
+
+  }catch(e){
+    console.log("Eleven失敗 → fallback");
   }
 
-  fallbackSpeak(text);
-}
-
-// ===== fallback =====
-function fallbackSpeak(text){
-
-  if(!("speechSynthesis" in window)) return;
-
-  speechSynthesis.cancel();
-
-  const u=new SpeechSynthesisUtterance(text);
-  u.lang="ja-JP";
-
-  setTimeout(()=>{
+  // fallback
+  if("speechSynthesis" in window){
+    speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance(text);
+    u.lang="ja-JP";
     speechSynthesis.speak(u);
-  },200);
+  }
 }
 
 // ===== AI =====
@@ -314,6 +295,8 @@ async function aiReply(text){
 // ===== 送信 =====
 async function sendMessage(){
 
+  document.body.click(); // 🔥これ重要
+
   const text=userInput.value.trim();
   if(!text) return;
 
@@ -339,7 +322,6 @@ async function analyze(){
   addMessage("🧠 分析中…","bot");
 
   const reply=await aiReply("会話を分析して");
-
   addMessage(reply,"bot");
   speak(reply);
 }
