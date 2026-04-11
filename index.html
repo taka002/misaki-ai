@@ -17,8 +17,6 @@ body{
   flex-direction:column;
   height:100vh;
 }
-
-/* 🔥 画像エリア追加 */
 .top{
   height:35vh;
   display:flex;
@@ -30,8 +28,6 @@ body{
   max-width:400px;
   border-radius:20px;
 }
-
-/* チャット */
 #chatBox{
   flex:1;
   overflow:auto;
@@ -43,27 +39,11 @@ body{
   border-radius:12px;
   max-width:80%;
 }
-.user{
-  background:#ff4f8b;
-  margin-left:auto;
-}
-.bot{
-  background:#444;
-}
-
-/* 入力 */
-.input-area{
-  display:flex;
-}
-input{
-  flex:1;
-  padding:10px;
-}
-button{
-  padding:10px;
-}
-
-/* モーダル */
+.user{background:#ff4f8b;margin-left:auto;}
+.bot{background:#444;}
+.input-area{display:flex;}
+input{flex:1;padding:10px;}
+button{padding:10px;}
 .modal{
   position:fixed;
   inset:0;
@@ -84,7 +64,6 @@ button{
 
 <div class="app">
 
-<!-- 🔥 画像 -->
 <div class="top">
 <img id="girl" src="girl-normal.jpg">
 </div>
@@ -92,25 +71,24 @@ button{
 <div id="chatBox"></div>
 
 <div class="input-area">
-<input id="userInput">
+<input id="userInput" placeholder="話してみて">
 <button onclick="sendMessage()">送信</button>
 <button onclick="openSettings()">⚙</button>
 </div>
 
 </div>
 
-<!-- 設定 -->
 <div class="modal" id="modal">
 <div class="box">
 
+あなたの名前<br>
+<input id="userNameInput"><br><br>
+
+キャラの名前<br>
+<input id="aiNameInput"><br><br>
+
 OpenAI APIKey<br>
 <input id="apiKeyInput"><br><br>
-
-Eleven APIKey<br>
-<input id="elevenApiKeyInput"><br><br>
-
-VoiceID<br>
-<input id="voiceIdInput"><br><br>
 
 <button onclick="saveSettings()">保存</button>
 <button onclick="closeSettings()">閉じる</button>
@@ -120,16 +98,18 @@ VoiceID<br>
 
 <script>
 
+// ===== 名前保存 =====
+let memory={
+  userName:localStorage.getItem("userName")||"",
+  aiName:localStorage.getItem("aiName")||"ピピ"
+};
+
 // ===== 画像 =====
 const faceImages={
   normal:"girl-normal.jpg",
   happy:"girl-happy.png",
   sympathy:"girl-sympathy.png",
   worried:"girl-worried.png",
-  troubled:"girl-troubled.png",
-  healing:"girl-healing.png",
-  irritated:"girl-irritated.png",
-  panic:"girl-panic.png",
   exhausted:"girl-exhausted.png"
 };
 
@@ -137,18 +117,18 @@ function setFace(type){
   girl.src=faceImages[type]||faceImages.normal;
 }
 
-// ===== 保存 =====
+// ===== API =====
 let sessionSecrets={
-  apiKey:localStorage.getItem("apiKey")||"",
-  elevenApiKey:localStorage.getItem("elevenApiKey")||"",
-  voiceId:localStorage.getItem("voiceId")||""
+  apiKey:localStorage.getItem("apiKey")||""
 };
 
+// 履歴
 let chatHistory=JSON.parse(localStorage.getItem("chatHistory")||"[]");
 
+// 初期
+userNameInput.value=memory.userName;
+aiNameInput.value=memory.aiName;
 apiKeyInput.value=sessionSecrets.apiKey;
-elevenApiKeyInput.value=sessionSecrets.elevenApiKey;
-voiceIdInput.value=sessionSecrets.voiceId;
 
 // ===== UI =====
 function openSettings(){
@@ -157,14 +137,16 @@ function openSettings(){
 function closeSettings(){
   modal.classList.remove("show");
 }
-function saveSettings(){
-  sessionSecrets.apiKey=apiKeyInput.value.trim();
-  sessionSecrets.elevenApiKey=elevenApiKeyInput.value.trim();
-  sessionSecrets.voiceId=voiceIdInput.value.trim();
 
+function saveSettings(){
+  memory.userName=userNameInput.value.trim();
+  memory.aiName=aiNameInput.value.trim()||"ピピ";
+
+  sessionSecrets.apiKey=apiKeyInput.value.trim();
+
+  localStorage.setItem("userName",memory.userName);
+  localStorage.setItem("aiName",memory.aiName);
   localStorage.setItem("apiKey",sessionSecrets.apiKey);
-  localStorage.setItem("elevenApiKey",sessionSecrets.elevenApiKey);
-  localStorage.setItem("voiceId",sessionSecrets.voiceId);
 
   alert("保存OK🔥");
   closeSettings();
@@ -179,16 +161,6 @@ function addMessage(text,type){
   chatBox.scrollTop=chatBox.scrollHeight;
 }
 
-// ===== 感情判定（重要） =====
-function detectEmotion(text){
-  if(/嬉しい|楽しい|最高|好き/.test(text))return "happy";
-  if(/悲しい|つらい|泣/.test(text))return "sympathy";
-  if(/不安|怖い|心配/.test(text))return "worried";
-  if(/疲れた|しんどい|無理/.test(text))return "exhausted";
-  if(/イライラ|ムカつく/.test(text))return "irritated";
-  return "normal";
-}
-
 // ===== GPT =====
 async function sendMessage(){
 
@@ -198,14 +170,15 @@ async function sendMessage(){
   addMessage(text,"user");
   userInput.value="";
 
-  setFace(detectEmotion(text)); // 🔥 ユーザー側
-
   if(!sessionSecrets.apiKey){
     addMessage("APIキー入れて","bot");
     return;
   }
 
   chatHistory.push({role:"user",content:text});
+
+  const userName=memory.userName?memory.userName+"さん":"";
+  const aiName=memory.aiName;
 
   try{
     const res=await fetch("https://api.openai.com/v1/chat/completions",{
@@ -219,7 +192,21 @@ async function sendMessage(){
         messages:[
           {
             role:"system",
-            content:"あなたはピピという優しい女性AI。返答の最初に[happy]など感情タグを付ける"
+            content:`
+あなたは「${aiName}」という優しい女性です。
+
+ルール:
+・自然な会話
+・AIっぽくしない
+・やさしい
+・時々 ${userName} を呼ぶ
+・一言で終わらない
+・会話を続ける
+・感情タグを最初につける
+
+タグ:
+[happy][sympathy][worried][exhausted][normal]
+`
           },
           ...chatHistory
         ]
@@ -229,7 +216,7 @@ async function sendMessage(){
     const data=await res.json();
     let reply=data.choices?.[0]?.message?.content||"エラー";
 
-    // 🔥 表情タグ解析
+    // 感情タグ処理
     let mood="normal";
     const match=reply.match(/^\[(.*?)\]/);
     if(match){
