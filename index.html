@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ピピAI 安定版</title>
+<title>ピピAI 完全版</title>
 
 <style>
-*{box-sizing:border-box;}
+*{ box-sizing:border-box; }
 
 body{
   margin:0;
@@ -19,9 +19,10 @@ body{
   display:flex;
   flex-direction:column;
   height:100vh;
+  overflow:hidden;
 }
 
-/* 上 */
+/* ===== 画像 ===== */
 .top{
   flex:0 0 35%;
   display:flex;
@@ -30,61 +31,83 @@ body{
 }
 .top img{
   width:90%;
+  max-width:420px;
   border-radius:20px;
+  transition:0.3s;
 }
 
-/* チャット */
+/* ===== チャット ===== */
 #chatBox{
   flex:1;
   overflow-y:auto;
   padding:10px;
+  display:flex;
+  flex-direction:column;
 }
 
-.row{display:flex;margin:6px 0;}
-.user{justify-content:flex-end;}
-.bot{justify-content:flex-start;}
+.row{
+  display:flex;
+  margin:6px 0;
+}
+
+.row.bot{ justify-content:flex-start; }
+.row.user{ justify-content:flex-end; }
 
 .bubble{
-  padding:12px;
+  padding:12px 16px;
   border-radius:16px;
-  max-width:70%;
+  max-width:75%;
+  word-break:break-word;
 }
 
-.user .bubble{background:#ff4f8b;}
-.bot .bubble{background:#444;}
+.user .bubble{
+  background:#ff4f8b;
+  border-bottom-right-radius:4px;
+}
 
-/* 入力 */
+.bot .bubble{
+  background:#444;
+  border-bottom-left-radius:4px;
+}
+
+/* ===== 入力 ===== */
 .input-area{
   display:flex;
-  padding:8px;
   gap:6px;
+  padding:8px;
   background:#111;
+  position:sticky;
+  bottom:0;
 }
 
 #userInput{
   flex:1;
-  padding:12px;
+  padding:14px;
   border:none;
   border-radius:10px;
 }
 
-button{
+.input-area button{
   width:60px;
+  height:55px;
   border:none;
   border-radius:10px;
 }
 
-/* モーダル */
+.mic{ background:#5f9bff; }
+
+/* ===== モーダル ===== */
 .modal{
   position:fixed;
   inset:0;
+  background:rgba(0,0,0,0.6);
   display:none;
   justify-content:center;
   align-items:center;
-  background:rgba(0,0,0,0.6);
+  z-index:9999;
 }
 
-.modal.show{display:flex;}
+.modal.show{ display:flex; }
 
 .box{
   width:90%;
@@ -92,6 +115,11 @@ button{
   background:#222;
   padding:20px;
   border-radius:12px;
+}
+
+textarea{
+  width:100%;
+  height:120px;
 }
 </style>
 </head>
@@ -101,7 +129,7 @@ button{
 <div class="app">
 
   <div class="top">
-    <img src="girl-normal.jpg">
+    <img id="girl" src="girl-normal.jpg">
   </div>
 
   <div id="chatBox"></div>
@@ -109,22 +137,20 @@ button{
   <div class="input-area">
     <input id="userInput" placeholder="話してみて">
     <button onclick="sendMessage()">送信</button>
+    <button class="mic" onclick="startVoice()">🎤</button>
     <button onclick="openSettings()">⚙</button>
   </div>
 
 </div>
 
-<!-- 設定 -->
+<!-- モーダル -->
 <div class="modal" id="modal">
   <div class="box">
 
     キャラ名<br>
-    <input id="nameInput"><br><br>
+    <input id="aiNameInput"><br><br>
 
-    プロンプト<br>
-    <textarea id="promptInput"></textarea><br><br>
-
-    <button onclick="save()">保存</button>
+    <button onclick="saveSettings()">保存</button>
     <button onclick="closeSettings()">閉じる</button>
 
   </div>
@@ -132,36 +158,56 @@ button{
 
 <script>
 
+// ===== DOM =====
+const modal = document.getElementById("modal");
+const chatBox = document.getElementById("chatBox");
+const girl = document.getElementById("girl");
+
+// ===== 表情 =====
+const faceImages = {
+  normal:"girl-normal.jpg",
+  happy:"girl-happy.png",
+  sad:"girl-sad.png",
+  angry:"girl-angry.png",
+  thinking:"girl-thinking.png"
+};
+
+function setFace(type){
+  girl.src = faceImages[type] || faceImages.normal;
+}
+
+// 感情判定
+function detectEmotion(text){
+
+  if(/嬉しい|楽しい|最高|好き/.test(text)) return "happy";
+  if(/疲れ|しんど|悲しい|つらい|泣/.test(text)) return "sad";
+  if(/怒|イライラ/.test(text)) return "angry";
+  if(/どうしよう|悩/.test(text)) return "thinking";
+
+  return "normal";
+}
+
 // ===== データ =====
 let settings={
-  name:localStorage.getItem("name")||"ピピ",
-  prompt:localStorage.getItem("prompt")||"優しく話す"
+  aiName:localStorage.getItem("aiName")||"ピピ"
 };
 
 // ===== 初期 =====
 window.onload=()=>{
-  nameInput.value=settings.name;
-  promptInput.value=settings.prompt;
+  aiNameInput.value=settings.aiName;
 };
 
 // ===== 保存 =====
-function save(){
-  settings.name=nameInput.value;
-  settings.prompt=promptInput.value;
-
-  localStorage.setItem("name",settings.name);
-  localStorage.setItem("prompt",settings.prompt);
-
-  alert("保存OK");
+function saveSettings(){
+  settings.aiName=aiNameInput.value;
+  localStorage.setItem("aiName",settings.aiName);
+  alert("保存OK🔥");
+  closeSettings();
 }
 
 // ===== UI =====
-function openSettings(){
-  modal.classList.add("show");
-}
-function closeSettings(){
-  modal.classList.remove("show");
-}
+function openSettings(){ modal.classList.add("show"); }
+function closeSettings(){ modal.classList.remove("show"); }
 
 // ===== 表示 =====
 function addMessage(text,type){
@@ -174,24 +220,39 @@ function addMessage(text,type){
 
   row.appendChild(bubble);
   chatBox.appendChild(row);
-
   chatBox.scrollTop=chatBox.scrollHeight;
 }
 
-// ===== ローカルAI =====
-function reply(text){
-
-  if(/疲れ/.test(text)) return "大丈夫？無理しないでね";
-  if(/こんにちは/.test(text)) return "こんにちは😊";
-
-  return "うん、聞いてるよ";
-}
-
-// ===== 音声 =====
+// ===== 🔥 音声 =====
 function speak(text){
+
+  if(!("speechSynthesis" in window)){
+    return;
+  }
+
+  speechSynthesis.cancel();
+
   const u=new SpeechSynthesisUtterance(text);
   u.lang="ja-JP";
+
+  const voices=speechSynthesis.getVoices();
+  const jaVoice=voices.find(v=>v.lang==="ja-JP");
+  if(jaVoice) u.voice=jaVoice;
+
   speechSynthesis.speak(u);
+}
+
+// 初回タップで音声有効化
+document.body.addEventListener("click",()=>{
+  speechSynthesis.getVoices();
+},{once:true});
+
+// ===== ローカルAI =====
+function localReply(text){
+  if(/疲れ|しんど/.test(text)) return "大丈夫？無理しないでね";
+  if(/こんにちは/.test(text)) return "こんにちは😊";
+  if(/ありがとう/.test(text)) return "どういたしまして";
+  return "うん、聞いてるよ";
 }
 
 // ===== 送信 =====
@@ -203,14 +264,43 @@ function sendMessage(){
   addMessage(text,"user");
   userInput.value="";
 
-  const r=reply(text);
+  // 👇 ユーザー感情で顔変化
+  setFace(detectEmotion(text));
+
+  const reply=localReply(text);
 
   setTimeout(()=>{
-    addMessage(r,"bot");
-    speak(r);
-  },300);
+    addMessage(reply,"bot");
+
+    // 👇 AIの感情でも変化
+    setFace(detectEmotion(reply));
+
+    speak(reply);
+
+  },500);
 }
 
+// ===== 音声入力 =====
+function startVoice(){
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  if(!SpeechRecognition){
+    alert("音声入力非対応");
+    return;
+  }
+
+  const recog=new SpeechRecognition();
+  recog.lang="ja-JP";
+
+  recog.onresult=(e)=>{
+    userInput.value=e.results[0][0].transcript;
+    sendMessage();
+  };
+
+  recog.start();
+}
+
+// Enter送信
 userInput.addEventListener("keypress",e=>{
   if(e.key==="Enter")sendMessage();
 });
