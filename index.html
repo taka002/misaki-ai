@@ -125,6 +125,7 @@ input,textarea{
     <input id="userInput" placeholder="話してみて">
     <button onclick="sendMessage()">送信</button>
     <button class="mic" onclick="startVoice()">🎤</button>
+    <button onclick="analyze()">🧠</button>
     <button onclick="openSettings()">⚙</button>
   </div>
 
@@ -134,9 +135,14 @@ input,textarea{
   <div class="box">
     キャラ名<input id="nameInput">
     画像URL<input id="imageInput">
+    画像選択<input type="file" id="imageFile" accept="image/*">
+
     OpenAI APIKey<input id="apiKeyInput">
+
+    <!-- 🔥 追加（ここだけ） -->
     Eleven APIKey<input id="elevenApiKeyInput">
     VoiceID<input id="voiceIdInput">
+
     プロンプト<textarea id="promptInput"></textarea>
     <button onclick="saveSettings()">保存</button>
     <button onclick="closeSettings()">閉じる</button>
@@ -145,21 +151,10 @@ input,textarea{
 
 <script>
 let chatBox, girl, modal, userInput;
-let nameInput, imageInput, apiKeyInput, promptInput;
+let nameInput, imageInput, apiKeyInput, promptInput, imageFile;
 let elevenApiKeyInput, voiceIdInput;
 
 let chatLog=[];
-
-// ===== 音声アンロック（超重要）=====
-let audioUnlocked=false;
-document.body.addEventListener("click",()=>{
-  if(!audioUnlocked){
-    const a=new Audio();
-    a.play().catch(()=>{});
-    audioUnlocked=true;
-    console.log("音声アンロック完了");
-  }
-},{once:true});
 
 let settings={
   name:localStorage.getItem("name")||"ピピ",
@@ -181,11 +176,28 @@ window.addEventListener("DOMContentLoaded",()=>{
   imageInput=document.getElementById("imageInput");
   apiKeyInput=document.getElementById("apiKeyInput");
   promptInput=document.getElementById("promptInput");
+  imageFile=document.getElementById("imageFile");
 
   elevenApiKeyInput=document.getElementById("elevenApiKeyInput");
   voiceIdInput=document.getElementById("voiceIdInput");
 
   girl.src=settings.image || "https://cdn.pixabay.com/photo/2017/01/31/13/14/animal-2023924_1280.png";
+
+  document.body.addEventListener("click",()=>{
+    if("speechSynthesis" in window){
+      speechSynthesis.getVoices();
+    }
+  },{once:true});
+
+  imageFile.addEventListener("change",()=>{
+    const file=imageFile.files[0];
+    const reader=new FileReader();
+    reader.onload=e=>{
+      settings.image=e.target.result;
+      girl.src=settings.image;
+    };
+    reader.readAsDataURL(file);
+  });
 
   userInput.addEventListener("keypress",e=>{
     if(e.key==="Enter") sendMessage();
@@ -193,52 +205,35 @@ window.addEventListener("DOMContentLoaded",()=>{
 
 });
 
-// ===== 🐱 猫の鳴き声 =====
-const sounds=[
-  "https://www.soundjay.com/cat/cat-meow-1.mp3",
-  "https://www.soundjay.com/cat/cat-meow-2.mp3"
-];
-
-function playAnimalSound(){
-  try{
-    const s=sounds[Math.floor(Math.random()*sounds.length)];
-    const a=new Audio(s);
-    a.volume=0.25;
-    a.play().catch(()=>{});
-  }catch(e){}
-}
-
 // ===== 表示 =====
-function addMessage(text,type){
+function addMessage(text,type,isImage=false){
   const row=document.createElement("div");
   row.className="row "+type;
 
   const bubble=document.createElement("div");
   bubble.className="bubble";
-  bubble.textContent=text;
+
+  if(isImage){
+    const img=document.createElement("img");
+    img.src=text;
+    img.style.width="160px";
+    img.style.borderRadius="12px";
+    bubble.appendChild(img);
+  }else{
+    bubble.textContent=text;
+  }
 
   row.appendChild(bubble);
   chatBox.appendChild(row);
   chatBox.scrollTop=chatBox.scrollHeight;
 }
 
-// ===== 🔥 音声（完全版）=====
+// ===== 音声（🔥ここが進化）=====
 async function speak(text){
 
   if(!text) return;
 
-  // 強制アンロック
-  try{
-    const unlock=new Audio();
-    await unlock.play().catch(()=>{});
-  }catch(e){}
-
-  // 猫鳴き
-  playAnimalSound();
-
-  await new Promise(r=>setTimeout(r,300));
-
-  // ElevenLabs
+  // ElevenLabs優先
   if(settings.elevenApiKey && settings.voiceId){
     try{
       const res = await fetch(
@@ -251,7 +246,7 @@ async function speak(text){
             "Accept":"audio/mpeg"
           },
           body:JSON.stringify({
-            text:"にゃー… "+text,
+            text:text,
             model_id:"eleven_multilingual_v2"
           })
         }
@@ -262,27 +257,22 @@ async function speak(text){
         const url=URL.createObjectURL(blob);
 
         const audio=new Audio(url);
-        await audio.play().catch(()=>{ throw new Error(); });
+        audio.play();
 
         audio.onended=()=>URL.revokeObjectURL(url);
         return;
       }
 
     }catch(e){
-      console.log("Eleven失敗");
+      console.log("Eleven失敗→fallback");
     }
   }
 
   // fallback
-  if("speechSynthesis" in window){
-    speechSynthesis.cancel();
-    const u=new SpeechSynthesisUtterance("にゃー… "+text);
-    u.lang="ja-JP";
-
-    setTimeout(()=>{
-      speechSynthesis.speak(u);
-    },100);
-  }
+  if(!("speechSynthesis" in window)) return;
+  const u=new SpeechSynthesisUtterance(text);
+  u.lang="ja-JP";
+  speechSynthesis.speak(u);
 }
 
 // ===== AI =====
@@ -308,7 +298,13 @@ async function aiReply(text){
     });
 
     const data=await res.json();
-    return data.choices?.[0]?.message?.content || "エラー";
+
+    if(!data.choices){
+      console.log(data);
+      return "AIエラー：" + (data.error?.message || "不明");
+    }
+
+    return data.choices[0].message.content;
 
   }catch(e){
     return "通信エラー";
@@ -332,6 +328,81 @@ async function sendMessage(){
   speak(reply);
 }
 
+// ===== 分析 =====
+async function analyze(){
+
+  if(chatLog.length===0){
+    alert("会話がないよ");
+    return;
+  }
+
+  addMessage("🧠 分析中…","bot");
+
+  try{
+    const res=await fetch("https://api.openai.com/v1/chat/completions",{
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json",
+        "Authorization":"Bearer "+settings.apiKey
+      },
+      body:JSON.stringify({
+        model:"gpt-4o-mini",
+        messages:[
+          {
+            role:"system",
+            content:`認知行動療法で5カラム形式：
+①出来事②思考③感情④歪み⑤新しい考え⑥行動`
+          },
+          ...chatLog.slice(-20)
+        ]
+      })
+    });
+
+    const data=await res.json();
+
+    if(!data.choices){
+      addMessage("分析エラー","bot");
+      return;
+    }
+
+    const text=data.choices[0].message.content;
+    addMessage(text,"bot");
+    speak(text);
+
+  }catch(e){
+    addMessage("通信エラー","bot");
+  }
+}
+
+// ===== 設定 =====
+function saveSettings(){
+
+  settings.name=nameInput.value;
+  settings.apiKey=apiKeyInput.value;
+  settings.prompt=promptInput.value;
+
+  settings.elevenApiKey=elevenApiKeyInput.value;
+  settings.voiceId=voiceIdInput.value;
+
+  if(imageInput.value.trim()){
+    settings.image=imageInput.value.trim();
+  }
+
+  localStorage.setItem("name",settings.name);
+  localStorage.setItem("apiKey",settings.apiKey);
+  localStorage.setItem("prompt",settings.prompt);
+  localStorage.setItem("image",settings.image);
+
+  localStorage.setItem("elevenApiKey",settings.elevenApiKey);
+  localStorage.setItem("voiceId",settings.voiceId);
+
+  girl.src=settings.image;
+  closeSettings();
+}
+
+function openSettings(){ modal.classList.add("show"); }
+function closeSettings(){ modal.classList.remove("show"); }
+
 // ===== 音声入力 =====
 function startVoice(){
   const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
@@ -347,32 +418,6 @@ function startVoice(){
 
   recog.start();
 }
-
-// ===== 設定 =====
-function saveSettings(){
-  settings.name=nameInput.value;
-  settings.apiKey=apiKeyInput.value;
-  settings.prompt=promptInput.value;
-  settings.elevenApiKey=elevenApiKeyInput.value;
-  settings.voiceId=voiceIdInput.value;
-
-  if(imageInput.value.trim()){
-    settings.image=imageInput.value.trim();
-    girl.src=settings.image;
-  }
-
-  localStorage.setItem("name",settings.name);
-  localStorage.setItem("apiKey",settings.apiKey);
-  localStorage.setItem("prompt",settings.prompt);
-  localStorage.setItem("image",settings.image);
-  localStorage.setItem("elevenApiKey",settings.elevenApiKey);
-  localStorage.setItem("voiceId",settings.voiceId);
-
-  closeSettings();
-}
-
-function openSettings(){ modal.classList.add("show"); }
-function closeSettings(){ modal.classList.remove("show"); }
 
 </script>
 
