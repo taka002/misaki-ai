@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ピピAI 安定版</title>
+<title>ピピAI 完全版</title>
 
 <style>
 *{ box-sizing:border-box; }
@@ -16,29 +16,35 @@ html,body{
   color:white;
 }
 
-/* ===== 全体 ===== */
 .app{
   display:flex;
   flex-direction:column;
-  height:100%;
+  height:100vh;
+  overflow:hidden;
 }
 
-/* ===== 上（画像） ===== */
 .top{
-  flex:0 0 auto;
-  padding:10px;
+  height:35vh;
   display:flex;
   justify-content:center;
+  align-items:center;
+  padding:10px;
 }
 
 .top img{
-  width:90%;
-  max-width:420px;
+  max-height:100%;
+  max-width:100%;
   border-radius:20px;
-  transition:0.3s;
+  object-fit:contain;
+  animation: float 5s ease-in-out infinite;
 }
 
-/* ===== チャット ===== */
+@keyframes float{
+  0%{transform:translateY(0);}
+  50%{transform:translateY(-5px);}
+  100%{transform:translateY(0);}
+}
+
 #chatBox{
   flex:1;
   overflow-y:auto;
@@ -47,11 +53,7 @@ html,body{
   flex-direction:column;
 }
 
-.row{
-  display:flex;
-  margin:6px 0;
-}
-
+.row{ display:flex; margin:6px 0; }
 .row.user{ justify-content:flex-end; }
 .row.bot{ justify-content:flex-start; }
 
@@ -59,22 +61,17 @@ html,body{
   padding:12px 16px;
   border-radius:16px;
   max-width:75%;
-  word-break:break-word;
 }
 
 .user .bubble{
   background:#ff4f8b;
-  border-bottom-right-radius:4px;
 }
 
 .bot .bubble{
   background:#444;
-  border-bottom-left-radius:4px;
 }
 
-/* ===== 入力 ===== */
 .input-area{
-  flex:0 0 auto;
   display:flex;
   gap:6px;
   padding:8px;
@@ -83,10 +80,10 @@ html,body{
 
 #userInput{
   flex:1;
+  min-width:0;
   padding:14px;
   border:none;
   border-radius:10px;
-  font-size:16px;
 }
 
 .input-area button{
@@ -97,6 +94,35 @@ html,body{
 }
 
 .mic{ background:#5f9bff; }
+
+.modal{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.6);
+  display:none;
+  justify-content:center;
+  align-items:center;
+}
+
+.modal.show{ display:flex; }
+
+.box{
+  width:90%;
+  max-width:420px;
+  max-height:85vh;
+  overflow:auto;
+  background:#222;
+  padding:20px;
+  border-radius:12px;
+}
+
+input,textarea{
+  width:100%;
+  margin-bottom:10px;
+  padding:10px;
+  border:none;
+  border-radius:8px;
+}
 </style>
 </head>
 
@@ -104,53 +130,79 @@ html,body{
 
 <div class="app">
 
-  <!-- 画像 -->
   <div class="top">
-    <img id="girl" src="girl-normal.jpg">
+    <img id="girl">
   </div>
 
-  <!-- チャット -->
   <div id="chatBox"></div>
 
-  <!-- 入力 -->
   <div class="input-area">
     <input id="userInput" placeholder="話してみて">
     <button onclick="sendMessage()">送信</button>
     <button class="mic" onclick="startVoice()">🎤</button>
+    <button onclick="analyze()">🧠</button> <!-- ←追加 -->
+    <button onclick="openSettings()">⚙</button>
   </div>
 
 </div>
 
+<!-- 設定 -->
+<div class="modal" id="modal">
+  <div class="box">
+    キャラ名<input id="nameInput">
+    画像URL<input id="imageInput">
+    OpenAI APIKey<input id="apiKeyInput">
+    Eleven APIKey<input id="elevenApiKeyInput">
+    VoiceID<input id="voiceIdInput">
+    プロンプト<textarea id="promptInput"></textarea>
+    <button onclick="saveSettings()">保存</button>
+    <button onclick="closeSettings()">閉じる</button>
+  </div>
+</div>
+
 <script>
 
-// ===== DOM =====
 const chatBox=document.getElementById("chatBox");
 const girl=document.getElementById("girl");
+const modal=document.getElementById("modal");
 
-// ===== 表情 =====
-const faceImages={
-  normal:"girl-normal.jpg",
-  happy:"girl-happy.png",
-  sad:"girl-sad.png",
-  angry:"girl-angry.png",
-  thinking:"girl-thinking.png"
+// ✅ 会話ログ
+let chatLog=[];
+
+let settings={
+  name:localStorage.getItem("name")||"ピピ",
+  image:localStorage.getItem("image")||"girl-normal.jpg",
+  apiKey:localStorage.getItem("apiKey")||"",
+  prompt:localStorage.getItem("prompt")||"優しく話す"
 };
 
-function setFace(type){
-  girl.src=faceImages[type]||faceImages.normal;
+window.onload=()=>{
+  girl.src=settings.image;
+};
+
+function saveSettings(){
+  settings.name=nameInput.value;
+  settings.image=imageInput.value;
+  settings.apiKey=apiKeyInput.value;
+  settings.prompt=promptInput.value;
+
+  localStorage.setItem("name",settings.name);
+  localStorage.setItem("image",settings.image);
+  localStorage.setItem("apiKey",settings.apiKey);
+  localStorage.setItem("prompt",settings.prompt);
+
+  girl.src=settings.image;
+  closeSettings();
 }
 
-// ===== 感情判定 =====
-function detectEmotion(text){
-  if(/嬉しい|楽しい|最高|好き/.test(text)) return "happy";
-  if(/疲れ|しんど|悲しい|つらい/.test(text)) return "sad";
-  if(/怒|イライラ/.test(text)) return "angry";
-  if(/どうしよう|悩/.test(text)) return "thinking";
-  return "normal";
-}
+function openSettings(){ modal.classList.add("show"); }
+function closeSettings(){ modal.classList.remove("show"); }
 
-// ===== 表示 =====
 function addMessage(text,type){
+
+  // ログ保存
+  chatLog.push({role:type,content:text});
+
   const row=document.createElement("div");
   row.className="row "+type;
 
@@ -164,45 +216,37 @@ function addMessage(text,type){
   chatBox.scrollTop=chatBox.scrollHeight;
 }
 
-// ===== 🔊 音声（完全安定） =====
-function speak(text){
+// ===== AI会話 =====
+async function aiReply(text){
 
-  if(!("speechSynthesis" in window)) return;
+  if(!settings.apiKey) return "（AI未接続）";
 
-  speechSynthesis.cancel();
+  const res=await fetch("https://api.openai.com/v1/chat/completions",{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json",
+      "Authorization":"Bearer "+settings.apiKey
+    },
+    body:JSON.stringify({
+      model:"gpt-4o-mini",
+      messages:[
+        {
+          role:"system",
+          content:`あなたは${settings.name}です。
+性格:${settings.prompt}`
+        },
+        ...chatLog.slice(-10), // ←記憶
+        {role:"user",content:text}
+      ]
+    })
+  });
 
-  const u=new SpeechSynthesisUtterance(text);
-  u.lang="ja-JP";
-
-  const voices=speechSynthesis.getVoices();
-  const ja=voices.find(v=>v.lang==="ja-JP");
-  if(ja) u.voice=ja;
-
-  speechSynthesis.speak(u);
-}
-
-// 初回タップで音声有効
-document.body.addEventListener("click",()=>{
-  speechSynthesis.getVoices();
-},{once:true});
-
-// ===== ローカルAI =====
-function localReply(text){
-
-  if(/疲れ|しんど/.test(text))
-    return "大丈夫？無理しないでね";
-
-  if(/こんにちは/.test(text))
-    return "こんにちは😊";
-
-  if(/ありがとう/.test(text))
-    return "どういたしまして";
-
-  return "うん、聞いてるよ";
+  const data=await res.json();
+  return data.choices[0].message.content;
 }
 
 // ===== 送信 =====
-function sendMessage(){
+async function sendMessage(){
 
   const text=userInput.value.trim();
   if(!text) return;
@@ -210,31 +254,55 @@ function sendMessage(){
   addMessage(text,"user");
   userInput.value="";
 
-  // 表情（ユーザー）
-  setFace(detectEmotion(text));
+  const reply=await aiReply(text);
 
-  const reply=localReply(text);
+  addMessage(reply,"bot");
+}
 
-  setTimeout(()=>{
-    addMessage(reply,"bot");
+// ===== 🔥 分析 =====
+async function analyze(){
 
-    // 表情（AI）
-    setFace(detectEmotion(reply));
+  if(chatLog.length===0){
+    alert("会話がないよ");
+    return;
+  }
 
-    speak(reply);
+  addMessage("分析中…","bot");
 
-  },400);
+  const res=await fetch("https://api.openai.com/v1/chat/completions",{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json",
+      "Authorization":"Bearer "+settings.apiKey
+    },
+    body:JSON.stringify({
+      model:"gpt-4o-mini",
+      messages:[
+        {
+          role:"system",
+          content:`
+以下を作成：
+①会話まとめ
+②気持ち分析
+③認知の歪み
+④5カラム（出来事・思考・感情・反証・新しい考え）
+⑤具体的行動
+⑥今日の一言
+優しく丁寧に`
+        },
+        ...chatLog.slice(-20)
+      ]
+    })
+  });
+
+  const data=await res.json();
+  addMessage(data.choices[0].message.content,"bot");
 }
 
 // ===== 音声入力 =====
 function startVoice(){
-
   const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
-
-  if(!SpeechRecognition){
-    alert("音声入力非対応");
-    return;
-  }
+  if(!SpeechRecognition) return;
 
   const recog=new SpeechRecognition();
   recog.lang="ja-JP";
@@ -247,7 +315,6 @@ function startVoice(){
   recog.start();
 }
 
-// Enter送信
 userInput.addEventListener("keypress",e=>{
   if(e.key==="Enter") sendMessage();
 });
