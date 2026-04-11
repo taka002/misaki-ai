@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ピピAI Live2D風 完成版</title>
+<title>ピピAI 完成版</title>
 
 <style>
 *{ box-sizing:border-box; }
@@ -35,46 +35,20 @@ html,body{
 
 .top img{
   max-height:100%;
-  width:auto;
   max-width:100%;
   border-radius:20px;
+  object-fit:contain;
 }
 
-/* ===== Live2D風 ===== */
-
-/* ゆらゆら */
+/* ===== 軽い動き ===== */
 .live2d{
-  animation: float 4s ease-in-out infinite;
+  animation: float 6s ease-in-out infinite;
 }
 @keyframes float{
   0%{ transform:translateY(0);}
-  50%{ transform:translateY(-8px);}
+  50%{ transform:translateY(-4px);}
   100%{ transform:translateY(0);}
 }
-
-/* 目パチ */
-.blink{
-  animation: blink 4s infinite;
-}
-@keyframes blink{
-  0%,90%,100%{ transform:scaleY(1);}
-  95%{ transform:scaleY(0.1);}
-}
-
-/* しゃべる */
-.talking{
-  animation: talk 0.2s infinite;
-}
-@keyframes talk{
-  0%{ transform:scale(1);}
-  50%{ transform:scale(1.03);}
-  100%{ transform:scale(1);}
-}
-
-/* 感情 */
-.happy{ filter:brightness(1.1) saturate(1.2); }
-.sad{ filter:brightness(0.8); }
-.angry{ filter:hue-rotate(-20deg); }
 
 /* ===== チャット ===== */
 #chatBox{
@@ -135,6 +109,34 @@ html,body{
 }
 
 .mic{ background:#5f9bff; }
+
+/* ===== モーダル ===== */
+.modal{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.6);
+  display:none;
+  justify-content:center;
+  align-items:center;
+}
+
+.modal.show{ display:flex; }
+
+.box{
+  width:90%;
+  max-width:400px;
+  background:#222;
+  padding:20px;
+  border-radius:12px;
+}
+
+input,textarea{
+  width:100%;
+  margin-bottom:10px;
+  padding:10px;
+  border-radius:8px;
+  border:none;
+}
 </style>
 </head>
 
@@ -144,7 +146,7 @@ html,body{
 
   <!-- 画像 -->
   <div class="top">
-    <img id="girl" class="live2d blink" src="girl-normal.jpg">
+    <img id="girl" class="live2d">
   </div>
 
   <!-- チャット -->
@@ -155,8 +157,28 @@ html,body{
     <input id="userInput" placeholder="話してみて">
     <button onclick="sendMessage()">送信</button>
     <button class="mic" onclick="startVoice()">🎤</button>
+    <button onclick="openSettings()">⚙</button>
   </div>
 
+</div>
+
+<!-- 設定 -->
+<div class="modal" id="modal">
+  <div class="box">
+
+    キャラ名
+    <input id="nameInput">
+
+    画像URL
+    <input id="imageInput" placeholder="https://...">
+
+    プロンプト
+    <textarea id="promptInput"></textarea>
+
+    <button onclick="saveSettings()">保存</button>
+    <button onclick="closeSettings()">閉じる</button>
+
+  </div>
 </div>
 
 <script>
@@ -164,37 +186,43 @@ html,body{
 // ===== DOM =====
 const chatBox=document.getElementById("chatBox");
 const girl=document.getElementById("girl");
+const modal=document.getElementById("modal");
 
-// ===== 表情画像 =====
-const faceImages={
-  normal:"girl-normal.jpg",
-  happy:"girl-happy.png",
-  sad:"girl-sad.png",
-  angry:"girl-angry.png",
-  thinking:"girl-thinking.png"
+// ===== 設定 =====
+let settings={
+  name:localStorage.getItem("name")||"ピピ",
+  image:localStorage.getItem("image")||"girl-normal.jpg",
+  prompt:localStorage.getItem("prompt")||"優しく話す"
 };
 
-// ===== 表情変更 =====
-function setFace(type){
-  girl.src=faceImages[type]||faceImages.normal;
+// ===== 初期 =====
+window.onload=()=>{
+  girl.src=settings.image;
+
+  nameInput.value=settings.name;
+  imageInput.value=settings.image;
+  promptInput.value=settings.prompt;
+};
+
+// ===== 保存 =====
+function saveSettings(){
+  settings.name=nameInput.value;
+  settings.image=imageInput.value;
+  settings.prompt=promptInput.value;
+
+  localStorage.setItem("name",settings.name);
+  localStorage.setItem("image",settings.image);
+  localStorage.setItem("prompt",settings.prompt);
+
+  girl.src=settings.image;
+
+  alert("保存OK🔥");
+  closeSettings();
 }
 
-// ===== 感情エフェクト =====
-function setEmotion(type){
-  girl.classList.remove("happy","sad","angry");
-
-  if(type==="happy") girl.classList.add("happy");
-  if(type==="sad") girl.classList.add("sad");
-  if(type==="angry") girl.classList.add("angry");
-}
-
-// ===== 感情判定 =====
-function detectEmotion(text){
-  if(/嬉しい|楽しい|最高|好き/.test(text)) return "happy";
-  if(/疲れ|しんど|悲しい|つらい/.test(text)) return "sad";
-  if(/怒|イライラ/.test(text)) return "angry";
-  return "normal";
-}
+// ===== UI =====
+function openSettings(){ modal.classList.add("show"); }
+function closeSettings(){ modal.classList.remove("show"); }
 
 // ===== 表示 =====
 function addMessage(text,type){
@@ -211,17 +239,8 @@ function addMessage(text,type){
   chatBox.scrollTop=chatBox.scrollHeight;
 }
 
-// ===== 口パク =====
-function startTalking(){
-  girl.classList.add("talking");
-}
-function stopTalking(){
-  girl.classList.remove("talking");
-}
-
 // ===== 音声 =====
 function speak(text){
-
   if(!("speechSynthesis" in window)) return;
 
   speechSynthesis.cancel();
@@ -229,31 +248,22 @@ function speak(text){
   const u=new SpeechSynthesisUtterance(text);
   u.lang="ja-JP";
 
-  startTalking();
-
-  u.onend=()=>{
-    stopTalking();
-  };
-
   speechSynthesis.speak(u);
 }
 
-// 初回タップで音声有効
+// 初回解除
 document.body.addEventListener("click",()=>{
   speechSynthesis.getVoices();
 },{once:true});
 
-// ===== ローカルAI =====
+// ===== AI =====
 function localReply(text){
 
   if(/疲れ|しんど/.test(text))
     return "大丈夫？無理しないでね";
 
-  if(/こんにちは/.test(text))
+  if(/こんにちは|こんばんは/.test(text))
     return "こんにちは😊";
-
-  if(/ありがとう/.test(text))
-    return "どういたしまして";
 
   return "うん、聞いてるよ";
 }
@@ -267,27 +277,16 @@ function sendMessage(){
   addMessage(text,"user");
   userInput.value="";
 
-  const emotionUser=detectEmotion(text);
-  setFace(emotionUser);
-  setEmotion(emotionUser);
-
   const reply=localReply(text);
 
   setTimeout(()=>{
     addMessage(reply,"bot");
-
-    const emotionBot=detectEmotion(reply);
-    setFace(emotionBot);
-    setEmotion(emotionBot);
-
     speak(reply);
-
   },400);
 }
 
 // ===== 音声入力 =====
 function startVoice(){
-
   const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
 
   if(!SpeechRecognition){
