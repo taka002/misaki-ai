@@ -169,7 +169,14 @@ window.addEventListener("DOMContentLoaded",()=>{
   promptInput=document.getElementById("promptInput");
   imageFile=document.getElementById("imageFile");
 
-  girl.src=settings.image || "https://via.placeholder.com/400x300";
+  girl.src=settings.image || "https://cdn.pixabay.com/photo/2017/01/31/13/14/animal-2023924_1280.png";
+
+  // 🔊 音声初期化（追加）
+  document.body.addEventListener("click",()=>{
+    if("speechSynthesis" in window){
+      speechSynthesis.getVoices();
+    }
+  },{once:true});
 
   imageFile.addEventListener("change",()=>{
     const file=imageFile.files[0];
@@ -187,7 +194,7 @@ window.addEventListener("DOMContentLoaded",()=>{
 
 });
 
-// ===== 表示（画像対応）=====
+// ===== 表示 =====
 function addMessage(text,type,isImage=false){
 
   const row=document.createElement("div");
@@ -211,15 +218,6 @@ function addMessage(text,type,isImage=false){
   chatBox.scrollTop=chatBox.scrollHeight;
 }
 
-// ===== 動物決定 =====
-function getAnimal(text){
-  if(text.includes("不安")) return {img:"https://source.unsplash.com/200x200/?rabbit",msg:"ちょっと不安だよね…でも大丈夫"};
-  if(text.includes("怒")) return {img:"https://source.unsplash.com/200x200/?tiger",msg:"イライラしてるね…落ち着こう"};
-  if(text.includes("疲")) return {img:"https://source.unsplash.com/200x200/?sleeping-cat",msg:"今日は休んでいいよ"};
-  if(text.includes("悲")) return {img:"https://source.unsplash.com/200x200/?puppy",msg:"つらかったね…そばにいるよ"};
-  return {img:"https://source.unsplash.com/200x200/?hamster",msg:"ゆっくりいこう"};
-}
-
 // ===== 音声 =====
 function speak(text){
   if(!("speechSynthesis" in window)) return;
@@ -234,24 +232,36 @@ async function aiReply(text){
 
   if(!settings.apiKey) return "APIキー未設定";
 
-  const res=await fetch("https://api.openai.com/v1/chat/completions",{
-    method:"POST",
-    headers:{
-      "Content-Type":"application/json",
-      "Authorization":"Bearer "+settings.apiKey
-    },
-    body:JSON.stringify({
-      model:"gpt-4o-mini",
-      messages:[
-        {role:"system",content:`あなたは${settings.name}。${settings.prompt}`},
-        ...chatLog.slice(-20),
-        {role:"user",content:text}
-      ]
-    })
-  });
+  try{
+    const res=await fetch("https://api.openai.com/v1/chat/completions",{
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json",
+        "Authorization":"Bearer "+settings.apiKey
+      },
+      body:JSON.stringify({
+        model:"gpt-4o-mini",
+        messages:[
+          {role:"system",content:`あなたは${settings.name}。${settings.prompt}`},
+          ...chatLog.slice(-20),
+          {role:"user",content:text}
+        ]
+      })
+    });
 
-  const data=await res.json();
-  return data.choices[0].message.content;
+    const data=await res.json();
+
+    // 🔥 エラー対策（追加）
+    if(!data.choices){
+      console.log(data);
+      return "AIエラー：" + (data.error?.message || "不明");
+    }
+
+    return data.choices[0].message.content;
+
+  }catch(e){
+    return "通信エラー";
+  }
 }
 
 // ===== 送信 =====
@@ -271,7 +281,7 @@ async function sendMessage(){
   speak(reply);
 }
 
-// ===== CBT分析＋動物 =====
+// ===== 分析 =====
 async function analyze(){
 
   if(chatLog.length===0){
@@ -281,41 +291,35 @@ async function analyze(){
 
   addMessage("分析中…","bot");
 
-  const res=await fetch("https://api.openai.com/v1/chat/completions",{
-    method:"POST",
-    headers:{
-      "Content-Type":"application/json",
-      "Authorization":"Bearer "+settings.apiKey
-    },
-    body:JSON.stringify({
-      model:"gpt-4o-mini",
-      messages:[
-        {
-          role:"system",
-          content:`認知行動療法で分析：
-①出来事
-②思考
-③感情
-④歪み
-⑤新しい考え
-⑥行動`
-        },
-        ...chatLog.slice(-20)
-      ]
-    })
-  });
+  try{
+    const res=await fetch("https://api.openai.com/v1/chat/completions",{
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json",
+        "Authorization":"Bearer "+settings.apiKey
+      },
+      body:JSON.stringify({
+        model:"gpt-4o-mini",
+        messages:[
+          {role:"system",content:`①出来事②感情③思考④歪み⑤改善⑥行動`},
+          ...chatLog.slice(-20)
+        ]
+      })
+    });
 
-  const data=await res.json();
-  const result=data.choices[0].message.content;
+    const data=await res.json();
 
-  addMessage(result,"bot");
+    if(!data.choices){
+      console.log(data);
+      addMessage("分析エラー","bot");
+      return;
+    }
 
-  const animal=getAnimal(result);
+    addMessage(data.choices[0].message.content,"bot");
 
-  addMessage(animal.img,"bot",true);
-  addMessage("🐾 "+animal.msg,"bot");
-
-  speak(animal.msg);
+  }catch(e){
+    addMessage("通信エラー","bot");
+  }
 }
 
 // ===== 音声入力 =====
