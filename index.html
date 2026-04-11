@@ -1,102 +1,143 @@
-<!-- 変更点だけじゃなく全文そのまま使える版 -->
 <script>
-    // =====（省略せずそのまま置き換えOK）=====
 
-    async function sendMessage() {
+// ===== 🔥 最強音アンロック =====
+let audioUnlocked = false;
 
-      // 🔥 音ロック解除（最重要）
-      try{
-        const unlock = new Audio();
-        unlock.src = "data:audio/mp3;base64,//uQxAAAAAAAAAAAA";
-        await unlock.play().catch(()=>{});
-      }catch(e){}
+async function unlockAudio() {
+  try {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    const ctx = new AudioContext();
 
-      const text = userInput.value.trim();
-      if (!text) return;
-
-      if (window.speechSynthesis) {
-        window.speechSynthesis.cancel();
-      }
-      stopSpeakingAnimation();
-
-      addMessage(text, "user");
-      saveChat("user", text);
-      userInput.value = "";
-
-      const typingMsg = addMessage("…入力中", "bot", "typing");
-
-      try {
-        let reply = "";
-
-        if (gptEnabled && sessionSecrets.apiKey) {
-          setStatus("GPTで考え中…");
-          reply = await generateGPTReply(text);
-        } else {
-          setStatus("寄り添い返答中…");
-          reply = generateLocalReply(text);
-        }
-
-        typingMsg.remove();
-        botReply(reply);
-        setStatus("準備OK");
-      } catch (e) {
-        console.error(e);
-        typingMsg.remove();
-        const fallback = generateLocalReply(text);
-        botReply(fallback);
-        setStatus("GPT失敗 → ローカル返答");
-      }
+    if (ctx.state === "suspended") {
+      await ctx.resume();
     }
 
-    // ===== 🔥ここ完全差し替え =====
-    function fallbackSpeech(cleanText, isWelcome = false) {
+    const buffer = ctx.createBuffer(1, 1, 22050);
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+    source.connect(ctx.destination);
+    source.start(0);
 
-      if (!("speechSynthesis" in window)) {
-        setStatus("この環境では音声非対応");
+    audioUnlocked = true;
+    console.log("音アンロック成功");
+  } catch (e) {
+    console.log("アンロック失敗");
+  }
+}
+
+// ===== クリックで必ず解除 =====
+document.addEventListener("click", unlockAudio);
+document.addEventListener("touchstart", unlockAudio);
+
+
+// ===== 送信 =====
+async function sendMessage() {
+
+  // 🔥 毎回ここで確実に解除
+  await unlockAudio();
+
+  const text = userInput.value.trim();
+  if (!text) return;
+
+  if (window.speechSynthesis) {
+    window.speechSynthesis.cancel();
+  }
+
+  addMessage(text, "user");
+  userInput.value = "";
+
+  const typing = addMessage("…入力中", "bot");
+
+  let reply = "";
+
+  try {
+    reply = generateLocalReply(text); // GPT無しでもOK
+  } catch (e) {
+    reply = "エラー";
+  }
+
+  typing.remove();
+
+  addMessage(reply, "bot");
+
+  // 🔥 即再生（遅延なし）
+  await speakText(reply);
+}
+
+
+// ===== 🔥 音声再生（完全版）=====
+async function speakText(text) {
+
+  if (!text) return;
+
+  const clean = text
+    .replace(/\n/g, "。")
+    .replace(/[😊✨😌😢🥺💦]/g, "")
+    .trim();
+
+  try {
+
+    // ===== Eleven =====
+    if (sessionSecrets?.elevenApiKey && sessionSecrets?.voiceId) {
+
+      const res = await fetch(
+        `https://api.elevenlabs.io/v1/text-to-speech/${sessionSecrets.voiceId}`,
+        {
+          method: "POST",
+          headers: {
+            "xi-api-key": sessionSecrets.elevenApiKey,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            text: clean,
+            model_id: "eleven_multilingual_v2"
+          })
+        }
+      );
+
+      if (res.ok) {
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+
+        const audio = new Audio(url);
+
+        audio.volume = 1;
+        audio.muted = false;
+
+        await audio.play();
+
         return;
       }
-
-      try {
-        const synth = window.speechSynthesis;
-        synth.cancel();
-
-        const utterance = new SpeechSynthesisUtterance(cleanText);
-        utterance.lang = "ja-JP";
-
-        const voiceStyle = getVoiceStyleByMood(memory.mood);
-        utterance.rate = voiceStyle.rate;
-        utterance.pitch = voiceStyle.pitch;
-        utterance.volume = 1.0;
-
-        const voices = synth.getVoices();
-        const preferredVoice =
-          voices.find(v => v.lang && v.lang.includes("ja"));
-
-        if (preferredVoice) {
-          utterance.voice = preferredVoice;
-        }
-
-        utterance.onstart = () => {
-          startSpeakingAnimation();
-          setStatus("話してるよ…");
-        };
-
-        utterance.onend = () => {
-          stopSpeakingAnimation();
-          setStatus("準備OK");
-        };
-
-        utterance.onerror = () => {
-          stopSpeakingAnimation();
-          setStatus("音声再生できませんでした");
-        };
-
-        // 🔥 遅延なし（これが最重要）
-        synth.speak(utterance);
-
-      } catch (e) {
-        stopSpeakingAnimation();
-        setStatus("音声エラー");
-      }
     }
+
+  } catch (e) {
+    console.log("Eleven失敗");
+  }
+
+  // ===== fallback（これが本命）=====
+  if ("speechSynthesis" in window) {
+
+    const synth = window.speechSynthesis;
+    synth.cancel();
+
+    const u = new SpeechSynthesisUtterance(clean);
+    u.lang = "ja-JP";
+    u.volume = 1;
+
+    u.onstart = () => {
+      setStatus("話してるよ…");
+    };
+
+    u.onend = () => {
+      setStatus("準備OK");
+    };
+
+    u.onerror = () => {
+      setStatus("音声再生できませんでした");
+    };
+
+    synth.speak(u);
+  }
+}
+
 </script>
