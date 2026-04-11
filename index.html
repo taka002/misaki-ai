@@ -1,11 +1,12 @@
 <script>
 
-const chatBox=document.getElementById("chatBox");
-const girl=document.getElementById("girl");
-const modal=document.getElementById("modal");
+// ===== DOM取得（ここ重要）=====
+let chatBox, girl, modal, userInput, nameInput, imageInput, apiKeyInput, promptInput;
 
+// ===== 会話ログ =====
 let chatLog=[];
 
+// ===== 設定 =====
 let settings={
   name:localStorage.getItem("name")||"ピピ",
   image:localStorage.getItem("image")||"girl-normal.jpg",
@@ -13,14 +14,34 @@ let settings={
   prompt:localStorage.getItem("prompt")||"優しく話す"
 };
 
-window.onload=()=>{
-  girl.src=settings.image;
-};
+// ===== 初期化（全部ここでやる）=====
+window.addEventListener("DOMContentLoaded",()=>{
 
-// ===== 音声初期化（超重要） =====
-document.body.addEventListener("click",()=>{
-  speechSynthesis.getVoices();
-},{once:true});
+  chatBox=document.getElementById("chatBox");
+  girl=document.getElementById("girl");
+  modal=document.getElementById("modal");
+  userInput=document.getElementById("userInput");
+
+  nameInput=document.getElementById("nameInput");
+  imageInput=document.getElementById("imageInput");
+  apiKeyInput=document.getElementById("apiKeyInput");
+  promptInput=document.getElementById("promptInput");
+
+  girl.src=settings.image;
+
+  // 音声有効化
+  document.body.addEventListener("click",()=>{
+    if("speechSynthesis" in window){
+      speechSynthesis.getVoices();
+    }
+  },{once:true});
+
+  // Enter送信
+  userInput.addEventListener("keypress",e=>{
+    if(e.key==="Enter") sendMessage();
+  });
+
+});
 
 // ===== 保存 =====
 function saveSettings(){
@@ -59,7 +80,7 @@ function addMessage(text,type){
   chatBox.scrollTop=chatBox.scrollHeight;
 }
 
-// ===== 🔊 音声 =====
+// ===== 音声 =====
 function speak(text){
   if(!("speechSynthesis" in window)) return;
 
@@ -71,7 +92,7 @@ function speak(text){
   speechSynthesis.speak(u);
 }
 
-// ===== AI会話 =====
+// ===== AI =====
 async function aiReply(text){
 
   if(!settings.apiKey){
@@ -110,7 +131,7 @@ async function aiReply(text){
     return data.choices[0].message.content;
 
   }catch(e){
-    return "通信エラー。もう一回試して";
+    return "通信エラー";
   }
 }
 
@@ -129,7 +150,7 @@ async function sendMessage(){
   speak(reply);
 }
 
-// ===== 🧠 分析 =====
+// ===== 分析 =====
 async function analyze(){
 
   if(!settings.apiKey){
@@ -157,15 +178,12 @@ async function analyze(){
           {
             role:"system",
             content:`
-以下を作成：
 ①会話まとめ
 ②感情分析
 ③認知の歪み
-④5カラム（出来事・思考・感情・反証・新しい考え）
+④5カラム
 ⑤具体的行動
-⑥今日の一言
-
-わかりやすく優しく`
+⑥今日の一言`
           },
           ...chatLog.slice(-20)
         ]
@@ -176,14 +194,14 @@ async function analyze(){
 
     if(!data.choices){
       console.log(data);
-      addMessage("分析失敗：" + (data.error?.message || "不明"),"bot");
+      addMessage("分析エラー","bot");
       return;
     }
 
     addMessage(data.choices[0].message.content,"bot");
 
   }catch(e){
-    addMessage("分析エラー（通信）","bot");
+    addMessage("通信エラー","bot");
   }
 }
 
@@ -206,9 +224,5 @@ function startVoice(){
 
   recog.start();
 }
-
-userInput.addEventListener("keypress",e=>{
-  if(e.key==="Enter") sendMessage();
-});
 
 </script>
