@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ピピAI 完全版</title>
+<title>ピピAI 安定版</title>
 
 <style>
-*{ box-sizing:border-box; }
+*{box-sizing:border-box;}
 
 body{
   margin:0;
@@ -21,7 +21,7 @@ body{
   height:100vh;
 }
 
-/* ===== 上（画像） ===== */
+/* 上 */
 .top{
   flex:0 0 35%;
   display:flex;
@@ -30,22 +30,19 @@ body{
 }
 .top img{
   width:90%;
-  max-width:420px;
   border-radius:20px;
 }
 
-/* ===== チャット ===== */
+/* チャット */
 #chatBox{
   flex:1;
   overflow-y:auto;
   padding:10px;
-  display:flex;
-  flex-direction:column;
 }
 
-.row{ display:flex; margin:6px 0; }
-.row.user{ justify-content:flex-end; }
-.row.bot{ justify-content:flex-start; }
+.row{display:flex;margin:6px 0;}
+.user{justify-content:flex-end;}
+.bot{justify-content:flex-start;}
 
 .bubble{
   padding:12px;
@@ -53,19 +50,14 @@ body{
   max-width:70%;
 }
 
-.user .bubble{
-  background:#ff4f8b;
-}
+.user .bubble{background:#ff4f8b;}
+.bot .bubble{background:#444;}
 
-.bot .bubble{
-  background:#444;
-}
-
-/* ===== 入力 ===== */
+/* 入力 */
 .input-area{
   display:flex;
-  gap:6px;
   padding:8px;
+  gap:6px;
   background:#111;
 }
 
@@ -82,9 +74,7 @@ button{
   border-radius:10px;
 }
 
-.mic{ background:#5f9bff; }
-
-/* ===== モーダル ===== */
+/* モーダル */
 .modal{
   position:fixed;
   inset:0;
@@ -94,7 +84,7 @@ button{
   background:rgba(0,0,0,0.6);
 }
 
-.modal.show{ display:flex; }
+.modal.show{display:flex;}
 
 .box{
   width:90%;
@@ -119,7 +109,6 @@ button{
   <div class="input-area">
     <input id="userInput" placeholder="話してみて">
     <button onclick="sendMessage()">送信</button>
-    <button class="mic" onclick="startVoice()">🎤</button>
     <button onclick="openSettings()">⚙</button>
   </div>
 
@@ -128,53 +117,51 @@ button{
 <!-- 設定 -->
 <div class="modal" id="modal">
   <div class="box">
-    ElevenKey<br>
-    <input id="elevenApiKeyInput"><br><br>
-    VoiceID<br>
-    <input id="voiceIdInput"><br><br>
 
-    <button onclick="saveSettings()">保存</button>
+    キャラ名<br>
+    <input id="nameInput"><br><br>
+
+    プロンプト<br>
+    <textarea id="promptInput"></textarea><br><br>
+
+    <button onclick="save()">保存</button>
     <button onclick="closeSettings()">閉じる</button>
+
   </div>
 </div>
 
 <script>
 
-// ===== 初回タップ解除（超重要） =====
-document.body.addEventListener("click",()=>{
-  speechSynthesis.cancel();
-});
-
-// ===== DOM =====
-const chatBox=document.getElementById("chatBox");
-const modal=document.getElementById("modal");
-
-// ===== 設定 =====
+// ===== データ =====
 let settings={
-  elevenApiKey:localStorage.getItem("elevenApiKey")||"",
-  voiceId:localStorage.getItem("voiceId")||""
+  name:localStorage.getItem("name")||"ピピ",
+  prompt:localStorage.getItem("prompt")||"優しく話す"
 };
 
+// ===== 初期 =====
 window.onload=()=>{
-  elevenApiKeyInput.value=settings.elevenApiKey;
-  voiceIdInput.value=settings.voiceId;
+  nameInput.value=settings.name;
+  promptInput.value=settings.prompt;
 };
 
 // ===== 保存 =====
-function saveSettings(){
-  settings.elevenApiKey=elevenApiKeyInput.value;
-  settings.voiceId=voiceIdInput.value;
+function save(){
+  settings.name=nameInput.value;
+  settings.prompt=promptInput.value;
 
-  localStorage.setItem("elevenApiKey",settings.elevenApiKey);
-  localStorage.setItem("voiceId",settings.voiceId);
+  localStorage.setItem("name",settings.name);
+  localStorage.setItem("prompt",settings.prompt);
 
   alert("保存OK");
-  closeSettings();
 }
 
 // ===== UI =====
-function openSettings(){ modal.classList.add("show"); }
-function closeSettings(){ modal.classList.remove("show"); }
+function openSettings(){
+  modal.classList.add("show");
+}
+function closeSettings(){
+  modal.classList.remove("show");
+}
 
 // ===== 表示 =====
 function addMessage(text,type){
@@ -187,49 +174,24 @@ function addMessage(text,type){
 
   row.appendChild(bubble);
   chatBox.appendChild(row);
+
   chatBox.scrollTop=chatBox.scrollHeight;
 }
 
-// ===== 🔥 音声 =====
-async function speak(text){
+// ===== ローカルAI =====
+function reply(text){
 
-  console.log("音声開始");
+  if(/疲れ/.test(text)) return "大丈夫？無理しないでね";
+  if(/こんにちは/.test(text)) return "こんにちは😊";
 
-  // Eleven
-  if(settings.elevenApiKey && settings.voiceId){
-    try{
-      const res=await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${settings.voiceId}`,{
-        method:"POST",
-        headers:{
-          "xi-api-key":settings.elevenApiKey,
-          "Content-Type":"application/json"
-        },
-        body:JSON.stringify({ text })
-      });
+  return "うん、聞いてるよ";
+}
 
-      if(res.ok){
-        const blob=await res.blob();
-        const audio=new Audio(URL.createObjectURL(blob));
-        audio.play();
-        return;
-      }
-    }catch(e){
-      console.log("Eleven失敗",e);
-    }
-  }
-
-  // fallback
-  console.log("ブラウザ音声");
+// ===== 音声 =====
+function speak(text){
   const u=new SpeechSynthesisUtterance(text);
   u.lang="ja-JP";
   speechSynthesis.speak(u);
-}
-
-// ===== ローカルAI =====
-function localReply(text){
-  if(/疲れ/.test(text)) return "大丈夫？無理しないで";
-  if(/こんにちは/.test(text)) return "こんにちは😊";
-  return "うん、聞いてるよ";
 }
 
 // ===== 送信 =====
@@ -241,32 +203,12 @@ function sendMessage(){
   addMessage(text,"user");
   userInput.value="";
 
-  const reply=localReply(text);
+  const r=reply(text);
 
   setTimeout(()=>{
-    addMessage(reply,"bot");
-    speak(reply);
+    addMessage(r,"bot");
+    speak(r);
   },300);
-}
-
-// ===== 音声入力 =====
-function startVoice(){
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-
-  if(!SpeechRecognition){
-    alert("非対応");
-    return;
-  }
-
-  const recog=new SpeechRecognition();
-  recog.lang="ja-JP";
-
-  recog.onresult=(e)=>{
-    userInput.value=e.results[0][0].transcript;
-    sendMessage();
-  };
-
-  recog.start();
 }
 
 userInput.addEventListener("keypress",e=>{
