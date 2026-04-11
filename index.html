@@ -1,9 +1,14 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ピピAI 完全版</title>
+
 <style>
 
 /* 全体 */
-*{
-  box-sizing:border-box;
-}
+*{ box-sizing:border-box; }
 
 body{
   margin:0;
@@ -19,7 +24,7 @@ body{
   height:100vh;
 }
 
-/* ===== 画像 ===== */
+/* 画像 */
 .top{
   height:45vh;
   display:flex;
@@ -32,7 +37,7 @@ body{
   border-radius:20px;
 }
 
-/* ===== チャット ===== */
+/* チャット */
 #chatBox{
   flex:1;
   overflow:auto;
@@ -57,7 +62,7 @@ body{
   background:#444;
 }
 
-/* ===== 入力 ===== */
+/* 入力 */
 .input-area{
   display:flex;
   gap:8px;
@@ -74,7 +79,6 @@ body{
 }
 
 .input-area button{
-  flex:0 0 auto;
   width:70px;
   height:60px;
   font-size:18px;
@@ -86,7 +90,7 @@ body{
   background:#5f9bff;
 }
 
-/* ===== モーダル ===== */
+/* モーダル */
 .modal{
   position:fixed;
   inset:0;
@@ -117,9 +121,10 @@ textarea{
 }
 
 </style>
+</head>
 
+<body>
 
-<!-- 🔥 HTML（必須） -->
 <div class="app">
 
   <div class="top">
@@ -140,24 +145,187 @@ textarea{
 <!-- モーダル -->
 <div class="modal" id="modal">
   <div class="box">
-    設定画面<br><br>
+
+    あなたの名前<br>
+    <input id="userNameInput"><br><br>
+
+    キャラ名<br>
+    <input id="aiNameInput"><br><br>
+
+    OpenAI APIKey<br>
+    <input id="apiKeyInput"><br><br>
+
+    Eleven APIKey<br>
+    <input id="elevenApiKeyInput"><br><br>
+
+    VoiceID<br>
+    <input id="voiceIdInput"><br><br>
+
+    プロンプト（人格設定）<br>
+    <textarea id="promptInput"></textarea><br><br>
+
+    <button onclick="saveSettings()">保存</button>
     <button onclick="closeSettings()">閉じる</button>
+
   </div>
 </div>
 
-
-<!-- 🔥 scriptは最後に置く -->
 <script>
 
-// DOM読み込み後に取得（これが重要）
+// ===== DOM =====
 const modal = document.getElementById("modal");
+const chatBox = document.getElementById("chatBox");
 
-function openSettings(){
-  modal.classList.add("show");
+// ===== データ =====
+let memory={
+  userName:localStorage.getItem("userName")||"",
+  aiName:localStorage.getItem("aiName")||"ピピ",
+  prompt:localStorage.getItem("customPrompt")||"優しい女性AI"
+};
+
+let sessionSecrets={
+  apiKey:localStorage.getItem("apiKey")||"",
+  elevenApiKey:localStorage.getItem("elevenApiKey")||"",
+  voiceId:localStorage.getItem("voiceId")||""
+};
+
+let chatHistory=JSON.parse(localStorage.getItem("chatHistory")||"[]");
+
+// ===== 初期表示 =====
+window.onload = ()=>{
+  userNameInput.value=memory.userName;
+  aiNameInput.value=memory.aiName;
+  apiKeyInput.value=sessionSecrets.apiKey;
+  elevenApiKeyInput.value=sessionSecrets.elevenApiKey;
+  voiceIdInput.value=sessionSecrets.voiceId;
+  promptInput.value=memory.prompt;
+};
+
+// ===== UI =====
+function openSettings(){ modal.classList.add("show"); }
+function closeSettings(){ modal.classList.remove("show"); }
+
+// ===== 保存 =====
+function saveSettings(){
+
+  memory.userName=userNameInput.value.trim();
+  memory.aiName=aiNameInput.value.trim()||"ピピ";
+  memory.prompt=promptInput.value.trim();
+
+  sessionSecrets.apiKey=apiKeyInput.value.trim();
+  sessionSecrets.elevenApiKey=elevenApiKeyInput.value.trim();
+  sessionSecrets.voiceId=voiceIdInput.value.trim();
+
+  localStorage.setItem("userName",memory.userName);
+  localStorage.setItem("aiName",memory.aiName);
+  localStorage.setItem("customPrompt",memory.prompt);
+
+  localStorage.setItem("apiKey",sessionSecrets.apiKey);
+  localStorage.setItem("elevenApiKey",sessionSecrets.elevenApiKey);
+  localStorage.setItem("voiceId",sessionSecrets.voiceId);
+
+  alert("保存OK🔥");
+  closeSettings();
 }
 
-function closeSettings(){
-  modal.classList.remove("show");
+// ===== 表示 =====
+function addMessage(text,type){
+  const div=document.createElement("div");
+  div.className="message "+type;
+  div.textContent=text;
+  chatBox.appendChild(div);
+  chatBox.scrollTop=chatBox.scrollHeight;
 }
+
+// ===== GPT =====
+async function sendMessage(){
+
+  const text=userInput.value.trim();
+  if(!text)return;
+
+  addMessage(text,"user");
+  userInput.value="";
+
+  if(!sessionSecrets.apiKey){
+    addMessage("APIキー入れて","bot");
+    return;
+  }
+
+  chatHistory.push({role:"user",content:text});
+
+  try{
+    const res=await fetch("https://api.openai.com/v1/chat/completions",{
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json",
+        "Authorization":"Bearer "+sessionSecrets.apiKey
+      },
+      body:JSON.stringify({
+        model:"gpt-4o-mini",
+        messages:[
+          {
+            role:"system",
+            content: `${memory.prompt}
+あなたの名前は${memory.aiName}。
+相手の名前は${memory.userName || "ユーザー"}。
+必ず相手の名前を自然に呼びながら会話する。`
+          },
+          ...chatHistory
+        ]
+      })
+    });
+
+    const data=await res.json();
+    const reply=data.choices?.[0]?.message?.content || "エラー";
+
+    addMessage(reply,"bot");
+
+    chatHistory.push({role:"assistant",content:reply});
+    localStorage.setItem("chatHistory",JSON.stringify(chatHistory));
+
+    speak(reply);
+
+  }catch(e){
+    addMessage("通信エラー","bot");
+  }
+}
+
+// ===== 音声 =====
+function speak(text){
+  if(!("speechSynthesis" in window))return;
+  const u=new SpeechSynthesisUtterance(text);
+  u.lang="ja-JP";
+  speechSynthesis.speak(u);
+}
+
+// ===== 🎤 音声入力 =====
+function startVoice(){
+
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  if(!SpeechRecognition){
+    alert("音声入力非対応");
+    return;
+  }
+
+  const recog = new SpeechRecognition();
+  recog.lang="ja-JP";
+
+  recog.onresult = function(e){
+    const text=e.results[0][0].transcript;
+    userInput.value=text;
+    sendMessage();
+  };
+
+  recog.start();
+}
+
+// Enter送信
+userInput.addEventListener("keypress",e=>{
+  if(e.key==="Enter")sendMessage();
+});
 
 </script>
+
+</body>
+</html>
