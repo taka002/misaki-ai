@@ -20,10 +20,13 @@ html,body{
   display:flex;
   flex-direction:column;
   height:100vh;
+  overflow:hidden;
 }
 
 .top{
   height:35vh;
+  width:100%;
+  overflow:hidden;
 }
 
 .top img{
@@ -41,13 +44,14 @@ html,body{
 }
 
 .row{ display:flex; margin:6px 0; }
-.user{ justify-content:flex-end; }
-.bot{ justify-content:flex-start; }
+.row.user{ justify-content:flex-end; }
+.row.bot{ justify-content:flex-start; }
 
 .bubble{
-  padding:12px;
+  padding:12px 16px;
   border-radius:16px;
   max-width:75%;
+  white-space:pre-wrap;
 }
 
 .user .bubble{ background:#ff4f8b; }
@@ -62,9 +66,47 @@ html,body{
 
 #userInput{
   flex:1;
-  padding:12px;
+  padding:14px;
   border:none;
   border-radius:10px;
+}
+
+.input-area button{
+  width:60px;
+  height:55px;
+  border:none;
+  border-radius:10px;
+}
+
+.mic{ background:#5f9bff; }
+
+.modal{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.6);
+  display:none;
+  justify-content:center;
+  align-items:center;
+}
+
+.modal.show{ display:flex; }
+
+.box{
+  width:90%;
+  max-width:420px;
+  max-height:85vh;
+  overflow:auto;
+  background:#222;
+  padding:20px;
+  border-radius:12px;
+}
+
+input,textarea{
+  width:100%;
+  margin-bottom:10px;
+  padding:10px;
+  border:none;
+  border-radius:8px;
 }
 </style>
 </head>
@@ -82,109 +124,116 @@ html,body{
   <div class="input-area">
     <input id="userInput" placeholder="話してみて">
     <button onclick="sendMessage()">送信</button>
+    <button class="mic" onclick="startVoice()">🎤</button>
+    <button onclick="analyze()">🧠</button>
+    <button onclick="openSettings()">⚙</button>
   </div>
 
 </div>
 
-<script>
+<div class="modal" id="modal">
+  <div class="box">
+    キャラ名<input id="nameInput">
+    画像URL<input id="imageInput">
+    画像選択<input type="file" id="imageFile" accept="image/*">
+    OpenAI APIKey<input id="apiKeyInput">
+    プロンプト<textarea id="promptInput"></textarea>
+    <button onclick="saveSettings()">保存</button>
+    <button onclick="closeSettings()">閉じる</button>
+  </div>
+</div>
 
-// ===== 初期設定 =====
-let chatBox, girl, userInput;
+<script>
+let chatBox, girl, modal, userInput;
+let nameInput, imageInput, apiKeyInput, promptInput, imageFile;
 
 let chatLog=[];
 
 let settings={
+  name:localStorage.getItem("name")||"ピピ",
+  image:localStorage.getItem("image")||"",
   apiKey:localStorage.getItem("apiKey")||"",
-  elevenApiKey:localStorage.getItem("elevenApiKey")||"",
-  voiceId:localStorage.getItem("voiceId")||""
+  prompt:localStorage.getItem("prompt")||"優しく話す"
 };
 
-// ===== 初期化 =====
-window.onload=()=>{
+window.addEventListener("DOMContentLoaded",()=>{
 
   chatBox=document.getElementById("chatBox");
   girl=document.getElementById("girl");
+  modal=document.getElementById("modal");
   userInput=document.getElementById("userInput");
 
-  girl.src="https://cdn.pixabay.com/photo/2017/01/31/13/14/animal-2023924_1280.png";
+  nameInput=document.getElementById("nameInput");
+  imageInput=document.getElementById("imageInput");
+  apiKeyInput=document.getElementById("apiKeyInput");
+  promptInput=document.getElementById("promptInput");
+  imageFile=document.getElementById("imageFile");
 
-};
+  girl.src=settings.image || "https://cdn.pixabay.com/photo/2017/01/31/13/14/animal-2023924_1280.png";
+
+  document.body.addEventListener("click",()=>{
+    if("speechSynthesis" in window){
+      speechSynthesis.getVoices();
+    }
+  },{once:true});
+
+  imageFile.addEventListener("change",()=>{
+    const file=imageFile.files[0];
+    const reader=new FileReader();
+    reader.onload=e=>{
+      settings.image=e.target.result;
+      girl.src=settings.image;
+    };
+    reader.readAsDataURL(file);
+  });
+
+  userInput.addEventListener("keypress",e=>{
+    if(e.key==="Enter") sendMessage();
+  });
+
+});
 
 // ===== 表示 =====
-function addMessage(text,type){
+function addMessage(text,type,isImage=false){
+
   const row=document.createElement("div");
   row.className="row "+type;
 
   const bubble=document.createElement("div");
   bubble.className="bubble";
-  bubble.textContent=text;
+
+  if(isImage){
+    const img=document.createElement("img");
+    img.src=text;
+    img.style.width="160px";
+    img.style.borderRadius="12px";
+    bubble.appendChild(img);
+  }else{
+    bubble.textContent=text;
+  }
 
   row.appendChild(bubble);
   chatBox.appendChild(row);
   chatBox.scrollTop=chatBox.scrollHeight;
 }
 
-// ===== 音声 =====
-async function speak(text){
-
-  if(!text) return;
-
-  // 🔥 音ロック解除（超重要）
-  const unlock = new Audio();
-  unlock.muted = true;
-  unlock.play().catch(()=>{});
-
-  // ===== Eleven =====
-  if(settings.elevenApiKey && settings.voiceId){
-    try{
-      const res = await fetch(
-        `https://api.elevenlabs.io/v1/text-to-speech/${settings.voiceId}`,
-        {
-          method:"POST",
-          headers:{
-            "xi-api-key":settings.elevenApiKey,
-            "Content-Type":"application/json",
-            "Accept":"audio/mpeg"
-          },
-          body:JSON.stringify({
-            text:text,
-            model_id:"eleven_multilingual_v2"
-          })
-        }
-      );
-
-      if(res.ok){
-        const blob=await res.blob();
-        const url=URL.createObjectURL(blob);
-
-        const audio=new Audio(url);
-
-        audio.play().catch(()=>{
-          fallbackSpeak(text);
-        });
-
-        return;
-      }
-
-    }catch(e){}
-  }
-
-  fallbackSpeak(text);
+// ===== 動物ズバリ =====
+function getAnimalLine(){
+  const list=[
+    {img:"https://cdn.pixabay.com/photo/2016/02/19/11/19/rabbit-1209761_1280.jpg",msg:"ちょっと考えすぎかも🐰"},
+    {img:"https://cdn.pixabay.com/photo/2017/01/06/19/15/tiger-1951581_1280.jpg",msg:"感情が強く出てるね🐯"},
+    {img:"https://cdn.pixabay.com/photo/2016/11/29/03/53/cat-1866475_1280.jpg",msg:"今は休むタイミング🐱"},
+    {img:"https://cdn.pixabay.com/photo/2016/11/29/05/08/animal-1867125_1280.jpg",msg:"ちょっと心が疲れてるね🐶"}
+  ];
+  return list[Math.floor(Math.random()*list.length)];
 }
 
-// ===== fallback =====
-function fallbackSpeak(text){
-
+// ===== 音声 =====
+function speak(text){
   if(!("speechSynthesis" in window)) return;
-
-  speechSynthesis.cancel();
-
   const u=new SpeechSynthesisUtterance(text);
   u.lang="ja-JP";
-
-  setTimeout(()=>{
-    speechSynthesis.speak(u);
-  },200);
+  speechSynthesis.speak(u);
 }
 
 // ===== AI =====
@@ -202,13 +251,21 @@ async function aiReply(text){
       body:JSON.stringify({
         model:"gpt-4o-mini",
         messages:[
+          {role:"system",content:`あなたは${settings.name}。${settings.prompt}`},
+          ...chatLog.slice(-20),
           {role:"user",content:text}
         ]
       })
     });
 
     const data=await res.json();
-    return data.choices?.[0]?.message?.content || "エラー";
+
+    if(!data.choices){
+      console.log(data);
+      return "AIエラー：" + (data.error?.message || "不明");
+    }
+
+    return data.choices[0].message.content;
 
   }catch(e){
     return "通信エラー";
@@ -221,16 +278,110 @@ async function sendMessage(){
   const text=userInput.value.trim();
   if(!text) return;
 
+  chatLog.push({role:"user",content:text});
   addMessage(text,"user");
   userInput.value="";
 
   const reply=await aiReply(text);
 
+  chatLog.push({role:"assistant",content:reply});
   addMessage(reply,"bot");
-
-  // 🔥 ここで必ず音が出る
   speak(reply);
 }
+
+// ===== 分析（ズバリ→CBT）=====
+async function analyze(){
+
+  if(chatLog.length===0){
+    alert("会話がないよ");
+    return;
+  }
+
+  addMessage("🧠 分析中…","bot");
+
+  // 👉 動物ズバリ
+  const animal=getAnimalLine();
+  addMessage(animal.img,"bot",true);
+  addMessage("🐾 "+animal.msg,"bot");
+  speak(animal.msg);
+
+  // 👉 CBT分析
+  try{
+    const res=await fetch("https://api.openai.com/v1/chat/completions",{
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json",
+        "Authorization":"Bearer "+settings.apiKey
+      },
+      body:JSON.stringify({
+        model:"gpt-4o-mini",
+        messages:[
+          {
+            role:"system",
+            content:`認知行動療法で5カラム形式で優しく説明：
+①出来事
+②思考
+③感情
+④歪み
+⑤新しい考え
+⑥行動`
+          },
+          ...chatLog.slice(-20)
+        ]
+      })
+    });
+
+    const data=await res.json();
+
+    if(!data.choices){
+      addMessage("分析エラー","bot");
+      return;
+    }
+
+    addMessage(data.choices[0].message.content,"bot");
+
+  }catch(e){
+    addMessage("通信エラー","bot");
+  }
+}
+
+// ===== 音声入力 =====
+function startVoice(){
+  const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SpeechRecognition) return;
+
+  const recog=new SpeechRecognition();
+  recog.lang="ja-JP";
+
+  recog.onresult=(e)=>{
+    userInput.value=e.results[0][0].transcript;
+    sendMessage();
+  };
+
+  recog.start();
+}
+
+// ===== 設定 =====
+function saveSettings(){
+  settings.name=nameInput.value;
+  settings.apiKey=apiKeyInput.value;
+  settings.prompt=promptInput.value;
+
+  if(imageInput.value.trim()){
+    settings.image=imageInput.value.trim();
+  }
+
+  localStorage.setItem("name",settings.name);
+  localStorage.setItem("apiKey",settings.apiKey);
+  localStorage.setItem("prompt",settings.prompt);
+  localStorage.setItem("image",settings.image);
+
+  girl.src=settings.image;
+  closeSettings();
+}
+
+function openSettings(){ modal.classList.add("show"); }
+function closeSettings(){ modal.classList.remove("show"); }
 
 </script>
 
