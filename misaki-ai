@@ -5,6 +5,9 @@ let nameInput, imageInput, apiKeyInput, promptInput, imageFile;
 
 let chatLog=[];
 
+// 🔥 音声アンロック用
+let audioUnlocked=false;
+
 let settings={
   name:localStorage.getItem("name")||"ピピ",
   image:localStorage.getItem("image")||"",
@@ -27,13 +30,6 @@ window.addEventListener("DOMContentLoaded",()=>{
 
   girl.src=settings.image || "https://cdn.pixabay.com/photo/2017/01/31/13/14/animal-2023924_1280.png";
 
-  // 🔥 音声有効化（重要）
-  document.body.addEventListener("click",()=>{
-    if("speechSynthesis" in window){
-      speechSynthesis.getVoices();
-    }
-  },{once:true});
-
   userInput.addEventListener("keypress",e=>{
     if(e.key==="Enter") sendMessage();
   });
@@ -54,11 +50,10 @@ function addMessage(text,type){
   chatBox.scrollTop=chatBox.scrollHeight;
 }
 
-// ===== 🔥 ローカル音声（安定版）=====
+// ===== 🔥 音声（完全安定版）=====
 function speak(text){
 
   if(!text) return;
-
   if(!("speechSynthesis" in window)) return;
 
   try{
@@ -72,10 +67,10 @@ function speak(text){
   u.pitch=1;
   u.volume=1;
 
-  // 🔥 Android対策（これ超重要）
+  // 🔥 Android対策（重要）
   setTimeout(()=>{
     speechSynthesis.speak(u);
-  },100);
+  },200);
 }
 
 // ===== AI =====
@@ -114,6 +109,16 @@ async function sendMessage(){
 
   const text=userInput.value.trim();
   if(!text) return;
+
+  // 🔥 音声アンロック（最重要）
+  if(!audioUnlocked){
+    try{
+      const u=new SpeechSynthesisUtterance("");
+      speechSynthesis.speak(u);
+      speechSynthesis.cancel();
+      audioUnlocked=true;
+    }catch(e){}
+  }
 
   chatLog.push({role:"user",content:text});
   addMessage(text,"user");
