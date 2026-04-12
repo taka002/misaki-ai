@@ -138,8 +138,6 @@ input,textarea{
     画像選択<input type="file" id="imageFile" accept="image/*">
 
     OpenAI APIKey<input id="apiKeyInput">
-
-    <!-- 🔥 追加（ここだけ） -->
     Eleven APIKey<input id="elevenApiKeyInput">
     VoiceID<input id="voiceIdInput">
 
@@ -150,6 +148,7 @@ input,textarea{
 </div>
 
 <script>
+
 let chatBox, girl, modal, userInput;
 let nameInput, imageInput, apiKeyInput, promptInput, imageFile;
 let elevenApiKeyInput, voiceIdInput;
@@ -183,6 +182,7 @@ window.addEventListener("DOMContentLoaded",()=>{
 
   girl.src=settings.image || "https://cdn.pixabay.com/photo/2017/01/31/13/14/animal-2023924_1280.png";
 
+  // 🔥 音声有効化トリガー
   document.body.addEventListener("click",()=>{
     if("speechSynthesis" in window){
       speechSynthesis.getVoices();
@@ -206,34 +206,29 @@ window.addEventListener("DOMContentLoaded",()=>{
 });
 
 // ===== 表示 =====
-function addMessage(text,type,isImage=false){
+function addMessage(text,type){
   const row=document.createElement("div");
   row.className="row "+type;
 
   const bubble=document.createElement("div");
   bubble.className="bubble";
-
-  if(isImage){
-    const img=document.createElement("img");
-    img.src=text;
-    img.style.width="160px";
-    img.style.borderRadius="12px";
-    bubble.appendChild(img);
-  }else{
-    bubble.textContent=text;
-  }
+  bubble.textContent=text;
 
   row.appendChild(bubble);
   chatBox.appendChild(row);
   chatBox.scrollTop=chatBox.scrollHeight;
 }
 
-// ===== 音声（🔥ここが進化）=====
+// ===== 🔥 音声 完全版 =====
 async function speak(text){
 
   if(!text) return;
 
-  // ElevenLabs優先
+  try{
+    speechSynthesis.cancel();
+  }catch(e){}
+
+  // ===== ElevenLabs =====
   if(settings.elevenApiKey && settings.voiceId){
     try{
       const res = await fetch(
@@ -257,19 +252,29 @@ async function speak(text){
         const url=URL.createObjectURL(blob);
 
         const audio=new Audio(url);
-        audio.play();
+        audio.muted=false;
+        audio.volume=1;
 
-        audio.onended=()=>URL.revokeObjectURL(url);
+        const p=audio.play();
+
+        if(p){
+          p.catch(()=>{
+            fallbackSpeak(text);
+          });
+        }
+
         return;
       }
 
-    }catch(e){
-      console.log("Eleven失敗→fallback");
-    }
+    }catch(e){}
   }
 
-  // fallback
+  fallbackSpeak(text);
+}
+
+function fallbackSpeak(text){
   if(!("speechSynthesis" in window)) return;
+
   const u=new SpeechSynthesisUtterance(text);
   u.lang="ja-JP";
   speechSynthesis.speak(u);
@@ -298,13 +303,7 @@ async function aiReply(text){
     });
 
     const data=await res.json();
-
-    if(!data.choices){
-      console.log(data);
-      return "AIエラー：" + (data.error?.message || "不明");
-    }
-
-    return data.choices[0].message.content;
+    return data.choices?.[0]?.message?.content || "エラー";
 
   }catch(e){
     return "通信エラー";
@@ -338,40 +337,10 @@ async function analyze(){
 
   addMessage("🧠 分析中…","bot");
 
-  try{
-    const res=await fetch("https://api.openai.com/v1/chat/completions",{
-      method:"POST",
-      headers:{
-        "Content-Type":"application/json",
-        "Authorization":"Bearer "+settings.apiKey
-      },
-      body:JSON.stringify({
-        model:"gpt-4o-mini",
-        messages:[
-          {
-            role:"system",
-            content:`認知行動療法で5カラム形式：
-①出来事②思考③感情④歪み⑤新しい考え⑥行動`
-          },
-          ...chatLog.slice(-20)
-        ]
-      })
-    });
+  const reply=await aiReply("認知行動療法で分析して");
 
-    const data=await res.json();
-
-    if(!data.choices){
-      addMessage("分析エラー","bot");
-      return;
-    }
-
-    const text=data.choices[0].message.content;
-    addMessage(text,"bot");
-    speak(text);
-
-  }catch(e){
-    addMessage("通信エラー","bot");
-  }
+  addMessage(reply,"bot");
+  speak(reply);
 }
 
 // ===== 設定 =====
@@ -380,7 +349,6 @@ function saveSettings(){
   settings.name=nameInput.value;
   settings.apiKey=apiKeyInput.value;
   settings.prompt=promptInput.value;
-
   settings.elevenApiKey=elevenApiKeyInput.value;
   settings.voiceId=voiceIdInput.value;
 
@@ -392,7 +360,6 @@ function saveSettings(){
   localStorage.setItem("apiKey",settings.apiKey);
   localStorage.setItem("prompt",settings.prompt);
   localStorage.setItem("image",settings.image);
-
   localStorage.setItem("elevenApiKey",settings.elevenApiKey);
   localStorage.setItem("voiceId",settings.voiceId);
 
