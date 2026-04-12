@@ -5,7 +5,7 @@ let nameInput, imageInput, apiKeyInput, promptInput, imageFile;
 
 let chatLog=[];
 
-// 🔥 音声アンロック用
+// 🔥 音声アンロック
 let audioUnlocked=false;
 
 let settings={
@@ -29,6 +29,11 @@ window.addEventListener("DOMContentLoaded",()=>{
   imageFile=document.getElementById("imageFile");
 
   girl.src=settings.image || "https://cdn.pixabay.com/photo/2017/01/31/13/14/animal-2023924_1280.png";
+
+  // 🔥 音声リスト初期化（重要）
+  speechSynthesis.onvoiceschanged = () => {
+    speechSynthesis.getVoices();
+  };
 
   userInput.addEventListener("keypress",e=>{
     if(e.key==="Enter") sendMessage();
@@ -56,9 +61,7 @@ function speak(text){
   if(!text) return;
   if(!("speechSynthesis" in window)) return;
 
-  try{
-    speechSynthesis.cancel();
-  }catch(e){}
+  speechSynthesis.cancel();
 
   const u=new SpeechSynthesisUtterance(text);
 
@@ -67,10 +70,21 @@ function speak(text){
   u.pitch=1;
   u.volume=1;
 
-  // 🔥 Android対策（重要）
+  // 🔥 日本語音声を強制選択
+  const voices=speechSynthesis.getVoices();
+
+  const jaVoice = voices.find(v =>
+    v.lang === "ja-JP" || v.lang.startsWith("ja")
+  );
+
+  if(jaVoice){
+    u.voice = jaVoice;
+  }
+
+  // 🔥 Android対策
   setTimeout(()=>{
     speechSynthesis.speak(u);
-  },200);
+  },300);
 }
 
 // ===== AI =====
@@ -110,7 +124,7 @@ async function sendMessage(){
   const text=userInput.value.trim();
   if(!text) return;
 
-  // 🔥 音声アンロック（最重要）
+  // 🔥 初回アンロック（超重要）
   if(!audioUnlocked){
     try{
       const u=new SpeechSynthesisUtterance("");
@@ -173,18 +187,4 @@ function closeSettings(){ modal.classList.remove("show"); }
 
 // ===== 音声入力 =====
 function startVoice(){
-  const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
-  if(!SpeechRecognition) return;
-
-  const recog=new SpeechRecognition();
-  recog.lang="ja-JP";
-
-  recog.onresult=(e)=>{
-    userInput.value=e.results[0][0].transcript;
-    sendMessage();
-  };
-
-  recog.start();
-}
-
-</script>
+  const SpeechRecognition=window.SpeechRecognition||
