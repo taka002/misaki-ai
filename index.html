@@ -151,7 +151,6 @@ input,textarea{
 <script>
 let chatBox, girl, modal, userInput;
 let nameInput, imageInput, apiKeyInput, promptInput, imageFile;
-let elevenApiKeyInput, voiceIdInput;
 
 let chatLog=[];
 
@@ -159,8 +158,6 @@ let settings={
   name:localStorage.getItem("name")||"ピピ",
   image:localStorage.getItem("image")||"",
   apiKey:localStorage.getItem("apiKey")||"",
-  elevenApiKey:localStorage.getItem("elevenApiKey")||"",
-  voiceId:localStorage.getItem("voiceId")||"",
   prompt:localStorage.getItem("prompt")||"優しく話す"
 };
 
@@ -177,9 +174,6 @@ window.addEventListener("DOMContentLoaded",()=>{
   promptInput=document.getElementById("promptInput");
   imageFile=document.getElementById("imageFile");
 
-  elevenApiKeyInput=document.getElementById("elevenApiKeyInput");
-  voiceIdInput=document.getElementById("voiceIdInput");
-
   girl.src=settings.image || "https://cdn.pixabay.com/photo/2017/01/31/13/14/animal-2023924_1280.png";
 
   document.body.addEventListener("click",()=>{
@@ -187,16 +181,6 @@ window.addEventListener("DOMContentLoaded",()=>{
       speechSynthesis.getVoices();
     }
   },{once:true});
-
-  imageFile.addEventListener("change",()=>{
-    const file=imageFile.files[0];
-    const reader=new FileReader();
-    reader.onload=e=>{
-      settings.image=e.target.result;
-      girl.src=settings.image;
-    };
-    reader.readAsDataURL(file);
-  });
 
   userInput.addEventListener("keypress",e=>{
     if(e.key==="Enter") sendMessage();
@@ -227,52 +211,65 @@ function speak(text){
   setTimeout(()=>speechSynthesis.speak(u),100);
 }
 
-// ===== AI =====
+// ===== AI（通常会話）=====
 async function aiReply(text){
 
-  if(!settings.apiKey) return "APIキー未設定";
+  const res=await fetch("https://api.openai.com/v1/chat/completions",{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json",
+      "Authorization":"Bearer "+settings.apiKey
+    },
+    body:JSON.stringify({
+      model:"gpt-4o-mini",
+      messages:[
+        {
+          role:"system",
+          content:`あなたは${settings.name}。${settings.prompt}`
+        },
+        ...chatLog.slice(-20),
+        {role:"user",content:text}
+      ]
+    })
+  });
 
-  try{
-    const res=await fetch("https://api.openai.com/v1/chat/completions",{
-      method:"POST",
-      headers:{
-        "Content-Type":"application/json",
-        "Authorization":"Bearer "+settings.apiKey
-      },
-      body:JSON.stringify({
-        model:"gpt-4o-mini",
-        messages:[
-          {
-            role:"system",
-            content:`
-あなたは心理カウンセラーAI。
-認知再構成を厳密に行う。
+  const data=await res.json();
+  return data.choices?.[0]?.message?.content || "エラー";
+}
 
-必ず以下形式で出力：
+// ===== AI（分析専用）=====
+async function aiAnalyze(){
 
-①出来事（客観）
-②自動思考（その時の頭の声）
-③感情（0〜100%で数値化）
-④認知の歪み（例：全か無か思考、先読み、心の読みすぎ 等）
-⑤反証（その考えが100%正しいと言えるか？）
-⑥バランス思考（現実的な考え）
-⑦具体行動（すぐ出来る一歩）
+  const res=await fetch("https://api.openai.com/v1/chat/completions",{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json",
+      "Authorization":"Bearer "+settings.apiKey
+    },
+    body:JSON.stringify({
+      model:"gpt-4o-mini",
+      messages:[
+        {
+          role:"system",
+          content:`
+心理カウンセラーとして分析せよ
 
-※優しく、でも論理的に分析する
+①出来事
+②自動思考
+③感情（%）
+④認知の歪み
+⑤反証
+⑥バランス思考
+⑦行動
 `
-          },
-          ...chatLog.slice(-20),
-          {role:"user",content:text}
-        ]
-      })
-    });
+        },
+        ...chatLog.slice(-20)
+      ]
+    })
+  });
 
-    const data=await res.json();
-    return data.choices?.[0]?.message?.content || "エラー";
-
-  }catch(e){
-    return "通信エラー";
-  }
+  const data=await res.json();
+  return data.choices?.[0]?.message?.content || "エラー";
 }
 
 // ===== 送信 =====
@@ -300,9 +297,9 @@ async function analyze(){
     return;
   }
 
-  addMessage("🧠 深い心理分析中…","bot");
+  addMessage("🧠 分析中…","bot");
 
-  const reply=await aiReply("この会話を認知再構成で深く分析");
+  const reply=await aiAnalyze();
 
   addMessage(reply,"bot");
   speak(reply);
@@ -310,25 +307,18 @@ async function analyze(){
 
 // ===== 設定 =====
 function saveSettings(){
-
   settings.name=nameInput.value;
   settings.apiKey=apiKeyInput.value;
   settings.prompt=promptInput.value;
 
-  settings.elevenApiKey=elevenApiKeyInput.value;
-  settings.voiceId=voiceIdInput.value;
-
-  if(imageInput.value.trim()){
-    settings.image=imageInput.value.trim();
-  }
-
   localStorage.setItem("name",settings.name);
   localStorage.setItem("apiKey",settings.apiKey);
   localStorage.setItem("prompt",settings.prompt);
-  localStorage.setItem("image",settings.image);
 
-  localStorage.setItem("elevenApiKey",settings.elevenApiKey);
-  localStorage.setItem("voiceId",settings.voiceId);
+  if(imageInput.value.trim()){
+    settings.image=imageInput.value.trim();
+    localStorage.setItem("image",settings.image);
+  }
 
   girl.src=settings.image;
   closeSettings();
@@ -352,7 +342,6 @@ function startVoice(){
 
   recog.start();
 }
-
 </script>
 
 </body>
