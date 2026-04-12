@@ -53,14 +53,38 @@ html,body{
   max-width:75%;
 }
 
-/* 🔥 ここが追加（ズレ防止） */
+/* ===== 通常表示 ===== */
 .bubble pre{
   margin:0;
   font-family: monospace;
   font-size:14px;
   line-height:1.6;
-  white-space:pre;
-  overflow-x:auto;
+  white-space:pre-wrap;
+}
+
+/* ===== 分析カードUI ===== */
+.analysis{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+
+.card{
+  background:#2a2a2a;
+  padding:10px;
+  border-radius:10px;
+  border-left:4px solid #ff4f8b;
+}
+
+.card-title{
+  font-weight:bold;
+  font-size:14px;
+  margin-bottom:4px;
+}
+
+.card-body{
+  font-size:14px;
+  line-height:1.5;
 }
 
 .user .bubble{ background:#ff4f8b; }
@@ -197,8 +221,8 @@ window.addEventListener("DOMContentLoaded",()=>{
 
 });
 
-// ===== 表示（🔥ここが修正）=====
-function addMessage(text,type,isImage=false){
+// ===== 表示（🔥進化版）=====
+function addMessage(text,type){
 
   const row=document.createElement("div");
   row.className="row "+type;
@@ -206,16 +230,45 @@ function addMessage(text,type,isImage=false){
   const bubble=document.createElement("div");
   bubble.className="bubble";
 
-  if(isImage){
-    const img=document.createElement("img");
-    img.src=text;
-    img.style.width="160px";
-    img.style.borderRadius="12px";
-    bubble.appendChild(img);
+  // ===== 分析ならカード表示 =====
+  if(type==="bot" && text.includes("①")){
+
+    const container=document.createElement("div");
+    container.className="analysis";
+
+    const items=[
+      {icon:"🐱",title:"出来事"},
+      {icon:"💭",title:"思考"},
+      {icon:"😢",title:"感情"},
+      {icon:"⚠️",title:"歪み"},
+      {icon:"🌱",title:"新しい考え"},
+      {icon:"🚶",title:"行動"}
+    ];
+
+    const parts=text.split(/①|②|③|④|⑤|⑥/);
+
+    items.forEach((item,i)=>{
+      if(!parts[i+1]) return;
+
+      const card=document.createElement("div");
+      card.className="card";
+
+      card.innerHTML=`
+        <div class="card-title">${item.icon} ${item.title}</div>
+        <div class="card-body">${parts[i+1].trim()}</div>
+      `;
+
+      container.appendChild(card);
+    });
+
+    bubble.appendChild(container);
+
   }else{
+
     const pre=document.createElement("pre");
     pre.textContent=text;
     bubble.appendChild(pre);
+
   }
 
   row.appendChild(bubble);
@@ -276,7 +329,7 @@ async function aiReply(text){
     body:JSON.stringify({
       model:"gpt-4o-mini",
       messages:[
-        {role:"system",content:`5カラムはズレないように整形して`},
+        {role:"system",content:`①〜⑥を改行して出力`},
         ...chatLog.slice(-20),
         {role:"user",content:text}
       ]
@@ -306,7 +359,6 @@ async function sendMessage(){
 
 // ===== 分析 =====
 async function analyze(){
-
   if(chatLog.length===0){
     alert("会話がないよ");
     return;
@@ -314,7 +366,7 @@ async function analyze(){
 
   addMessage("🧠 分析中…","bot");
 
-  const reply=await aiReply("5カラムで分析して");
+  const reply=await aiReply("認知行動療法の5カラムで分析して");
   addMessage(reply,"bot");
   speak(reply);
 }
