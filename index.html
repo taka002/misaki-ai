@@ -1,188 +1,54 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ピピAI 完全版</title>
-
-<style>
-*{ box-sizing:border-box; }
-
-html,body{
-  height:100%;
-  margin:0;
-  font-family:sans-serif;
-  background:linear-gradient(#2b314d,#09111f);
-  color:white;
-}
-
-.app{
-  display:flex;
-  flex-direction:column;
-  height:100vh;
-  overflow:hidden;
-}
-
-.top{ height:35vh; }
-.top img{
-  width:100%;
-  height:100%;
-  object-fit:cover;
-}
-
-#chatBox{
-  flex:1;
-  overflow-y:auto;
-  padding:10px;
-  display:flex;
-  flex-direction:column;
-}
-
-.row{ display:flex; margin:6px 0; }
-.row.user{ justify-content:flex-end; }
-.row.bot{ justify-content:flex-start; }
-
-.bubble{
-  padding:12px;
-  border-radius:16px;
-  max-width:80%;
-}
-
-.bubble pre{
-  margin:0;
-  font-size:14px;
-  white-space:pre-wrap;
-}
-
-.analysis{ display:flex; flex-direction:column; gap:8px; }
-
-.card{
-  background:#2a2a2a;
-  padding:10px;
-  border-radius:10px;
-  border-left:4px solid #ff4f8b;
-}
-
-.card-title{ font-weight:bold; font-size:14px; }
-.card-body{ font-size:14px; }
-
-.user .bubble{ background:#ff4f8b; }
-.bot .bubble{ background:#444; }
-
-.input-area{
-  display:flex;
-  gap:6px;
-  padding:8px;
-  background:#111;
-}
-
-#userInput{
-  flex:1;
-  padding:12px;
-  border:none;
-  border-radius:10px;
-}
-
-button{
-  width:60px;
-  border:none;
-  border-radius:10px;
-}
-
-.modal{
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,0.6);
-  display:none;
-  justify-content:center;
-  align-items:center;
-}
-
-.modal.show{ display:flex; }
-
-.box{
-  width:90%;
-  max-width:420px;
-  background:#222;
-  padding:20px;
-  border-radius:12px;
-}
-
-input,textarea{
-  width:100%;
-  margin-bottom:10px;
-  padding:10px;
-  border:none;
-  border-radius:8px;
-}
-</style>
-</head>
-
-<body>
-
-<div class="app">
-  <div class="top">
-    <img id="girl">
-  </div>
-
-  <div id="chatBox"></div>
-
-  <div class="input-area">
-    <input id="userInput">
-    <button onclick="sendMessage()">送信</button>
-    <button onclick="analyze()">🧠</button>
-    <button onclick="openSettings()">⚙</button>
-  </div>
-</div>
-
-<div class="modal" id="modal">
-  <div class="box">
-    キャラ名<input id="nameInput">
-    反証テンプレ<input id="rebuttalInput" placeholder="本当にそう？別の見方は？">
-    APIキー<input id="apiKeyInput">
-    <button onclick="saveSettings()">保存</button>
-    <button onclick="closeSettings()">閉じる</button>
-  </div>
-</div>
-
 <script>
 
-let chatBox,userInput,girl,modal;
-let nameInput,apiKeyInput,rebuttalInput;
+let chatBox, girl, modal, userInput;
+let nameInput, imageInput, apiKeyInput, promptInput, imageFile;
+let elevenApiKeyInput, voiceIdInput;
 
 let chatLog=[];
 
 let settings={
   name:localStorage.getItem("name")||"ピピ",
+  image:localStorage.getItem("image")||"",
   apiKey:localStorage.getItem("apiKey")||"",
-  rebuttal:localStorage.getItem("rebuttal")||"本当にそう？別の可能性は？"
+  elevenApiKey:localStorage.getItem("elevenApiKey")||"",
+  voiceId:localStorage.getItem("voiceId")||"",
+  prompt:localStorage.getItem("prompt")||"優しく話す",
+  rebuttal:localStorage.getItem("rebuttal")||"本当にそう？別の見方は？"
 };
 
-// ===== 状態（①②③④）=====
-let mental={
-  score:parseInt(localStorage.getItem("score")||"50"),
-  distortions:JSON.parse(localStorage.getItem("distortions")||"{}")
-};
+// ===== 歪み記録 =====
+let distortionDB=JSON.parse(localStorage.getItem("distortions")||"{}");
 
 function saveDistortion(text){
-  if(!mental.distortions[text]) mental.distortions[text]=0;
-  mental.distortions[text]++;
-  localStorage.setItem("distortions",JSON.stringify(mental.distortions));
+  if(!text) return;
+  if(!distortionDB[text]) distortionDB[text]=0;
+  distortionDB[text]++;
+  localStorage.setItem("distortions",JSON.stringify(distortionDB));
 }
 
-// ===== 初期化 =====
-window.onload=()=>{
+window.addEventListener("DOMContentLoaded",()=>{
+
   chatBox=document.getElementById("chatBox");
-  userInput=document.getElementById("userInput");
   girl=document.getElementById("girl");
   modal=document.getElementById("modal");
+  userInput=document.getElementById("userInput");
 
   nameInput=document.getElementById("nameInput");
+  imageInput=document.getElementById("imageInput");
   apiKeyInput=document.getElementById("apiKeyInput");
-  rebuttalInput=document.getElementById("rebuttalInput");
+  promptInput=document.getElementById("promptInput");
+  imageFile=document.getElementById("imageFile");
 
-  girl.src="https://cdn.pixabay.com/photo/2017/01/31/13/14/animal-2023924_1280.png";
-};
+  elevenApiKeyInput=document.getElementById("elevenApiKeyInput");
+  voiceIdInput=document.getElementById("voiceIdInput");
+
+  girl.src=settings.image || "https://cdn.pixabay.com/photo/2017/01/31/13/14/animal-2023924_1280.png";
+
+  userInput.addEventListener("keypress",e=>{
+    if(e.key==="Enter") sendMessage();
+  });
+
+});
 
 // ===== 表示 =====
 function addMessage(text,type){
@@ -193,36 +59,36 @@ function addMessage(text,type){
   const bubble=document.createElement("div");
   bubble.className="bubble";
 
-  // ===== 分析表示 =====
+  // 🔥 分析カード
   if(type==="bot" && text.includes("①")){
 
     const container=document.createElement("div");
     container.className="analysis";
 
     const items=[
-      "🐱 出来事",
-      "🧠 思考",
-      "🐰 感情",
-      "🐍 歪み",
-      "🔍 反証",
-      "🌱 バランス思考",
-      "🐾 行動"
+      {icon:"🐱",title:"出来事"},
+      {icon:"🧠",title:"自動思考"},
+      {icon:"🐰",title:"感情"},
+      {icon:"🐍",title:"認知の歪み"},
+      {icon:"🔍",title:"反証"},
+      {icon:"🌱",title:"バランス思考"},
+      {icon:"🐾",title:"行動"}
     ];
 
     const parts=text.split(/①|②|③|④|⑤|⑥|⑦/);
 
-    items.forEach((title,i)=>{
+    items.forEach((item,i)=>{
       if(!parts[i+1]) return;
 
       const body=parts[i+1].trim();
 
-      if(i===3) saveDistortion(body); // 歪み記録
+      if(i===3) saveDistortion(body);
 
       const card=document.createElement("div");
       card.className="card";
 
       card.innerHTML=`
-        <div class="card-title">${title}</div>
+        <div class="card-title">${item.icon} ${item.title}</div>
         <div class="card-body">${body}</div>
       `;
 
@@ -232,9 +98,11 @@ function addMessage(text,type){
     bubble.appendChild(container);
 
   }else{
+
     const pre=document.createElement("pre");
     pre.textContent=text;
     bubble.appendChild(pre);
+
   }
 
   row.appendChild(bubble);
@@ -242,8 +110,68 @@ function addMessage(text,type){
   chatBox.scrollTop=chatBox.scrollHeight;
 }
 
+// ===== 音声 =====
+async function speak(text){
+
+  if(!text) return;
+
+  if(settings.elevenApiKey && settings.voiceId){
+    try{
+      const res = await fetch(
+        `https://api.elevenlabs.io/v1/text-to-speech/${settings.voiceId}`,
+        {
+          method:"POST",
+          headers:{
+            "xi-api-key":settings.elevenApiKey,
+            "Content-Type":"application/json",
+            "Accept":"audio/mpeg"
+          },
+          body:JSON.stringify({
+            text:text,
+            model_id:"eleven_multilingual_v2"
+          })
+        }
+      );
+
+      if(res.ok){
+        const blob=await res.blob();
+        const url=URL.createObjectURL(blob);
+        const audio=new Audio(url);
+        audio.play();
+        return;
+      }
+
+    }catch(e){}
+  }
+
+  const u=new SpeechSynthesisUtterance(text);
+  u.lang="ja-JP";
+  speechSynthesis.speak(u);
+}
+
 // ===== AI =====
-async function aiReply(text){
+async function aiReply(text, isAnalyze=false){
+
+  if(!settings.apiKey) return "APIキー未設定";
+
+  let systemPrompt = settings.prompt;
+
+  // 🔥 分析モードだけ①〜⑦
+  if(isAnalyze){
+    systemPrompt = `
+認知再構成を行う
+
+①出来事
+②自動思考
+③感情
+④認知の歪み
+⑤反証（${settings.rebuttal}）
+⑥バランス思考
+⑦行動
+
+必ず①〜⑦で出力
+`;
+  }
 
   const res=await fetch("https://api.openai.com/v1/chat/completions",{
     method:"POST",
@@ -254,21 +182,8 @@ async function aiReply(text){
     body:JSON.stringify({
       model:"gpt-4o-mini",
       messages:[
-        {
-          role:"system",
-          content:`
-認知再構成：
-
-①出来事
-②思考
-③感情
-④歪み
-⑤反証（${settings.rebuttal}）
-⑥バランス思考
-⑦行動
-
-必ず①〜⑦で出力`
-        },
+        {role:"system",content:systemPrompt},
+        ...chatLog.slice(-20),
         {role:"user",content:text}
       ]
     })
@@ -280,43 +195,82 @@ async function aiReply(text){
 
 // ===== 送信 =====
 async function sendMessage(){
+
   const text=userInput.value.trim();
   if(!text) return;
 
+  chatLog.push({role:"user",content:text});
   addMessage(text,"user");
   userInput.value="";
 
-  const reply=await aiReply(text);
+  const reply=await aiReply(text,false);
+
+  chatLog.push({role:"assistant",content:reply});
   addMessage(reply,"bot");
+  speak(reply);
 }
 
 // ===== 分析 =====
 async function analyze(){
+
   if(chatLog.length===0){
     alert("会話がないよ");
     return;
   }
-  const reply=await aiReply("分析して");
+
+  addMessage("🧠 分析中…","bot");
+
+  const reply=await aiReply("この会話を分析",true);
+
   addMessage(reply,"bot");
+  speak(reply);
 }
 
 // ===== 設定 =====
 function saveSettings(){
+
   settings.name=nameInput.value;
   settings.apiKey=apiKeyInput.value;
-  settings.rebuttal=rebuttalInput.value;
+  settings.prompt=promptInput.value;
+  settings.elevenApiKey=elevenApiKeyInput.value;
+  settings.voiceId=voiceIdInput.value;
+
+  settings.rebuttal = promptInput.value || settings.rebuttal;
+
+  if(imageInput.value.trim()){
+    settings.image=imageInput.value.trim();
+  }
 
   localStorage.setItem("name",settings.name);
   localStorage.setItem("apiKey",settings.apiKey);
+  localStorage.setItem("prompt",settings.prompt);
+  localStorage.setItem("image",settings.image);
+  localStorage.setItem("elevenApiKey",settings.elevenApiKey);
+  localStorage.setItem("voiceId",settings.voiceId);
   localStorage.setItem("rebuttal",settings.rebuttal);
 
+  girl.src=settings.image;
   closeSettings();
 }
 
 function openSettings(){ modal.classList.add("show"); }
 function closeSettings(){ modal.classList.remove("show"); }
 
-</script>
+// ===== 音声入力（🔥修正済）=====
+function startVoice(){
 
-</body>
-</html>
+  const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SpeechRecognition) return;
+
+  const recog=new SpeechRecognition();
+  recog.lang="ja-JP";
+
+  recog.onresult=(e)=>{
+    userInput.value=e.results[0][0].transcript;
+    sendMessage();
+  };
+
+  recog.start();
+}
+
+</script>
